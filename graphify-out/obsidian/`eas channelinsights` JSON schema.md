@@ -1,0 +1,19 @@
+---
+source_file: ".agents/skills/eas-update-insights/references/channel-insights-schema.md"
+type: "document"
+community: "Community 16"
+location: "L1"
+tags:
+  - graphify/document
+  - graphify/EXTRACTED
+  - community/Community_16
+---
+
+# `eas channel:insights` JSON schema
+
+## Connections
+- [[Caveats]] - `contains` [EXTRACTED]
+- [[Field reference]] - `contains` [EXTRACTED]
+- [[channel-insights-schema]] - `contains` [EXTRACTED]
+
+#graphify/document #graphify/EXTRACTED #community/Community_16

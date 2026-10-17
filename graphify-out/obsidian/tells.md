@@ -1,0 +1,17 @@
+---
+source_file: ".agents/skills/design-taste-frontend/references/tells.md"
+type: "document"
+community: "Community 80"
+location: "L1"
+tags:
+  - graphify/document
+  - graphify/EXTRACTED
+  - community/Community_80
+---
+
+# tells.md
+
+## Connections
+- [[Tells — the dated registry]] - `contains` [EXTRACTED]
+
+#graphify/document #graphify/EXTRACTED #community/Community_80

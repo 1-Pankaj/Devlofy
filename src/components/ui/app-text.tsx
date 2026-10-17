@@ -1,6 +1,6 @@
 import { Text, type TextProps, type TextStyle } from 'react-native';
 
-import { type, type TypeVariant, useTheme } from '@/theme';
+import { typeScale, type TypeVariant, useTheme } from '@/theme';
 
 export type TextTone =
   | 'default'
@@ -33,7 +33,7 @@ export function AppText({ variant = 'body', tone = 'default', style, ...rest }: 
 
   return (
     <Text
-      style={[type[variant] as TextStyle, { color: toneColor[tone] }, style]}
+      style={[typeScale[variant] as TextStyle, { color: toneColor[tone] }, style]}
       {...rest}
     />
   );

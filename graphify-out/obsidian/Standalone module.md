@@ -1,0 +1,17 @@
+---
+source_file: ".agents/skills/expo-module/references/create-expo-module.md"
+type: "document"
+community: "Community 21"
+location: "L18"
+tags:
+  - graphify/document
+  - graphify/EXTRACTED
+  - community/Community_21
+---
+
+# Standalone module
+
+## Connections
+- [[Choose the Module Type First]] - `contains` [EXTRACTED]
+
+#graphify/document #graphify/EXTRACTED #community/Community_21

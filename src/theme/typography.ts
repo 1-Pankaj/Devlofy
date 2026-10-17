@@ -28,7 +28,7 @@ export const fonts = {
 } as const;
 
 /** Named text styles — components never touch raw fontSize. */
-export const type = {
+export const typeScale = {
   display: {
     fontFamily: fonts.displaySemibold,
     fontSize: 32,
@@ -108,4 +108,4 @@ export const type = {
   },
 } as const satisfies Record<string, TextStyle>;
 
-export type TypeVariant = keyof typeof type;
+export type TypeVariant = keyof typeof typeScale;
