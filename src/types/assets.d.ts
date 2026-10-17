@@ -6,3 +6,8 @@ declare module '*.glb' {
   const asset: number | string;
   export default asset;
 }
+
+declare module '*.png' {
+  const asset: number | string;
+  export default asset;
+}

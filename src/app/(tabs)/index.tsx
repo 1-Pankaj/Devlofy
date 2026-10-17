@@ -16,6 +16,7 @@ import Animated, { FadeOut, LinearTransition, ReduceMotion } from 'react-native-
 import { GardenScene } from '@/components/garden/garden-scene';
 import { AppButton } from '@/components/ui/app-button';
 import { AppText } from '@/components/ui/app-text';
+import { emptyArt } from '@/components/ui/empty-art';
 import { EmptyState } from '@/components/ui/empty-state';
 import { LiveDot } from '@/components/ui/live-dot';
 import { Loading } from '@/components/ui/loading';
@@ -386,6 +387,7 @@ export default function TodayScreen() {
             ) : (tasks.data?.length ?? 0) === 0 ? (
               <EmptyState
                 icon={CheckCircle}
+                image={emptyArt.tasks}
                 title="Clear runway"
                 message="Nothing queued. Add a task above and go deep."
               />

@@ -310,8 +310,13 @@ def build_flowers(bm, S):
 
 
 def build_cairn(bm, S):
-    stack = [(0.0, 0.0, 0.048, 0.05), (-0.012, 0.008, 0.132, 0.04),
-             (0.01, -0.006, 0.196, 0.031), (-0.004, 0.004, 0.243, 0.023)]
+    # z values are tuned against rock()'s placement: the mesh centre sits at
+    # z - 0.217 * r and each rock's half-height is 0.62 * r, so neighbours
+    # are overlapped ~30% of a half-height — a hand-stacked, no-float cairn.
+    # bottom(top) = z - 0.837r (z + 0.403r); each next rock bottoms out a
+    # little above its neighbour's top so faces interpenetrate.
+    stack = [(0.0, 0.0, 0.048, 0.060), (-0.014, 0.010, 0.091, 0.048),
+             (0.012, -0.008, 0.126, 0.037), (-0.005, 0.005, 0.152, 0.027)]
     for i, (x, y, z, r) in enumerate(stack):
         rock(bm, S("stone"), (x, y, z), r, scale=(1.15, 0.95, 0.62), rot=(0, 0, D(i * 47)), seed=14.0 + i)
 

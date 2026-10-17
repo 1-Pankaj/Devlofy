@@ -17,6 +17,7 @@ import { View } from 'react-native';
 
 import { AppButton } from '@/components/ui/app-button';
 import { AppText } from '@/components/ui/app-text';
+import { emptyArt } from '@/components/ui/empty-art';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ListRow } from '@/components/ui/list-row';
 import { Loading } from '@/components/ui/loading';
@@ -166,6 +167,7 @@ export default function NotesScreen() {
               ListEmptyComponent={
                 <EmptyState
                   icon={Notebook}
+                  image={deferredSearch ? undefined : emptyArt.notes}
                   title={deferredSearch ? 'No matches' : 'No notes yet'}
                   message={
                     deferredSearch

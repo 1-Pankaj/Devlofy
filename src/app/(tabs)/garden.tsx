@@ -14,6 +14,7 @@ import { View } from 'react-native';
 import { GardenScene } from '@/components/garden/garden-scene';
 import { AppButton } from '@/components/ui/app-button';
 import { AppText } from '@/components/ui/app-text';
+import { emptyArt } from '@/components/ui/empty-art';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ListRow } from '@/components/ui/list-row';
 import { LiveDot } from '@/components/ui/live-dot';
@@ -304,6 +305,7 @@ export default function GardenScreen() {
             ) : (history.data?.length ?? 0) === 0 ? (
               <EmptyState
                 icon={Timer}
+                image={emptyArt.focus}
                 title="No sessions yet"
                 message="Start a focus block above — the tree and the log grow together."
               />

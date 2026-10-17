@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react';
-import { View } from 'react-native';
+import { Image, View } from 'react-native';
+import type { ImageSourcePropType } from 'react-native';
 import type { IconProps } from 'phosphor-react-native';
 
 import { radius, spacing, useTheme } from '@/theme';
@@ -9,10 +10,13 @@ type IconComponent = ComponentType<IconProps>;
 
 export function EmptyState({
   icon: Icon,
+  image,
   title,
   message,
 }: {
   icon?: IconComponent;
+  /** Rendered still of a 3D prop — takes precedence over the icon mark. */
+  image?: ImageSourcePropType;
   title: string;
   message?: string;
 }) {
@@ -20,7 +24,13 @@ export function EmptyState({
 
   return (
     <View style={{ alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.xxl }}>
-      {Icon ? (
+      {image ? (
+        <Image
+          source={image}
+          style={{ width: 144, height: 144, marginBottom: spacing.xs }}
+          resizeMode="contain"
+        />
+      ) : Icon ? (
         <View
           style={{
             width: 56,

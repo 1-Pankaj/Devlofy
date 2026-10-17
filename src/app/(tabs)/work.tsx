@@ -9,6 +9,7 @@ import { useState } from 'react';
 import { View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
+import { emptyArt } from '@/components/ui/empty-art';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ListRow } from '@/components/ui/list-row';
 import { Loading } from '@/components/ui/loading';
@@ -80,6 +81,7 @@ export default function WorkScreen() {
               ) : (projects.data?.length ?? 0) === 0 ? (
                 <EmptyState
                   icon={Folder}
+                  image={emptyArt.projects}
                   title="No projects yet"
                   message="Projects hold tasks, milestones and the story of a build."
                 />
@@ -145,6 +147,7 @@ export default function WorkScreen() {
               ) : (clients.data?.length ?? 0) === 0 ? (
                 <EmptyState
                   icon={UsersThree}
+                  image={emptyArt.clients}
                   title="No clients yet"
                   message="Add the people you build for — projects attach to them."
                 />
