@@ -7,9 +7,33 @@
  * normal user data afterwards; delete freely.
  */
 import type { SQLiteDatabase } from 'expo-sqlite';
-import { nanoid } from 'nanoid';
+import { Platform } from 'react-native';
+
+import { createId } from '../ids';
 
 const day = 24 * 60 * 60 * 1000;
+
+type Statement = {
+  sql: string;
+  params: (string | number | null)[];
+};
+
+/** Exclusive transactions are native-only in expo-sqlite (web uses a plain one). */
+async function runInTransaction(db: SQLiteDatabase, statements: Statement[]) {
+  const run = async (
+    exec: (sql: string, params: (string | number | null)[]) => Promise<unknown>,
+  ) => {
+    for (const statement of statements) {
+      await exec(statement.sql, statement.params);
+    }
+  };
+
+  if (Platform.OS === 'web') {
+    await db.withTransactionAsync(() => run((sql, params) => db.runAsync(sql, params)));
+    return;
+  }
+  await db.withExclusiveTransactionAsync((txn) => run((sql, params) => txn.runAsync(sql, params)));
+}
 
 function iso(daysAgo = 0, hoursAgo = 0): string {
   return new Date(Date.now() - daysAgo * day - hoursAgo * 60 * 60 * 1000).toISOString();
@@ -21,16 +45,16 @@ export async function seedIfEmpty(db: SQLiteDatabase) {
 
   const now = iso();
 
-  const codeloomId = nanoid();
-  const northwindId = nanoid();
-  const personalId = nanoid();
+  const codeloomId = createId();
+  const northwindId = createId();
+  const personalId = createId();
 
-  const devlofyId = nanoid();
-  const starlightId = nanoid();
-  const portalId = nanoid();
-  const portfolioId = nanoid();
+  const devlofyId = createId();
+  const starlightId = createId();
+  const portalId = createId();
+  const portfolioId = createId();
 
-  const statements: { sql: string; params: (string | number | null)[] }[] = [];
+  const statements: Statement[] = [];
 
   // Clients
   statements.push({
@@ -103,7 +127,7 @@ export async function seedIfEmpty(db: SQLiteDatabase) {
       sql: `INSERT INTO milestones (id, project_id, title, due_date, status, order_index, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       params: [
-        nanoid(),
+        createId(),
         portalId,
         title,
         new Date(Date.now() + dueInDays * day).toISOString(),
@@ -129,7 +153,7 @@ export async function seedIfEmpty(db: SQLiteDatabase) {
       sql: `INSERT INTO tasks (id, project_id, title, status, priority, energy, est_minutes, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       params: [
-        nanoid(),
+        createId(),
         projectId,
         title,
         opts.status ?? 'todo',
@@ -153,7 +177,7 @@ export async function seedIfEmpty(db: SQLiteDatabase) {
     sql: `INSERT INTO notes (id, title, body, project_id, pinned, created_at, updated_at)
           VALUES (?, ?, ?, ?, 1, ?, ?)`,
     params: [
-      nanoid(),
+      createId(),
       'Welcome to Devlofy',
       [
         '# This is your command center',
@@ -184,7 +208,7 @@ export async function seedIfEmpty(db: SQLiteDatabase) {
       sql: `INSERT INTO sessions (id, kind, started_at, ended_at, minutes, created_at, updated_at)
             VALUES (?, 'focus', ?, ?, ?, ?, ?)`,
       params: [
-        nanoid(),
+        createId(),
         startedAt,
         new Date(new Date(startedAt).getTime() + minutes * 60 * 1000).toISOString(),
         minutes,
@@ -194,9 +218,5 @@ export async function seedIfEmpty(db: SQLiteDatabase) {
     });
   });
 
-  await db.withExclusiveTransactionAsync(async (txn) => {
-    for (const statement of statements) {
-      await txn.runAsync(statement.sql, statement.params);
-    }
-  });
+  await runInTransaction(db, statements);
 }

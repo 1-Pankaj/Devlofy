@@ -8,10 +8,10 @@
  */
 import { useLayoutEffect, useMemo, useRef } from 'react';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
-import * as THREE from 'three';
+import type { Group, InstancedMesh } from 'three';
 
-import { Canvas, useFrame } from '@/lib/three';
 import { makeTree, type Branch } from '@/lib/garden/model';
+import { Canvas, THREE, useFrame } from '@/lib/three';
 
 const TRUNK_COLOR = '#6E5B4C';
 const GROUND_COLOR = '#0B100D';
@@ -43,10 +43,10 @@ function toCylinder(branch: Branch): CylinderTransform {
 }
 
 function Tree({ seed, growth }: { seed: number; growth: number }) {
-  const sway = useRef<THREE.Group>(null);
+  const sway = useRef<Group>(null);
   const tree = useMemo(() => makeTree(seed, growth), [seed, growth]);
   const segments = useMemo(() => tree.branches.map(toCylinder), [tree]);
-  const leafMesh = useRef<THREE.InstancedMesh>(null);
+  const leafMesh = useRef<InstancedMesh>(null);
 
   useLayoutEffect(() => {
     const mesh = leafMesh.current;

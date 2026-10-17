@@ -12,6 +12,7 @@
  *    check.
  */
 import type { SQLiteDatabase } from 'expo-sqlite';
+import { Platform } from 'react-native';
 
 import { seedIfEmpty } from './seed';
 
@@ -112,6 +113,27 @@ const MIGRATIONS: Migration[] = [
   },
 ];
 
+/**
+ * Exclusive transactions are native-only in expo-sqlite; the web build runs
+ * the same statements inside a plain transaction. Nothing else touches the
+ * database during boot, so ordering is guaranteed either way.
+ */
+async function runStatements(db: SQLiteDatabase, statements: string[]) {
+  if (Platform.OS === 'web') {
+    await db.withTransactionAsync(async () => {
+      for (const statement of statements) {
+        await db.execAsync(statement);
+      }
+    });
+    return;
+  }
+  await db.withExclusiveTransactionAsync(async (txn) => {
+    for (const statement of statements) {
+      await txn.execAsync(statement);
+    }
+  });
+}
+
 export async function migrate(db: SQLiteDatabase) {
   // Connection settings — outside the migration transaction, best-effort on web.
   for (const pragma of ['PRAGMA journal_mode = WAL;', 'PRAGMA foreign_keys = ON;']) {
@@ -131,11 +153,7 @@ export async function migrate(db: SQLiteDatabase) {
 
   for (const migration of MIGRATIONS) {
     if (migration.version <= version) continue;
-    await db.withExclusiveTransactionAsync(async (txn) => {
-      for (const statement of migration.statements) {
-        await txn.execAsync(statement);
-      }
-    });
+    await runStatements(db, migration.statements);
     await db.execAsync(`PRAGMA user_version = ${migration.version}`);
     version = migration.version;
   }

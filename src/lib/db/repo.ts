@@ -3,7 +3,7 @@
  * writes through these functions — no SQL in components.
  */
 import type { SQLiteDatabase } from 'expo-sqlite';
-import { nanoid } from 'nanoid';
+import { createId } from '../ids';
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -57,7 +57,7 @@ export async function getNote(db: SQLiteDatabase, id: string): Promise<Note | nu
 }
 
 export async function createNote(db: SQLiteDatabase): Promise<string> {
-  const id = nanoid();
+  const id = createId();
   const now = nowIso();
   await db.runAsync(
     `INSERT INTO notes (id, title, body, created_at, updated_at)
@@ -122,7 +122,7 @@ export async function createClient(
   db: SQLiteDatabase,
   input: { name: string; company?: string },
 ) {
-  const id = nanoid();
+  const id = createId();
   const now = nowIso();
   await db.runAsync(
     `INSERT INTO clients (id, name, company, status, created_at, updated_at)
@@ -214,7 +214,7 @@ export async function createProject(
   db: SQLiteDatabase,
   input: { name: string; clientId?: string | null; dueDate?: string | null },
 ) {
-  const id = nanoid();
+  const id = createId();
   const now = nowIso();
   await db.runAsync(
     `INSERT INTO projects (id, client_id, name, status, due_date, created_at, updated_at)
@@ -278,7 +278,7 @@ export type SessionRow = {
 };
 
 export async function startFocusSession(db: SQLiteDatabase): Promise<string> {
-  const id = nanoid();
+  const id = createId();
   const now = nowIso();
   await db.runAsync(
     `INSERT INTO sessions (id, kind, started_at, created_at, updated_at)

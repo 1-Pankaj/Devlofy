@@ -6,6 +6,11 @@ const config = getDefaultConfig(__dirname);
 // expo-sqlite loads a WebAssembly build of SQLite (wa-sqlite) on web.
 config.resolver.assetExts.push('wasm');
 
+// Blender-authored models (see docs/05-blender-pipeline.md) ship as GLB.
+if (!config.resolver.assetExts.includes('glb')) {
+  config.resolver.assetExts.push('glb');
+}
+
 // wa-sqlite uses SharedArrayBuffer, which browsers only expose to cross-origin
 // isolated pages. Development responses get COOP/COEP here so `npm run web`
 // works; a deployed build needs the same headers from the host (configured for

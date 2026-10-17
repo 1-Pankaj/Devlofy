@@ -1,4 +1,4 @@
-import { TextInput, View, type StyleProp, type TextInputProps, type ViewStyle } from 'react-native';
+import { TextInput, View, type StyleProp, type TextInputProps, type TextStyle, type ViewStyle } from 'react-native';
 
 import { fonts, radius, spacing, useTheme } from '@/theme';
 import { AppText } from './app-text';
@@ -8,8 +8,10 @@ export type TextFieldProps = Pick<
   'value' | 'onChangeText' | 'placeholder' | 'multiline' | 'autoFocus' | 'returnKeyType' | 'onSubmitEditing' | 'editable'
 > & {
   label?: string;
+  /** Outer wrapper. */
   style?: StyleProp<ViewStyle>;
-  inputStyle?: StyleProp<ViewStyle & { fontSize?: number; lineHeight?: number }>;
+  /** The input itself. */
+  inputStyle?: StyleProp<TextStyle>;
 };
 
 export function TextField({
@@ -49,8 +51,8 @@ export function TextField({
             lineHeight: multiline ? 24 : undefined,
             minHeight: multiline ? 140 : 48,
             textAlignVertical: multiline ? 'top' : 'center',
-          } as StyleProp<ViewStyle>,
-          inputStyle as StyleProp<ViewStyle>,
+          } as TextStyle,
+          inputStyle,
         ]}
       />
     </View>

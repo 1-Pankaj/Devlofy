@@ -5,7 +5,7 @@ const expoConfig = require('eslint-config-expo/flat');
 module.exports = defineConfig([
   expoConfig,
   {
-    ignores: ['dist/*', '.agents/**', 'node_modules/**'],
+    ignores: ['dist/*', '.agents/**', '.expo/**', 'node_modules/**'],
   },
   {
     // React Three Fiber JSX intrinsics (mesh, cylinderGeometry, …) are not DOM

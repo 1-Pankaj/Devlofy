@@ -18,6 +18,7 @@ import {
   SpaceGrotesk_700Bold,
 } from '@expo-google-fonts/space-grotesk';
 import { useFonts } from 'expo-font';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider as NavThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -28,7 +29,11 @@ import { DatabaseProvider } from '@/lib/db/provider';
 import { AppThemeProvider, useTheme } from '@/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
-SplashScreen.setOptions({ duration: 320, fade: true });
+
+// `setOptions` is a development-build feature; Expo Go warns about it.
+if (Constants.executionEnvironment !== ExecutionEnvironment.StoreClient) {
+  SplashScreen.setOptions({ duration: 320, fade: true });
+}
 
 function RootNavigator() {
   const { colors, scheme } = useTheme();
