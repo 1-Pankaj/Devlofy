@@ -163,16 +163,77 @@ export async function listClients(db: SQLiteDatabase): Promise<ClientRow[]> {
 
 export async function createClient(
   db: SQLiteDatabase,
-  input: { name: string; company?: string },
+  input: {
+    name: string;
+    company?: string;
+    email?: string;
+    phone?: string;
+    notes?: string;
+    status?: string;
+  },
 ) {
   const id = createId();
   const now = nowIso();
   await db.runAsync(
-    `INSERT INTO clients (id, name, company, status, created_at, updated_at)
-     VALUES (?, ?, ?, 'lead', ?, ?)`,
-    [id, input.name.trim(), input.company?.trim() || null, now, now],
+    `INSERT INTO clients (id, name, company, email, phone, notes, status, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id,
+      input.name.trim(),
+      input.company?.trim() || null,
+      input.email?.trim() || null,
+      input.phone?.trim() || null,
+      input.notes?.trim() || null,
+      input.status ?? 'lead',
+      now,
+      now,
+    ],
   );
   return id;
+}
+
+export async function updateClient(
+  db: SQLiteDatabase,
+  id: string,
+  patch: {
+    name?: string;
+    company?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    notes?: string | null;
+    status?: string;
+  },
+) {
+  const sets: string[] = [];
+  const params: (string | null)[] = [];
+  const text = (value: string | null | undefined) => value?.trim() || null;
+  if (patch.name !== undefined && patch.name.trim()) {
+    sets.push('name = ?');
+    params.push(patch.name.trim());
+  }
+  if (patch.company !== undefined) {
+    sets.push('company = ?');
+    params.push(text(patch.company));
+  }
+  if (patch.email !== undefined) {
+    sets.push('email = ?');
+    params.push(text(patch.email));
+  }
+  if (patch.phone !== undefined) {
+    sets.push('phone = ?');
+    params.push(text(patch.phone));
+  }
+  if (patch.notes !== undefined) {
+    sets.push('notes = ?');
+    params.push(text(patch.notes));
+  }
+  if (patch.status !== undefined) {
+    sets.push('status = ?');
+    params.push(patch.status);
+  }
+  if (sets.length === 0) return;
+  params.push(nowIso(), id);
+  await db.runAsync(`UPDATE clients SET ${sets.join(', ')}, updated_at = ? WHERE id = ?`, params);
 }
 
 export type ClientDetail = {
@@ -201,7 +262,7 @@ export async function listClientProjects(
 ): Promise<ProjectRow[]> {
   return db.getAllAsync<ProjectRow>(
     `SELECT p.id, p.client_id, c.name AS client_name, p.name, p.description, p.status,
-            p.stack_tags, p.due_date,
+            p.repo_url, p.stack_tags, p.due_date,
             (SELECT COUNT(*) FROM tasks t
               WHERE t.project_id = p.id AND t.deleted_at IS NULL) AS task_count,
             (SELECT COUNT(*) FROM tasks t
@@ -254,6 +315,7 @@ export type ProjectRow = {
   name: string;
   description: string | null;
   status: string;
+  repo_url: string | null;
   stack_tags: string | null;
   due_date: string | null;
   task_count: number;
@@ -271,7 +333,7 @@ export type MilestoneRow = {
 export async function listProjects(db: SQLiteDatabase): Promise<ProjectRow[]> {
   return db.getAllAsync<ProjectRow>(
     `SELECT p.id, p.client_id, c.name AS client_name, p.name, p.description, p.status,
-            p.stack_tags, p.due_date,
+            p.repo_url, p.stack_tags, p.due_date,
             (SELECT COUNT(*) FROM tasks t
               WHERE t.project_id = p.id AND t.deleted_at IS NULL) AS task_count,
             (SELECT COUNT(*) FROM tasks t
@@ -292,7 +354,7 @@ export async function listProjects(db: SQLiteDatabase): Promise<ProjectRow[]> {
 export async function getProject(db: SQLiteDatabase, id: string): Promise<ProjectRow | null> {
   return db.getFirstAsync<ProjectRow>(
     `SELECT p.id, p.client_id, c.name AS client_name, p.name, p.description, p.status,
-            p.stack_tags, p.due_date,
+            p.repo_url, p.stack_tags, p.due_date,
             (SELECT COUNT(*) FROM tasks t
               WHERE t.project_id = p.id AND t.deleted_at IS NULL) AS task_count,
             (SELECT COUNT(*) FROM tasks t
@@ -325,16 +387,84 @@ export async function listProjectTasks(db: SQLiteDatabase, projectId: string): P
 
 export async function createProject(
   db: SQLiteDatabase,
-  input: { name: string; clientId?: string | null; dueDate?: string | null },
+  input: {
+    name: string;
+    clientId?: string | null;
+    dueDate?: string | null;
+    description?: string;
+    status?: string;
+    repoUrl?: string;
+    stackTags?: string;
+  },
 ) {
   const id = createId();
   const now = nowIso();
   await db.runAsync(
-    `INSERT INTO projects (id, client_id, name, status, due_date, created_at, updated_at)
-     VALUES (?, ?, ?, 'active', ?, ?, ?)`,
-    [id, input.clientId ?? null, input.name.trim(), input.dueDate ?? null, now, now],
+    `INSERT INTO projects (id, client_id, name, description, status, repo_url, stack_tags, due_date, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id,
+      input.clientId ?? null,
+      input.name.trim(),
+      input.description?.trim() || null,
+      input.status ?? 'active',
+      input.repoUrl?.trim() || null,
+      input.stackTags?.trim() || null,
+      input.dueDate ?? null,
+      now,
+      now,
+    ],
   );
   return id;
+}
+
+export async function updateProject(
+  db: SQLiteDatabase,
+  id: string,
+  patch: {
+    name?: string;
+    client_id?: string | null;
+    description?: string | null;
+    status?: string;
+    repo_url?: string | null;
+    stack_tags?: string | null;
+    due_date?: string | null;
+  },
+) {
+  const sets: string[] = [];
+  const params: (string | null)[] = [];
+  const text = (value: string | null | undefined) => value?.trim() || null;
+  if (patch.name !== undefined && patch.name.trim()) {
+    sets.push('name = ?');
+    params.push(patch.name.trim());
+  }
+  if (patch.client_id !== undefined) {
+    sets.push('client_id = ?');
+    params.push(patch.client_id);
+  }
+  if (patch.description !== undefined) {
+    sets.push('description = ?');
+    params.push(text(patch.description));
+  }
+  if (patch.status !== undefined) {
+    sets.push('status = ?');
+    params.push(patch.status);
+  }
+  if (patch.repo_url !== undefined) {
+    sets.push('repo_url = ?');
+    params.push(text(patch.repo_url));
+  }
+  if (patch.stack_tags !== undefined) {
+    sets.push('stack_tags = ?');
+    params.push(text(patch.stack_tags));
+  }
+  if (patch.due_date !== undefined) {
+    sets.push('due_date = ?');
+    params.push(patch.due_date);
+  }
+  if (sets.length === 0) return;
+  params.push(nowIso(), id);
+  await db.runAsync(`UPDATE projects SET ${sets.join(', ')}, updated_at = ? WHERE id = ?`, params);
 }
 
 // ─────────────────────────── Tasks ───────────────────────────

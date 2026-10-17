@@ -76,11 +76,11 @@ function RootNavigator() {
         <Stack.Screen name="project/[id]" />
         <Stack.Screen name="client/[id]" />
         <Stack.Screen
-          name="new-project"
+          name="project-form"
           options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
         />
         <Stack.Screen
-          name="new-client"
+          name="client-form"
           options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
         />
       </Stack>

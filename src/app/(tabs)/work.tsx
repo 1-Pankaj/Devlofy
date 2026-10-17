@@ -61,7 +61,7 @@ export default function WorkScreen() {
               eyebrow="portfolio"
               title="Projects"
               actionLabel="New project"
-              onAction={() => router.push('/new-project')}
+              onAction={() => router.push('/project-form')}
             />
             <Panel coreStyle={{ padding: 0, overflow: 'hidden' }}>
               {projects.status === 'loading' && !projects.data ? (
@@ -126,7 +126,7 @@ export default function WorkScreen() {
               eyebrow="relationships"
               title="Clients"
               actionLabel="New client"
-              onAction={() => router.push('/new-client')}
+              onAction={() => router.push('/client-form')}
             />
             <Panel coreStyle={{ padding: 0, overflow: 'hidden' }}>
               {clients.status === 'loading' && !clients.data ? (

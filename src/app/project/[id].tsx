@@ -1,9 +1,9 @@
 /**
  * Project detail — progress, milestones, tasks.
  */
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { Check } from 'phosphor-react-native';
+import { Check, PencilSimple } from 'phosphor-react-native';
 import { View } from 'react-native';
 
 import { BackRow } from '@/components/ui/back-button';
@@ -23,6 +23,7 @@ import { radius, spacing, useTheme } from '@/theme';
 export default function ProjectDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const db = useSQLiteContext();
+  const router = useRouter();
   const { colors } = useTheme();
 
   const project = useLiveQuery((d) => getProject(d, id), { deps: [id] });
@@ -31,7 +32,18 @@ export default function ProjectDetailScreen() {
 
   const data = project.data;
   const progress = data && data.task_count > 0 ? data.done_count / data.task_count : 0;
-  const stackTags: string[] = data?.stack_tags ? (JSON.parse(data.stack_tags) as string[]) : [];
+  const stackTags: string[] = (() => {
+    if (!data?.stack_tags) return [];
+    try {
+      const value = JSON.parse(data.stack_tags) as unknown;
+      return Array.isArray(value) ? value.map(String) : [];
+    } catch {
+      return data.stack_tags
+        .split(',')
+        .map((part) => part.trim())
+        .filter(Boolean);
+    }
+  })();
 
   const toggleTask = async (taskId: string, done: boolean) => {
     await setTaskDone(db, taskId, !done);
@@ -47,7 +59,7 @@ export default function ProjectDetailScreen() {
         title: data?.name ?? 'Project',
         subtitle: data?.description ?? undefined,
         trailing: (
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: spacing.sm }}>
             {data ? (
               <StatusPill
                 label={data.status}
@@ -60,6 +72,26 @@ export default function ProjectDetailScreen() {
             {stackTags.map((tag) => (
               <StatusPill key={tag} label={tag} tone="info" />
             ))}
+            {data ? (
+              <PressableScale
+                haptic="light"
+                accessibilityLabel="Edit project"
+                onPress={() => router.push({ pathname: '/project-form', params: { id } })}>
+                <View
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: radius.full,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: colors.surfaceElevated,
+                    borderWidth: 1,
+                    borderColor: colors.hairline,
+                  }}>
+                  <PencilSimple size={15} color={colors.textSecondary} weight="regular" />
+                </View>
+              </PressableScale>
+            ) : null}
           </View>
         ),
       }}>

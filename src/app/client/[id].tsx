@@ -3,7 +3,7 @@
  * and how much of it is done.
  */
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { CaretRight, Envelope, Folder, Phone, UsersThree } from 'phosphor-react-native';
+import { CaretRight, Envelope, Folder, PencilSimple, Phone, UsersThree } from 'phosphor-react-native';
 import { View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
@@ -13,6 +13,7 @@ import { ListRow } from '@/components/ui/list-row';
 import { Loading } from '@/components/ui/loading';
 import { Panel } from '@/components/ui/panel';
 import { Eyebrow, StatusPill } from '@/components/ui/pill';
+import { PressableScale } from '@/components/ui/pressable-scale';
 import { ProgressRing } from '@/components/ui/progress-ring';
 import { Screen } from '@/components/ui/screen';
 import { SectionHeader } from '@/components/ui/section';
@@ -20,7 +21,7 @@ import { FadeUp } from '@/components/ui/stagger';
 import { useLiveQuery } from '@/lib/db/hooks';
 import { getClient, getClientStats, listClientProjects } from '@/lib/db/repo';
 import { formatShortDate } from '@/lib/format';
-import { spacing, useTheme } from '@/theme';
+import { radius, spacing, useTheme } from '@/theme';
 
 export default function ClientDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -44,7 +45,7 @@ export default function ClientDetailScreen() {
         eyebrow: data?.company ?? 'client',
         title: data?.name ?? 'Client',
         trailing: data ? (
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
             <StatusPill
               label={data.status}
               tone={data.status === 'active' ? 'accent' : 'neutral'}
@@ -53,6 +54,24 @@ export default function ClientDetailScreen() {
               label={`${projectCount} ${projectCount === 1 ? 'project' : 'projects'}`}
               tone="info"
             />
+            <PressableScale
+              haptic="light"
+              accessibilityLabel="Edit client"
+              onPress={() => router.push({ pathname: '/client-form', params: { id } })}>
+              <View
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: radius.full,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: colors.surfaceElevated,
+                  borderWidth: 1,
+                  borderColor: colors.hairline,
+                }}>
+                <PencilSimple size={15} color={colors.textSecondary} weight="regular" />
+              </View>
+            </PressableScale>
           </View>
         ) : undefined,
       }}>
