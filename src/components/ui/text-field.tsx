@@ -1,11 +1,33 @@
-import { TextInput, View, type StyleProp, type TextInputProps, type TextStyle, type ViewStyle } from 'react-native';
+import { useState } from 'react';
+import {
+  TextInput,
+  View,
+  type StyleProp,
+  type TextInputProps,
+  type TextStyle,
+  type ViewStyle,
+} from 'react-native';
 
 import { fonts, radius, spacing, useTheme } from '@/theme';
 import { AppText } from './app-text';
 
 export type TextFieldProps = Pick<
   TextInputProps,
-  'value' | 'onChangeText' | 'placeholder' | 'multiline' | 'autoFocus' | 'returnKeyType' | 'onSubmitEditing' | 'editable'
+  | 'value'
+  | 'onChangeText'
+  | 'placeholder'
+  | 'multiline'
+  | 'autoFocus'
+  | 'returnKeyType'
+  | 'onSubmitEditing'
+  | 'editable'
+  | 'onFocus'
+  | 'onBlur'
+  | 'selectTextOnFocus'
+  | 'keyboardType'
+  | 'autoCapitalize'
+  | 'maxLength'
+  | 'submitBehavior'
 > & {
   label?: string;
   /** Outer wrapper. */
@@ -19,9 +41,12 @@ export function TextField({
   style,
   inputStyle,
   multiline = false,
+  onFocus,
+  onBlur,
   ...inputProps
 }: TextFieldProps) {
   const { colors } = useTheme();
+  const [focused, setFocused] = useState(false);
 
   return (
     <View style={[{ gap: spacing.sm }, style]}>
@@ -33,6 +58,14 @@ export function TextField({
       <TextInput
         {...inputProps}
         multiline={multiline}
+        onFocus={(event) => {
+          setFocused(true);
+          onFocus?.(event);
+        }}
+        onBlur={(event) => {
+          setFocused(false);
+          onBlur?.(event);
+        }}
         placeholderTextColor={colors.textTertiary}
         selectionColor={colors.accent}
         cursorColor={colors.accent}
@@ -40,7 +73,7 @@ export function TextField({
           {
             backgroundColor: colors.surfaceElevated,
             borderWidth: 1,
-            borderColor: colors.hairline,
+            borderColor: focused ? colors.accentBorder : colors.hairline,
             borderRadius: radius.md,
             borderCurve: 'continuous',
             paddingHorizontal: spacing.lg,

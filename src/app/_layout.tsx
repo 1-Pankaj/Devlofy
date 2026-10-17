@@ -19,14 +19,22 @@ import {
 } from '@expo-google-fonts/space-grotesk';
 import { useFonts } from 'expo-font';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider as NavThemeProvider } from 'expo-router';
+import {
+  DarkTheme,
+  DefaultTheme,
+  Stack,
+  ThemeProvider as NavThemeProvider,
+  type ErrorBoundaryProps,
+} from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
+import { WarningOctagon } from 'phosphor-react-native';
 import { useEffect, useMemo } from 'react';
+import { Pressable, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { DatabaseProvider } from '@/lib/db/provider';
-import { AppThemeProvider, useTheme } from '@/theme';
+import { AppThemeProvider, palettes, useTheme } from '@/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -66,6 +74,7 @@ function RootNavigator() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="note/[id]" />
         <Stack.Screen name="project/[id]" />
+        <Stack.Screen name="client/[id]" />
         <Stack.Screen
           name="new-project"
           options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
@@ -76,6 +85,54 @@ function RootNavigator() {
         />
       </Stack>
     </NavThemeProvider>
+  );
+}
+
+/**
+ * Crash screen — deliberately outside the theme/font providers so it renders
+ * even if they failed. Colors come straight from the palette module.
+ */
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  const palette = palettes.dark;
+
+  return (
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: palette.background,
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 32,
+        gap: 14,
+      }}>
+      <WarningOctagon size={44} color={palette.danger} weight="light" />
+      <Text style={{ color: palette.text, fontSize: 22, textAlign: 'center', fontWeight: '600' }}>
+        Something broke.
+      </Text>
+      <Text
+        style={{ color: palette.textTertiary, fontSize: 13, lineHeight: 19, textAlign: 'center' }}
+        numberOfLines={5}>
+        {String(error?.message ?? error)}
+      </Text>
+      <Pressable
+        onPress={retry}
+        accessibilityRole="button"
+        accessibilityLabel="Try again"
+        style={({ pressed }) => ({
+          marginTop: 10,
+          height: 46,
+          paddingHorizontal: 28,
+          borderRadius: 9999,
+          backgroundColor: palette.accent,
+          alignItems: 'center',
+          justifyContent: 'center',
+          opacity: pressed ? 0.85 : 1,
+        })}>
+        <Text style={{ color: palette.accentContrast, fontSize: 15, fontWeight: '600' }}>
+          Try again
+        </Text>
+      </Pressable>
+    </View>
   );
 }
 

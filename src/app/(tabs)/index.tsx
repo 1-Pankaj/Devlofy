@@ -1,203 +1,231 @@
 /**
- * Today — the plan, the timer, the streak. The screen the app opens to.
+ * Today — the morning read.
+ *
+ * Hero panel: today's focus ring with the live session timer. Momentum panel:
+ * the trailing seven days, streak and tasks done. Plan panel: quick-add plus
+ * the open queue. Garden teaser closes the loop into the 3D home.
  */
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { ArrowRight, Check, Play, Stop } from 'phosphor-react-native';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ArrowUp, CaretRight, CheckCircle, Play, Plus, Stop } from 'phosphor-react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Pressable, TextInput, View } from 'react-native';
+import Animated, { FadeOut, LinearTransition, ReduceMotion } from 'react-native-reanimated';
 
 import { GardenScene } from '@/components/garden/garden-scene';
 import { AppButton } from '@/components/ui/app-button';
 import { AppText } from '@/components/ui/app-text';
-import { FadeUp } from '@/components/ui/stagger';
-import { Eyebrow, StatusPill } from '@/components/ui/pill';
+import { EmptyState } from '@/components/ui/empty-state';
+import { LiveDot } from '@/components/ui/live-dot';
+import { Loading } from '@/components/ui/loading';
 import { Panel } from '@/components/ui/panel';
+import { Eyebrow, StatusPill } from '@/components/ui/pill';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { ProgressRing } from '@/components/ui/progress-ring';
 import { Screen } from '@/components/ui/screen';
 import { SectionHeader } from '@/components/ui/section';
+import { FadeUp } from '@/components/ui/stagger';
 import { useLiveQuery } from '@/lib/db/hooks';
 import {
   countDoneToday,
+  createTask,
   endFocusSession,
+  focusMinutesByDay,
   getActiveSession,
   getFocusStreakDays,
   listTodayTasks,
   setTaskDone,
   startFocusSession,
   todayFocusMinutes,
-  type TaskRow,
+  totalFocusMinutes,
 } from '@/lib/db/repo';
-import { dateEyebrow, formatMinutes, greeting } from '@/lib/format';
-import { useSettings } from '@/state/settings';
-import { radius, spacing, useTheme } from '@/theme';
+import { hashString } from '@/lib/garden/model';
+import { stageFromStats } from '@/lib/garden/models';
+import { dateEyebrow, formatClock, formatMinutes, formatTimer, greeting } from '@/lib/format';
+import { duration, fonts, radius, spacing, useTheme } from '@/theme';
 
-const FOCUS_GOAL_MINUTES = 120;
+const DAILY_GOAL_MINUTES = 120;
+const WEEKDAY_INITIAL = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 const TIPS = [
-  'Give your best 90 minutes to the deep task before opening a single browser tab.',
-  'A task you keep skipping is usually two tasks. Split it and the resistance drops.',
-  'Log the tiny sessions too — 15 honest minutes a day beats one heroic Sunday.',
-  'Ship the ugly version to the client, then polish. Feedback is the scarce resource.',
-  'When stuck for 20 minutes on a bug, write down what you know. The gap shows up.',
+  'Two protected 50-minute blocks beat five interrupted 20s.',
+  'Ship the ugly version first — polish lives on top of working.',
+  'When stuck, write the smallest failing test, then fix it.',
+  'Batch shallow work after lunch; guard the morning for the deep thing.',
+  'If it takes under two minutes, do it now — the list stays honest.',
+  'End the day mid-sentence. Tomorrow starts with momentum.',
+  'A session you stop on purpose still counts. A session you never start does not.',
 ];
 
-/** Picked once per launch — rotating tips are a nice-to-have, not a render concern. */
-const DAILY_TIP = TIPS[Math.floor(Date.now() / 86400000) % TIPS.length];
-
-function formatElapsed(totalSeconds: number): string {
-  const h = Math.floor(totalSeconds / 3600);
-  const m = Math.floor((totalSeconds % 3600) / 60);
-  const s = totalSeconds % 60;
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
-}
-
-function StatColumn({ value, label }: { value: string; label: string }) {
-  return (
-    <View style={{ flex: 1, alignItems: 'center', gap: 2 }}>
-      <AppText variant="numberLg">{value}</AppText>
-      <Eyebrow>{label}</Eyebrow>
-    </View>
-  );
-}
-
-function TaskRowItem({ task, onDone }: { task: TaskRow; onDone: () => void }) {
-  const { colors } = useTheme();
-  const meta = [
-    task.project_name ?? 'Inbox',
-    task.est_minutes ? `${task.est_minutes}m` : null,
-    task.energy === 'deep' ? 'deep' : null,
-  ]
-    .filter(Boolean)
-    .join(' · ');
-
-  return (
-    <PressableScale haptic="none" onPress={onDone} accessibilityLabel={`Complete ${task.title}`}>
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: spacing.md,
-          paddingHorizontal: spacing.lg,
-          paddingVertical: spacing.md,
-        }}>
-        <View
-          style={{
-            width: 26,
-            height: 26,
-            borderRadius: radius.full,
-            borderWidth: 1.5,
-            borderColor: colors.hairlineStrong,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-          <Check size={13} color={colors.accent} weight="bold" />
-        </View>
-        <View style={{ flex: 1, gap: 2 }}>
-          <AppText variant="subheadMedium">{task.title}</AppText>
-          <AppText variant="caption" tone="secondary">
-            {meta}
-          </AppText>
-        </View>
-        {task.priority === 2 ? <StatusPill label="P1" tone="ember" /> : null}
-      </View>
-    </PressableScale>
-  );
+function dayInitial(dayKey: string): string {
+  const [y, m, d] = dayKey.split('-').map(Number);
+  return WEEKDAY_INITIAL[new Date(y, m - 1, d).getDay()];
 }
 
 export default function TodayScreen() {
   const db = useSQLiteContext();
   const { colors } = useTheme();
   const router = useRouter();
-  const userName = useSettings((s) => s.userName);
 
+  const session = useLiveQuery(getActiveSession);
+  const todayFocus = useLiveQuery(todayFocusMinutes);
+  const totalFocus = useLiveQuery(totalFocusMinutes);
+  const doneToday = useLiveQuery(countDoneToday);
+  const streak = useLiveQuery(getFocusStreakDays);
+  const week = useLiveQuery((d) => focusMinutesByDay(d, 7));
   const tasks = useLiveQuery((d) => listTodayTasks(d));
-  const session = useLiveQuery((d) => getActiveSession(d));
-  const stats = useLiveQuery(async (d) => ({
-    today: await todayFocusMinutes(d),
-    streak: await getFocusStreakDays(d),
-    done: await countDoneToday(d),
-  }));
 
-  const [now, setNow] = useState(() => Date.now());
-  const activeSession = session.data;
+  const active = session.data ?? null;
+  const startedAt = active?.started_at ?? null;
+
+  const [nowTick, setNowTick] = useState(() => Date.now());
+  const [starting, setStarting] = useState(false);
+  const [ending, setEnding] = useState(false);
+  const [title, setTitle] = useState('');
+  const [adding, setAdding] = useState(false);
+
   useEffect(() => {
-    if (!activeSession) return;
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, [activeSession]);
+    if (!startedAt) return;
+    const interval = setInterval(() => setNowTick(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, [startedAt]);
 
-  const elapsedSeconds = activeSession
-    ? Math.max(0, Math.floor((now - new Date(activeSession.started_at).getTime()) / 1000))
+  const elapsedSeconds = startedAt
+    ? Math.max(0, Math.floor((nowTick - new Date(startedAt).getTime()) / 1000))
     : 0;
 
-  const todayMinutes = stats.data?.today ?? 0;
-  const growth = Math.min(1, todayMinutes / FOCUS_GOAL_MINUTES);
+  const focusMinutes = todayFocus.data ?? 0;
+  const goalProgress = Math.min(1, focusMinutes / DAILY_GOAL_MINUTES);
 
-  const refreshAll = () => {
-    session.refresh();
-    stats.refresh();
-  };
+  const weekDays = useMemo(() => week.data ?? [], [week.data]);
+  const weekTotal = useMemo(() => weekDays.reduce((sum, day) => sum + day.minutes, 0), [weekDays]);
+  const weekMax = useMemo(() => Math.max(45, ...weekDays.map((day) => day.minutes)), [weekDays]);
 
-  const handleStart = async () => {
-    await startFocusSession(db);
-    refreshAll();
-  };
+  const seed = useMemo(() => hashString('devlofy-garden'), []);
+  const stage = useMemo(
+    () =>
+      stageFromStats({
+        totalMinutes: totalFocus.data ?? 0,
+        streakDays: streak.data ?? 0,
+        todayMinutes: focusMinutes,
+      }),
+    [totalFocus.data, streak.data, focusMinutes],
+  );
 
-  const handleEnd = async () => {
-    if (!activeSession) return;
-    await endFocusSession(db, activeSession.id);
-    if (process.env.EXPO_OS !== 'web') {
+  const handleStart = useCallback(async () => {
+    if (starting || active) return;
+    setStarting(true);
+    try {
+      await startFocusSession(db);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+      await session.refresh();
+    } finally {
+      setStarting(false);
+    }
+  }, [active, db, session, starting]);
+
+  const handleEnd = useCallback(async () => {
+    if (!active || ending) return;
+    setEnding(true);
+    try {
+      await endFocusSession(db, active.id);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      await Promise.all([
+        session.refresh(),
+        todayFocus.refresh(),
+        streak.refresh(),
+        week.refresh(),
+        totalFocus.refresh(),
+      ]);
+    } finally {
+      setEnding(false);
     }
-    refreshAll();
-  };
+  }, [active, db, ending, session, streak, todayFocus, totalFocus, week]);
 
-  const handleDone = async (task: TaskRow) => {
-    await setTaskDone(db, task.id, true);
-    if (process.env.EXPO_OS !== 'web') {
+  const handleAddTask = useCallback(async () => {
+    const taskTitle = title.trim();
+    if (!taskTitle || adding) return;
+    setAdding(true);
+    try {
+      await createTask(db, { title: taskTitle, priority: 2 });
+      setTitle('');
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+      await tasks.refresh();
+    } finally {
+      setAdding(false);
     }
-    tasks.refresh();
-    stats.refresh();
-  };
+  }, [adding, db, tasks, title]);
 
-  const subtitle =
-    tasks.data && stats.data
-      ? `${tasks.data.length} tasks queued · ${formatMinutes(stats.data.today)} focused today`
-      : 'Loading your day…';
+  const handleComplete = useCallback(
+    async (taskId: string) => {
+      await setTaskDone(db, taskId, true);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+      await Promise.all([tasks.refresh(), doneToday.refresh()]);
+    },
+    [db, doneToday, tasks],
+  );
+
+  const tip = TIPS[new Date().getDate() % TIPS.length];
 
   return (
-    <Screen header={{ eyebrow: dateEyebrow(), title: `${greeting()}, ${userName}`, subtitle }}>
-      {/* Focus hero */}
+    <Screen
+      header={{
+        eyebrow: dateEyebrow(),
+        title: greeting(),
+        subtitle:
+          week.status === 'ready' ? `${formatMinutes(weekTotal)} focused this week` : undefined,
+      }}>
+      {/* Hero: the timer */}
       <FadeUp index={0}>
-        <Panel glow coreStyle={{ gap: spacing.lg }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.lg }}>
+        <Panel glow={active != null}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xl }}>
             <ProgressRing
-              progress={growth}
-              size={104}
-              stroke={8}
-              color={activeSession ? colors.ember : colors.accent}>
+              progress={goalProgress}
+              size={116}
+              stroke={9}
+              color={active ? colors.ember : colors.accent}>
               <View style={{ alignItems: 'center' }}>
-                <AppText variant="numberLg">{formatMinutes(todayMinutes)}</AppText>
-                <Eyebrow>today</Eyebrow>
+                <AppText variant="numberLg">{focusMinutes}</AppText>
+                <AppText variant="eyebrow" tone="tertiary">
+                  min today
+                </AppText>
               </View>
             </ProgressRing>
             <View style={{ flex: 1, gap: spacing.sm }}>
-              {activeSession ? (
+              {active ? (
                 <>
-                  <Eyebrow tone="ember">focus active</Eyebrow>
-                  <AppText variant="display">{formatElapsed(elapsedSeconds)}</AppText>
-                  <AppButton label="End session" icon={Stop} variant="soft" onPress={handleEnd} />
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                    <LiveDot color={colors.ember} />
+                    <Eyebrow tone="ember">focus running</Eyebrow>
+                  </View>
+                  <AppText variant="numberXl">{formatTimer(elapsedSeconds)}</AppText>
+                  <AppText variant="caption" tone="tertiary">
+                    started {formatClock(active.started_at)} · {DAILY_GOAL_MINUTES / 60}h goal
+                  </AppText>
+                  <AppButton
+                    label="End session"
+                    icon={Stop}
+                    variant="soft"
+                    onPress={handleEnd}
+                    disabled={ending}
+                  />
                 </>
               ) : (
                 <>
                   <Eyebrow>focus</Eyebrow>
                   <AppText variant="title">Ready when you are.</AppText>
-                  <AppButton label="Start focus" icon={Play} onPress={handleStart} />
+                  <AppText variant="subhead" tone="secondary">
+                    {focusMinutes > 0
+                      ? `${formatMinutes(focusMinutes)} banked today. Keep the tree warm.`
+                      : 'Every focused minute grows the tree in the garden.'}
+                  </AppText>
+                  <AppButton
+                    label="Start focus"
+                    icon={Play}
+                    onPress={handleStart}
+                    disabled={starting}
+                  />
                 </>
               )}
             </View>
@@ -205,46 +233,222 @@ export default function TodayScreen() {
         </Panel>
       </FadeUp>
 
-      {/* Streak strip */}
+      {/* Momentum: the week */}
       <FadeUp index={1}>
-        <Panel pad="lg">
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <StatColumn value={formatMinutes(todayMinutes)} label="focus today" />
-            <View style={{ width: 1, height: 36, backgroundColor: colors.hairline }} />
-            <StatColumn value={`${stats.data?.streak ?? 0}d`} label="streak" />
-            <View style={{ width: 1, height: 36, backgroundColor: colors.hairline }} />
-            <StatColumn value={String(stats.data?.done ?? 0)} label="done today" />
+        <Panel>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'flex-start',
+              justifyContent: 'space-between',
+            }}>
+            <View style={{ gap: spacing.xxs }}>
+              <Eyebrow>momentum</Eyebrow>
+              <AppText variant="headline">Last seven days</AppText>
+            </View>
+            <View style={{ alignItems: 'flex-end', gap: spacing.xxs }}>
+              <AppText variant="mono" tone="secondary">
+                {formatMinutes(weekTotal)}
+              </AppText>
+              <AppText variant="caption" tone="tertiary">
+                focused
+              </AppText>
+            </View>
+          </View>
+
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'flex-end',
+              gap: spacing.sm,
+              marginTop: spacing.xl,
+            }}>
+            {weekDays.map((day) => {
+              const height =
+                day.minutes === 0 ? 5 : Math.max(12, Math.round((day.minutes / weekMax) * 72));
+              return (
+                <View key={day.day} style={{ flex: 1, alignItems: 'center', gap: spacing.sm }}>
+                  <View
+                    style={{
+                      width: '100%',
+                      height,
+                      borderRadius: 6,
+                      backgroundColor: day.isToday
+                        ? colors.accent
+                        : day.minutes > 0
+                          ? colors.accentSoft
+                          : colors.surfaceElevated,
+                    }}
+                  />
+                  <AppText variant="caption" tone={day.isToday ? 'accent' : 'tertiary'}>
+                    {dayInitial(day.day)}
+                  </AppText>
+                </View>
+              );
+            })}
+          </View>
+
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginTop: spacing.lg,
+              paddingTop: spacing.lg,
+              borderTopWidth: 1,
+              borderTopColor: colors.hairline,
+            }}>
+            <AppText variant="mono" tone="tertiary">
+              {doneToday.data ?? 0} tasks done today
+            </AppText>
+            <AppText variant="mono" tone="tertiary">
+              {streak.data ?? 0}-day streak
+            </AppText>
           </View>
         </Panel>
       </FadeUp>
 
-      {/* Plan */}
+      {/* Plan: quick-add + queue */}
       <FadeUp index={2}>
         <View>
-          <SectionHeader eyebrow="plan" title="Today" />
-          <Panel pad="xxs" coreStyle={{ padding: 0, overflow: 'hidden' }}>
-            {tasks.status === 'loading' && !tasks.data ? (
-              <View style={{ padding: spacing.xxl, alignItems: 'center' }}>
-                <ActivityIndicator color={colors.accent} />
-              </View>
-            ) : tasks.data && tasks.data.length > 0 ? (
-              tasks.data.map((task, index) => (
-                <View key={task.id}>
-                  <TaskRowItem task={task} onDone={() => handleDone(task)} />
-                  {index < tasks.data!.length - 1 ? (
-                    <View
-                      style={{ height: 1, marginLeft: 60, backgroundColor: colors.hairline }}
-                    />
-                  ) : null}
-                </View>
-              ))
-            ) : (
-              <View style={{ padding: spacing.xl, alignItems: 'center', gap: spacing.xs }}>
-                <AppText variant="subheadMedium">Queue is clear.</AppText>
-                <AppText variant="caption" tone="secondary">
-                  Everything planned for today is done.
+          <SectionHeader
+            eyebrow="plan"
+            title="Today"
+            trailing={
+              tasks.data && tasks.data.length > 0 ? (
+                <AppText variant="mono" tone="tertiary">
+                  {tasks.data.length} open
                 </AppText>
+              ) : undefined
+            }
+          />
+          <Panel coreStyle={{ padding: 0, overflow: 'hidden' }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: spacing.md,
+                paddingLeft: spacing.lg,
+                paddingRight: spacing.md,
+                borderBottomWidth: 1,
+                borderBottomColor: colors.hairline,
+              }}>
+              <Plus size={16} color={colors.textTertiary} weight="bold" />
+              <TextInput
+                value={title}
+                onChangeText={setTitle}
+                placeholder="Add a task for today…"
+                placeholderTextColor={colors.textTertiary}
+                selectionColor={colors.accent}
+                cursorColor={colors.accent}
+                returnKeyType="done"
+                submitBehavior="submit"
+                onSubmitEditing={handleAddTask}
+                accessibilityLabel="New task title"
+                style={{
+                  flex: 1,
+                  paddingVertical: 15,
+                  color: colors.text,
+                  fontFamily: fonts.bodyRegular,
+                  fontSize: 16,
+                }}
+              />
+              {title.trim().length > 0 ? (
+                <PressableScale haptic="selection" accessibilityLabel="Add task" onPress={handleAddTask}>
+                  <View
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: radius.full,
+                      backgroundColor: colors.accent,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}>
+                    <ArrowUp size={15} color={colors.accentContrast} weight="bold" />
+                  </View>
+                </PressableScale>
+              ) : null}
+            </View>
+
+            {tasks.status === 'loading' && !tasks.data ? (
+              <Loading label="reading today's queue…" />
+            ) : tasks.status === 'error' && !tasks.data ? (
+              <View style={{ padding: spacing.xl, gap: spacing.sm }}>
+                <AppText variant="subheadMedium" tone="danger">
+                  Could not read the task queue.
+                </AppText>
+                <PressableScale haptic="selection" onPress={() => tasks.refresh()}>
+                  <AppText variant="captionMedium" tone="accent">
+                    Retry
+                  </AppText>
+                </PressableScale>
               </View>
+            ) : (tasks.data?.length ?? 0) === 0 ? (
+              <EmptyState
+                icon={CheckCircle}
+                title="Clear runway"
+                message="Nothing queued. Add a task above and go deep."
+              />
+            ) : (
+              tasks.data!.map((task, index) => {
+                const meta = [task.project_name, task.est_minutes ? `${task.est_minutes}m` : null]
+                  .filter(Boolean)
+                  .join(' · ');
+                return (
+                  <Animated.View
+                    key={task.id}
+                    layout={LinearTransition.duration(duration.base).reduceMotion(
+                      ReduceMotion.System,
+                    )}
+                    exiting={FadeOut.duration(duration.fast).reduceMotion(ReduceMotion.System)}>
+                    <Pressable
+                      onPress={() => handleComplete(task.id)}
+                      accessibilityLabel={`Complete ${task.title}`}
+                      style={({ pressed }) => ({
+                        backgroundColor: pressed ? colors.surfaceElevated : 'transparent',
+                      })}>
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: spacing.md,
+                          paddingHorizontal: spacing.lg,
+                          paddingVertical: spacing.md,
+                        }}>
+                        <View
+                          style={{
+                            width: 24,
+                            height: 24,
+                            borderRadius: radius.full,
+                            borderWidth: 1.5,
+                            borderColor: colors.hairlineStrong,
+                          }}
+                        />
+                        <View style={{ flex: 1, gap: 1 }}>
+                          <AppText variant="subheadMedium" numberOfLines={1}>
+                            {task.title}
+                          </AppText>
+                          {meta ? (
+                            <AppText variant="caption" tone="tertiary" numberOfLines={1}>
+                              {meta}
+                            </AppText>
+                          ) : null}
+                        </View>
+                        {task.priority >= 3 ? <StatusPill label="high" tone="ember" /> : null}
+                      </View>
+                    </Pressable>
+                    {index < tasks.data!.length - 1 ? (
+                      <View
+                        style={{
+                          height: 1,
+                          marginLeft: 52,
+                          backgroundColor: colors.hairline,
+                        }}
+                      />
+                    ) : null}
+                  </Animated.View>
+                );
+              })
             )}
           </Panel>
         </View>
@@ -252,29 +456,47 @@ export default function TodayScreen() {
 
       {/* Garden teaser */}
       <FadeUp index={3}>
-        <View>
-          <SectionHeader
-            eyebrow="garden"
-            title="Growing quietly"
-            actionLabel="Open garden"
-            onAction={() => router.navigate('/garden')}
-          />
-          <Panel coreStyle={{ padding: 0, overflow: 'hidden' }}>
-            <GardenScene seed={11} growth={Math.max(0.08, Math.min(1, todayMinutes / FOCUS_GOAL_MINUTES))} style={{ height: 180 }} />
-          </Panel>
-        </View>
+        <Panel glow coreStyle={{ padding: 0, overflow: 'hidden' }}>
+          <PressableScale
+            haptic="selection"
+            accessibilityLabel="Open the focus garden"
+            onPress={() => router.push('/garden')}>
+            <View style={{ height: 190 }}>
+              <GardenScene seed={seed} growth={stage.growth} animated={false} />
+            </View>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: spacing.lg,
+                borderTopWidth: 1,
+                borderTopColor: colors.hairline,
+              }}>
+              <View style={{ gap: spacing.xxs }}>
+                <Eyebrow>focus garden</Eyebrow>
+                <AppText variant="subheadMedium">{stage.label}</AppText>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                <AppText variant="mono" tone="tertiary">
+                  {formatMinutes(totalFocus.data ?? 0)} logged
+                </AppText>
+                <CaretRight size={14} color={colors.textTertiary} weight="bold" />
+              </View>
+            </View>
+          </PressableScale>
+        </Panel>
       </FadeUp>
 
-      {/* Tip */}
+      {/* Craft tip */}
       <FadeUp index={4}>
-        <Panel coreStyle={{ gap: spacing.sm }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+        <Panel>
+          <View style={{ gap: spacing.sm }}>
             <Eyebrow tone="ember">craft tip</Eyebrow>
-            <ArrowRight size={12} color={colors.ember} weight="bold" />
+            <AppText variant="subhead" tone="secondary">
+              {tip}
+            </AppText>
           </View>
-          <AppText variant="subhead" tone="secondary">
-            {DAILY_TIP}
-          </AppText>
         </Panel>
       </FadeUp>
     </Screen>

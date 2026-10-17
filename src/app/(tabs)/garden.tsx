@@ -1,20 +1,26 @@
 /**
- * Focus Garden — the 3D home of focused time. The tree grows with real data;
- * sessions feed it, and the streak keeps it green.
+ * Focus Garden — the 3D home of focused time.
+ *
+ * The tree's stage reads total focus, streak and today's minutes. Sessions
+ * run here: pick a block length, start it, and the block closes itself out
+ * when the timer reaches zero.
  */
 import * as Haptics from 'expo-haptics';
-import { useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { Play, Stop, Timer } from 'phosphor-react-native';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View } from 'react-native';
 
 import { GardenScene } from '@/components/garden/garden-scene';
 import { AppButton } from '@/components/ui/app-button';
 import { AppText } from '@/components/ui/app-text';
+import { EmptyState } from '@/components/ui/empty-state';
 import { ListRow } from '@/components/ui/list-row';
+import { LiveDot } from '@/components/ui/live-dot';
+import { Loading } from '@/components/ui/loading';
 import { Panel } from '@/components/ui/panel';
 import { Eyebrow } from '@/components/ui/pill';
+import { PressableScale } from '@/components/ui/pressable-scale';
 import { Screen } from '@/components/ui/screen';
 import { SectionHeader } from '@/components/ui/section';
 import { FadeUp } from '@/components/ui/stagger';
@@ -22,164 +28,290 @@ import { useLiveQuery } from '@/lib/db/hooks';
 import {
   endFocusSession,
   getActiveSession,
-  getDataStats,
   getFocusStreakDays,
   listRecentSessions,
   startFocusSession,
   todayFocusMinutes,
   totalFocusMinutes,
 } from '@/lib/db/repo';
-import { bucketGrowth, growthFromStats } from '@/lib/garden/model';
-import { formatClock, formatDayLabel, formatMinutes } from '@/lib/format';
-import { spacing, useTheme } from '@/theme';
+import { hashString } from '@/lib/garden/model';
+import { stageFromStats } from '@/lib/garden/models';
+import { formatClock, formatDayLabel, formatMinutes, formatTimer } from '@/lib/format';
+import { radius, spacing, useTheme } from '@/theme';
 
-function stageName(growth: number): string {
-  if (growth < 0.15) return 'Seedling';
-  if (growth < 0.35) return 'Sprout';
-  if (growth < 0.6) return 'Sapling';
-  if (growth < 0.85) return 'Young tree';
-  return 'Canopy';
+const BLOCKS = [25, 50, 90] as const;
+type Block = (typeof BLOCKS)[number];
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={{ flex: 1, gap: spacing.xxs }}>
+      <AppText variant="numberLg">{value}</AppText>
+      <AppText variant="eyebrow" tone="tertiary">
+        {label}
+      </AppText>
+    </View>
+  );
 }
 
 export default function GardenScreen() {
   const db = useSQLiteContext();
   const { colors } = useTheme();
-  const [sceneMounted, setSceneMounted] = useState(true);
 
-  // Free the GL context when the tab is not visible.
-  useFocusEffect(
-    useCallback(() => {
-      setSceneMounted(true);
-      return () => setSceneMounted(false);
-    }, []),
+  const session = useLiveQuery(getActiveSession);
+  const totals = useLiveQuery(async (d) => ({
+    total: await totalFocusMinutes(d),
+    today: await todayFocusMinutes(d),
+    streak: await getFocusStreakDays(d),
+  }));
+  const history = useLiveQuery((d) => listRecentSessions(d, 6));
+
+  const [block, setBlock] = useState<Block>(25);
+  const [nowTick, setNowTick] = useState(() => Date.now());
+  const [starting, setStarting] = useState(false);
+  const [ending, setEnding] = useState(false);
+  const autoEndingRef = useRef(false);
+
+  const active = session.data ?? null;
+  const startedAt = active?.started_at ?? null;
+
+  useEffect(() => {
+    if (!startedAt) return;
+    const interval = setInterval(() => setNowTick(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, [startedAt]);
+
+  const elapsedSeconds = startedAt
+    ? Math.max(0, Math.floor((nowTick - new Date(startedAt).getTime()) / 1000))
+    : 0;
+  const remainingSeconds = Math.max(0, block * 60 - elapsedSeconds);
+  const progress = Math.min(1, elapsedSeconds / (block * 60));
+
+  const seed = useMemo(() => hashString('devlofy-garden'), []);
+  const stage = useMemo(
+    () =>
+      stageFromStats({
+        totalMinutes: totals.data?.total ?? 0,
+        streakDays: totals.data?.streak ?? 0,
+        todayMinutes: totals.data?.today ?? 0,
+      }),
+    [totals.data],
   );
 
-  const stats = useLiveQuery(async (d) => {
-    const [total, streak, dataStats, todayMinutes] = await Promise.all([
-      totalFocusMinutes(d),
-      getFocusStreakDays(d),
-      getDataStats(d),
-      todayFocusMinutes(d),
-    ]);
-    const growth = growthFromStats({
-      totalMinutes: total,
-      streakDays: streak,
-      todayMinutes,
-    });
-    return { total, streak, sessions: dataStats.sessions, growth };
-  });
+  const refreshAll = useCallback(async () => {
+    await Promise.all([session.refresh(), totals.refresh(), history.refresh()]);
+  }, [history, session, totals]);
 
-  const session = useLiveQuery((d) => getActiveSession(d));
-  const recent = useLiveQuery((d) => listRecentSessions(d, 6));
-
-  const growth = stats.data?.growth ?? 0;
-  const bucketed = bucketGrowth(growth);
-
-  const refreshAll = () => {
-    stats.refresh();
-    session.refresh();
-    recent.refresh();
-  };
-
-  const handleStart = async () => {
-    await startFocusSession(db);
-    refreshAll();
-  };
-
-  const handleEnd = async () => {
-    if (!session.data) return;
-    await endFocusSession(db, session.data.id);
-    if (process.env.EXPO_OS !== 'web') {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+  const handleStart = useCallback(async () => {
+    if (starting || active) return;
+    setStarting(true);
+    try {
+      await startFocusSession(db);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+      await refreshAll();
+    } finally {
+      setStarting(false);
     }
-    refreshAll();
-  };
+  }, [active, db, refreshAll, starting]);
+
+  const handleEnd = useCallback(async () => {
+    if (!active || ending) return;
+    setEnding(true);
+    try {
+      await endFocusSession(db, active.id);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      await refreshAll();
+    } finally {
+      setEnding(false);
+    }
+  }, [active, db, ending, refreshAll]);
+
+  // The block closes itself out — end at zero, exactly once.
+  useEffect(() => {
+    if (!active || remainingSeconds > 0 || autoEndingRef.current) return;
+    autoEndingRef.current = true;
+    (async () => {
+      try {
+        await endFocusSession(db, active.id);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+        await refreshAll();
+      } finally {
+        autoEndingRef.current = false;
+      }
+    })();
+  }, [active, db, refreshAll, remainingSeconds]);
 
   return (
     <Screen
       header={{
-        eyebrow: 'focus garden',
-        title: stageName(growth),
-        subtitle: `${formatMinutes(stats.data?.total ?? 0)} of focused growth · ${stats.data?.streak ?? 0} day streak`,
+        eyebrow: 'focus',
+        title: 'Garden',
+        subtitle:
+          totals.status === 'ready'
+            ? `${stage.label} · ${formatMinutes(totals.data?.total ?? 0)} grown in total`
+            : undefined,
       }}>
+      {/* The tree and the session controls */}
       <FadeUp index={0}>
         <Panel glow coreStyle={{ padding: 0, overflow: 'hidden' }}>
-          <View style={{ height: 380 }}>
-            {sceneMounted ? (
-              <GardenScene seed={101} growth={Math.max(0.06, bucketed)} />
+          <View style={{ height: 320 }}>
+            <GardenScene seed={seed} growth={stage.growth} animated />
+            <View
+              style={{
+                position: 'absolute',
+                top: spacing.lg,
+                left: spacing.lg,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: spacing.sm,
+                paddingHorizontal: spacing.md,
+                paddingVertical: 6,
+                borderRadius: radius.full,
+                backgroundColor: colors.scrim,
+                borderWidth: 1,
+                borderColor: colors.hairline,
+              }}>
+              <LiveDot color={active ? colors.ember : colors.accent} />
+              <AppText variant="mono" tone={active ? 'ember' : 'secondary'}>
+                {active ? formatTimer(elapsedSeconds) : stage.label}
+              </AppText>
+            </View>
+          </View>
+
+          <View
+            style={{
+              borderTopWidth: 1,
+              borderTopColor: colors.hairline,
+              padding: spacing.lg,
+              gap: spacing.lg,
+            }}>
+            {active ? (
+              <>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: spacing.md,
+                  }}>
+                  <View style={{ flex: 1, gap: spacing.xxs }}>
+                    <Eyebrow tone="ember">focus block · {block}m</Eyebrow>
+                    <AppText variant="numberXl">{formatTimer(remainingSeconds)}</AppText>
+                  </View>
+                  <AppButton
+                    label="End"
+                    icon={Stop}
+                    variant="soft"
+                    onPress={handleEnd}
+                    disabled={ending}
+                  />
+                </View>
+                <View
+                  style={{
+                    height: 3,
+                    borderRadius: 2,
+                    backgroundColor: colors.surfaceSunken,
+                    overflow: 'hidden',
+                  }}>
+                  <View
+                    style={{
+                      height: '100%',
+                      width: `${Math.round(progress * 100)}%`,
+                      backgroundColor: colors.accent,
+                    }}
+                  />
+                </View>
+                <AppText variant="caption" tone="tertiary">
+                  {Math.round(progress * 100)}% of {block}m · started{' '}
+                  {formatClock(active.started_at)}
+                </AppText>
+              </>
             ) : (
-              <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-                <Eyebrow>garden resting</Eyebrow>
-              </View>
+              <>
+                <View style={{ gap: spacing.xxs }}>
+                  <Eyebrow>session length</Eyebrow>
+                  <AppText variant="subhead" tone="secondary">
+                    Pick a block, then go quiet. It ends itself.
+                  </AppText>
+                </View>
+                <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+                  {BLOCKS.map((minutes) => {
+                    const selected = minutes === block;
+                    return (
+                      <PressableScale
+                        key={minutes}
+                        haptic="selection"
+                        accessibilityLabel={`${minutes} minute block`}
+                        onPress={() => setBlock(minutes)}>
+                        <View
+                          style={{
+                            paddingHorizontal: spacing.xl,
+                            height: 44,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: radius.full,
+                            backgroundColor: selected ? colors.accentSoft : colors.surfaceElevated,
+                            borderWidth: 1,
+                            borderColor: selected ? colors.accentBorder : colors.hairline,
+                          }}>
+                          <AppText variant="mono" tone={selected ? 'accent' : 'secondary'}>
+                            {minutes}m
+                          </AppText>
+                        </View>
+                      </PressableScale>
+                    );
+                  })}
+                </View>
+                <AppButton
+                  label={`Focus for ${block} minutes`}
+                  icon={Play}
+                  onPress={handleStart}
+                  disabled={starting}
+                />
+              </>
             )}
           </View>
         </Panel>
       </FadeUp>
 
+      {/* Momentum numbers */}
       <FadeUp index={1}>
-        <View style={{ flexDirection: 'row', gap: spacing.md }}>
-          <AppButton
-            label={session.data ? 'End session' : 'Focus 25m'}
-            icon={session.data ? Stop : Play}
-            variant={session.data ? 'soft' : 'primary'}
-            onPress={session.data ? handleEnd : handleStart}
-          />
-          <Panel pad="sm" rounding="lg" style={{ justifyContent: 'center' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.sm }}>
-              <AppText variant="mono" tone="accent">
-                {Math.round(growth * 100)}%
-              </AppText>
-              <AppText variant="caption" tone="secondary">
-                grown
-              </AppText>
-            </View>
-          </Panel>
-        </View>
-      </FadeUp>
-
-      <FadeUp index={2}>
-        <Panel pad="lg">
-          <View style={{ flexDirection: 'row' }}>
-            {[
-              { value: formatMinutes(stats.data?.total ?? 0), label: 'all time' },
-              { value: `${stats.data?.streak ?? 0}d`, label: 'streak' },
-              { value: String(stats.data?.sessions ?? 0), label: 'sessions' },
-            ].map((stat, index) => (
-              <View key={stat.label} style={{ flex: 1, flexDirection: 'row' }}>
-                {index > 0 ? (
-                  <View style={{ width: 1, backgroundColor: colors.hairline, marginVertical: 4 }} />
-                ) : null}
-                <View style={{ flex: 1, alignItems: 'center', gap: 2 }}>
-                  <AppText variant="numberLg">{stat.value}</AppText>
-                  <Eyebrow>{stat.label}</Eyebrow>
-                </View>
-              </View>
-            ))}
+        <Panel>
+          <View style={{ flexDirection: 'row', gap: spacing.lg }}>
+            <Stat label="total focus" value={formatMinutes(totals.data?.total ?? 0)} />
+            <Stat label="today" value={formatMinutes(totals.data?.today ?? 0)} />
+            <Stat label="streak" value={`${totals.data?.streak ?? 0}d`} />
           </View>
         </Panel>
       </FadeUp>
 
-      <FadeUp index={3}>
+      {/* Session log */}
+      <FadeUp index={2}>
         <View>
-          <SectionHeader eyebrow="history" title="Recent sessions" />
+          <SectionHeader eyebrow="records" title="Recent sessions" />
           <Panel coreStyle={{ padding: 0, overflow: 'hidden' }}>
-            {recent.data && recent.data.length > 0 ? (
-              recent.data.map((row, index) => (
+            {history.status === 'loading' && !history.data ? (
+              <Loading label="reading sessions…" />
+            ) : (history.data?.length ?? 0) === 0 ? (
+              <EmptyState
+                icon={Timer}
+                title="No sessions yet"
+                message="Start a focus block above — the tree and the log grow together."
+              />
+            ) : (
+              history.data!.map((entry, index) => (
                 <ListRow
-                  key={row.id}
-                  icon={<Timer size={17} color={colors.accent} weight="light" />}
-                  title={`${formatMinutes(row.minutes ?? 0)} of focus`}
-                  subtitle={`${formatDayLabel(row.started_at)} · ${formatClock(row.started_at)}`}
-                  showSeparator={index < recent.data!.length - 1}
+                  key={entry.id}
+                  icon={<Timer size={17} color={colors.textTertiary} weight="light" />}
+                  title={formatDayLabel(entry.started_at)}
+                  subtitle={`started ${formatClock(entry.started_at)}`}
+                  showSeparator={index < history.data!.length - 1}
+                  trailing={
+                    <AppText variant="mono" tone="secondary">
+                      {entry.minutes ?? 0}m
+                    </AppText>
+                  }
                 />
               ))
-            ) : (
-              <View style={{ padding: spacing.xl, alignItems: 'center', gap: spacing.xs }}>
-                <AppText variant="subheadMedium">No sessions yet.</AppText>
-                <AppText variant="caption" tone="secondary">
-                  Your first focused block plants the tree.
-                </AppText>
-              </View>
             )}
           </Panel>
         </View>

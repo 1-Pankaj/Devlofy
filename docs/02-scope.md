@@ -17,17 +17,18 @@ created: 2026-10-17
 
 ## v0.1 — foundation (built 2026-10-17)
 
-- **Today** — greeting, focus hero + live session timer, streak strip, today's tasks with completion, craft tip.
-- **Garden** — 3D tree grown from real focus data (streak + total + today): Blender-authored GLBs over the procedural fallback, recent sessions, focus start/end.
-- **Work** — projects list with progress rings, project detail (milestones + tasks), clients list, **create project / create client**.
-- **Notes** — search over titles + bodies, pinned notes, autosaving editor.
+- **Today** — greeting, focus hero with live timer + animated ring, 7-day momentum chart (streak, tasks done), **quick-add tasks** with animated completion, garden teaser, craft tip.
+- **Garden** — 3D tree grown from real focus data: Blender-authored GLBs over the procedural fallback; **focus blocks (25/50/90) with countdown, progress bar and auto-close at zero**; live overlay timer; recent sessions.
+- **Work** — projects list with progress rings, project detail (milestones + tasks), clients list, **client detail (delivery stats, details, portfolio)**, create project / create client.
+- **Notes** — search over titles + bodies, pinned notes, **rebuilt editor**: autosave with live save badge, **markdown preview**, **starter templates**, word/char footer, pin + inline delete confirm.
 - **More** — name, theme (System / Ink / Paper), desktop mode, data stats, JSON export, about.
 - **Desktop mode** — side rail + centered content; adaptive tab shell.
+- **System** — safe-area insets owned by `Screen` everywhere, animated `ProgressRing` / `LiveDot` / `Loading` primitives, root crash boundary, loading/error/empty handled on every list.
 - **Data layer** — full local schema ([[06-data-model]]), migrations, first-run seed, sync-ready (UUID ids, `updated_at`, tombstones).
 
 ## v1 — the spine *(next)*
 
-- Task creation UI (Today currently reads; project detail toggles).
+- Task scheduling: due dates, estimates, energy pairing; quick attach to projects.
 - Time log editing, manual entries, billable flags.
 - Git dashboard (GitHub device flow, read-mostly: PRs, commits, issues, CI) — needs online, degrades to last-synced.
 - Notifications/alarms (mobile-only; **expo-notifications does not support web**).

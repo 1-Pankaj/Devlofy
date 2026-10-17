@@ -1,13 +1,14 @@
 /**
  * Screen — the page shell every route uses.
  *
- * Owns: background, ambient glows, header block (eyebrow + display title),
- * content max-width for tablet/desktop (≈ 920), and bottom padding that clears
- * the floating tab bar. On desktop mode content is centered; the side rail
- * lives in the tab layout, not here.
+ * Owns: safe-area top inset, background, ambient glows, header block
+ * (eyebrow + display title), content max-width for tablet/desktop (≈ 920),
+ * and bottom padding that clears the floating tab bar. On desktop mode
+ * content is centered; the side rail lives in the tab layout, not here.
  */
 import type { PropsWithChildren, ReactElement, ReactNode } from 'react';
 import { ScrollView, View, type StyleProp, type ViewStyle } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { spacing, useTheme } from '@/theme';
 import { useBreakpoint, useDesktopMode } from '@/lib/layout/breakpoints';
@@ -15,6 +16,9 @@ import { AppText } from './app-text';
 import { Glow } from './glow';
 
 export const CONTENT_MAX_WIDTH = 920;
+
+/** Clears the floating tab bar (≈ 60) plus a breath of air. */
+const TAB_BAR_CLEARANCE = 96;
 
 export type ScreenHeader = {
   eyebrow?: string;
@@ -41,11 +45,13 @@ export function Screen({
   refreshControl,
 }: ScreenProps) {
   const { colors, scheme } = useTheme();
+  const insets = useSafeAreaInsets();
   const breakpoint = useBreakpoint();
   const desktopMode = useDesktopMode();
   const wide = breakpoint !== 'compact';
 
-  const bottomPad = desktopMode ? spacing.xxxl : 148;
+  const padTop = insets.top + spacing.md;
+  const padBottom = (desktopMode ? spacing.xxxl : TAB_BAR_CLEARANCE) + insets.bottom;
 
   const inner = (
     <View
@@ -59,7 +65,7 @@ export function Screen({
         contentStyle,
       ]}>
       {header ? (
-        <View style={{ gap: spacing.xs, marginTop: spacing.sm }}>
+        <View style={{ gap: spacing.xs, paddingTop: spacing.sm }}>
           {header.eyebrow ? (
             <AppText variant="eyebrow" tone="tertiary">
               {header.eyebrow}
@@ -88,13 +94,13 @@ export function Screen({
       ) : null}
       {scroll ? (
         <ScrollView
-          contentInsetAdjustmentBehavior="automatic"
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           refreshControl={refreshControl}
           contentContainerStyle={{
             paddingHorizontal: spacing.xl,
-            paddingTop: spacing.md,
-            paddingBottom: bottomPad,
+            paddingTop: padTop,
+            paddingBottom: padBottom,
           }}>
           {inner}
         </ScrollView>
@@ -103,8 +109,8 @@ export function Screen({
           style={{
             flex: 1,
             paddingHorizontal: spacing.xl,
-            paddingTop: spacing.md,
-            paddingBottom: bottomPad,
+            paddingTop: padTop,
+            paddingBottom: padBottom,
           }}>
           {inner}
         </View>

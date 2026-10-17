@@ -132,6 +132,76 @@ export async function createClient(
   return id;
 }
 
+export type ClientDetail = {
+  id: string;
+  name: string;
+  company: string | null;
+  email: string | null;
+  phone: string | null;
+  notes: string | null;
+  status: string;
+  created_at: string;
+};
+
+export async function getClient(db: SQLiteDatabase, id: string): Promise<ClientDetail | null> {
+  return db.getFirstAsync<ClientDetail>(
+    `SELECT id, name, company, email, phone, notes, status, created_at
+     FROM clients
+     WHERE id = ? AND deleted_at IS NULL`,
+    [id],
+  );
+}
+
+export async function listClientProjects(
+  db: SQLiteDatabase,
+  clientId: string,
+): Promise<ProjectRow[]> {
+  return db.getAllAsync<ProjectRow>(
+    `SELECT p.id, p.client_id, c.name AS client_name, p.name, p.description, p.status,
+            p.stack_tags, p.due_date,
+            (SELECT COUNT(*) FROM tasks t
+              WHERE t.project_id = p.id AND t.deleted_at IS NULL) AS task_count,
+            (SELECT COUNT(*) FROM tasks t
+              WHERE t.project_id = p.id AND t.status = 'done' AND t.deleted_at IS NULL) AS done_count
+     FROM projects p
+     LEFT JOIN clients c ON c.id = p.client_id
+     WHERE p.deleted_at IS NULL AND p.client_id = ?
+     ORDER BY CASE p.status
+                WHEN 'active' THEN 0
+                WHEN 'maintenance' THEN 1
+                WHEN 'planning' THEN 2
+                ELSE 3
+              END,
+              p.due_date IS NULL, p.due_date ASC`,
+    [clientId],
+  );
+}
+
+export type ClientStats = {
+  projects: number;
+  activeProjects: number;
+  tasks: number;
+  doneTasks: number;
+};
+
+export async function getClientStats(db: SQLiteDatabase, clientId: string): Promise<ClientStats> {
+  const row = await db.getFirstAsync<ClientStats>(
+    `SELECT
+       (SELECT COUNT(*) FROM projects p
+         WHERE p.client_id = ? AND p.deleted_at IS NULL) AS projects,
+       (SELECT COUNT(*) FROM projects p
+         WHERE p.client_id = ? AND p.status = 'active' AND p.deleted_at IS NULL) AS activeProjects,
+       (SELECT COUNT(*) FROM tasks t
+         JOIN projects p ON p.id = t.project_id
+         WHERE p.client_id = ? AND t.deleted_at IS NULL) AS tasks,
+       (SELECT COUNT(*) FROM tasks t
+         JOIN projects p ON p.id = t.project_id
+         WHERE p.client_id = ? AND t.status = 'done' AND t.deleted_at IS NULL) AS doneTasks`,
+    [clientId, clientId, clientId, clientId],
+  );
+  return row ?? { projects: 0, activeProjects: 0, tasks: 0, doneTasks: 0 };
+}
+
 // ─────────────────────────── Projects ───────────────────────────
 
 export type ProjectRow = {
@@ -249,6 +319,20 @@ export async function listTodayTasks(db: SQLiteDatabase, limit = 8): Promise<Tas
   );
 }
 
+export async function createTask(
+  db: SQLiteDatabase,
+  input: { title: string; projectId?: string | null; priority?: number },
+): Promise<string> {
+  const id = createId();
+  const now = nowIso();
+  await db.runAsync(
+    `INSERT INTO tasks (id, project_id, title, status, priority, created_at, updated_at)
+     VALUES (?, ?, ?, 'todo', ?, ?, ?)`,
+    [id, input.projectId ?? null, input.title.trim(), input.priority ?? 2, now, now],
+  );
+  return id;
+}
+
 export async function countDoneToday(db: SQLiteDatabase): Promise<number> {
   const row = await db.getFirstAsync<{ count: number }>(
     `SELECT COUNT(*) AS count FROM tasks
@@ -359,6 +443,39 @@ export async function getFocusStreakDays(db: SQLiteDatabase): Promise<number> {
     cursor = new Date(cursor.getTime() - 24 * 60 * 60 * 1000);
   }
   return streak;
+}
+
+export type DayFocus = { day: string; minutes: number; isToday: boolean };
+
+/** Focus minutes per local day for the trailing window, zero-filled. */
+export async function focusMinutesByDay(db: SQLiteDatabase, days = 7): Promise<DayFocus[]> {
+  const dayKey = (date: Date) => {
+    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    return local.toISOString().slice(0, 10);
+  };
+
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  start.setDate(start.getDate() - (days - 1));
+
+  const rows = await db.getAllAsync<{ started_at: string; minutes: number }>(
+    `SELECT started_at, minutes FROM sessions
+     WHERE kind = 'focus' AND deleted_at IS NULL AND minutes IS NOT NULL AND started_at >= ?`,
+    [start.toISOString()],
+  );
+
+  const buckets = new Map<string, number>();
+  for (const row of rows) {
+    const key = dayKey(new Date(row.started_at));
+    buckets.set(key, (buckets.get(key) ?? 0) + (row.minutes ?? 0));
+  }
+
+  return Array.from({ length: days }, (_, index) => {
+    const date = new Date(start);
+    date.setDate(start.getDate() + index);
+    const key = dayKey(date);
+    return { day: key, minutes: buckets.get(key) ?? 0, isToday: index === days - 1 };
+  });
 }
 
 // ─────────────────────────── Stats ───────────────────────────

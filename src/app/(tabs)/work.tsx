@@ -1,5 +1,7 @@
 /**
  * Work — projects and clients. One segment control, two grouped lists.
+ * Loading shows a quiet reader instead of flashing an empty state; clients
+ * open their detail page.
  */
 import { useRouter } from 'expo-router';
 import { CaretRight, Folder, UsersThree } from 'phosphor-react-native';
@@ -9,8 +11,10 @@ import { View } from 'react-native';
 import { AppText } from '@/components/ui/app-text';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ListRow } from '@/components/ui/list-row';
+import { Loading } from '@/components/ui/loading';
 import { Panel } from '@/components/ui/panel';
 import { StatusPill } from '@/components/ui/pill';
+import { PressableScale } from '@/components/ui/pressable-scale';
 import { ProgressRing } from '@/components/ui/progress-ring';
 import { Screen } from '@/components/ui/screen';
 import { SectionHeader } from '@/components/ui/section';
@@ -19,7 +23,7 @@ import { FadeUp } from '@/components/ui/stagger';
 import { useLiveQuery } from '@/lib/db/hooks';
 import { listClients, listProjects } from '@/lib/db/repo';
 import { formatShortDate } from '@/lib/format';
-import { useTheme } from '@/theme';
+import { spacing, useTheme } from '@/theme';
 
 type Segment = 'projects' | 'clients';
 
@@ -32,7 +36,10 @@ export default function WorkScreen() {
   const clients = useLiveQuery((d) => listClients(d));
 
   const activeProjects = (projects.data ?? []).filter((p) => p.status === 'active').length;
-  const subtitle = `${activeProjects} active · ${clients.data?.length ?? 0} clients`;
+  const subtitle =
+    projects.status === 'ready' && clients.status === 'ready'
+      ? `${activeProjects} active · ${clients.data?.length ?? 0} clients`
+      : undefined;
 
   return (
     <Screen header={{ eyebrow: 'studio', title: 'Work', subtitle }}>
@@ -56,9 +63,28 @@ export default function WorkScreen() {
               actionLabel="New project"
               onAction={() => router.push('/new-project')}
             />
-            {projects.data && projects.data.length > 0 ? (
-              <Panel coreStyle={{ padding: 0, overflow: 'hidden' }}>
-                {projects.data.map((project, index) => {
+            <Panel coreStyle={{ padding: 0, overflow: 'hidden' }}>
+              {projects.status === 'loading' && !projects.data ? (
+                <Loading label="reading the portfolio…" />
+              ) : projects.status === 'error' && !projects.data ? (
+                <View style={{ padding: spacing.xl, gap: spacing.sm }}>
+                  <AppText variant="subheadMedium" tone="danger">
+                    Could not read projects.
+                  </AppText>
+                  <PressableScale haptic="selection" onPress={() => projects.refresh()}>
+                    <AppText variant="captionMedium" tone="accent">
+                      Retry
+                    </AppText>
+                  </PressableScale>
+                </View>
+              ) : (projects.data?.length ?? 0) === 0 ? (
+                <EmptyState
+                  icon={Folder}
+                  title="No projects yet"
+                  message="Projects hold tasks, milestones and the story of a build."
+                />
+              ) : (
+                projects.data!.map((project, index) => {
                   const progress =
                     project.task_count > 0 ? project.done_count / project.task_count : 0;
                   const meta = [
@@ -88,17 +114,9 @@ export default function WorkScreen() {
                       }
                     />
                   );
-                })}
-              </Panel>
-            ) : (
-              <Panel>
-                <EmptyState
-                  icon={Folder}
-                  title="No projects yet"
-                  message="Projects hold tasks, milestones and the story of a build."
-                />
-              </Panel>
-            )}
+                })
+              )}
+            </Panel>
           </View>
         </FadeUp>
       ) : (
@@ -110,9 +128,28 @@ export default function WorkScreen() {
               actionLabel="New client"
               onAction={() => router.push('/new-client')}
             />
-            {clients.data && clients.data.length > 0 ? (
-              <Panel coreStyle={{ padding: 0, overflow: 'hidden' }}>
-                {clients.data.map((client, index) => (
+            <Panel coreStyle={{ padding: 0, overflow: 'hidden' }}>
+              {clients.status === 'loading' && !clients.data ? (
+                <Loading label="reading the roster…" />
+              ) : clients.status === 'error' && !clients.data ? (
+                <View style={{ padding: spacing.xl, gap: spacing.sm }}>
+                  <AppText variant="subheadMedium" tone="danger">
+                    Could not read clients.
+                  </AppText>
+                  <PressableScale haptic="selection" onPress={() => clients.refresh()}>
+                    <AppText variant="captionMedium" tone="accent">
+                      Retry
+                    </AppText>
+                  </PressableScale>
+                </View>
+              ) : (clients.data?.length ?? 0) === 0 ? (
+                <EmptyState
+                  icon={UsersThree}
+                  title="No clients yet"
+                  message="Add the people you build for — projects attach to them."
+                />
+              ) : (
+                clients.data!.map((client, index) => (
                   <ListRow
                     key={client.id}
                     icon={<UsersThree size={17} color={colors.info} weight="light" />}
@@ -121,24 +158,22 @@ export default function WorkScreen() {
                       .filter(Boolean)
                       .join(' · ')}
                     showSeparator={index < clients.data!.length - 1}
+                    onPress={() =>
+                      router.push({ pathname: '/client/[id]', params: { id: client.id } })
+                    }
                     trailing={
-                      <StatusPill
-                        label={client.status}
-                        tone={client.status === 'active' ? 'accent' : 'neutral'}
-                      />
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <StatusPill
+                          label={client.status}
+                          tone={client.status === 'active' ? 'accent' : 'neutral'}
+                        />
+                        <CaretRight size={14} color={colors.textTertiary} weight="bold" />
+                      </View>
                     }
                   />
-                ))}
-              </Panel>
-            ) : (
-              <Panel>
-                <EmptyState
-                  icon={UsersThree}
-                  title="No clients yet"
-                  message="Add the people you build for — projects attach to them."
-                />
-              </Panel>
-            )}
+                ))
+              )}
+            </Panel>
           </View>
         </FadeUp>
       )}

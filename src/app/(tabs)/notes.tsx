@@ -12,7 +12,9 @@ import { AppButton } from '@/components/ui/app-button';
 import { AppText } from '@/components/ui/app-text';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ListRow } from '@/components/ui/list-row';
+import { Loading } from '@/components/ui/loading';
 import { Panel } from '@/components/ui/panel';
+import { PressableScale } from '@/components/ui/pressable-scale';
 import { Screen } from '@/components/ui/screen';
 import { FadeUp } from '@/components/ui/stagger';
 import { TextField } from '@/components/ui/text-field';
@@ -26,14 +28,21 @@ export default function NotesScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const [search, setSearch] = useState('');
+  const [creating, setCreating] = useState(false);
   const deferredSearch = useDeferredValue(search);
 
   const notes = useLiveQuery((d) => listNotes(d, deferredSearch), { deps: [deferredSearch] });
   const rows = notes.data ?? [];
 
   const handleCreate = async () => {
-    const id = await createNote(db);
-    router.push({ pathname: '/note/[id]', params: { id } });
+    if (creating) return;
+    setCreating(true);
+    try {
+      const id = await createNote(db);
+      router.push({ pathname: '/note/[id]', params: { id } });
+    } finally {
+      setCreating(false);
+    }
   };
 
   return (
@@ -43,8 +52,19 @@ export default function NotesScreen() {
       header={{
         eyebrow: 'knowledge',
         title: 'Notes',
-        subtitle: `${rows.length} ${rows.length === 1 ? 'note' : 'notes'} on this device`,
-        trailing: <AppButton label="New note" icon={NotePencil} variant="soft" onPress={handleCreate} />,
+        subtitle:
+          notes.status === 'ready'
+            ? `${rows.length} ${rows.length === 1 ? 'note' : 'notes'} on this device`
+            : undefined,
+        trailing: (
+          <AppButton
+            label="New note"
+            icon={NotePencil}
+            variant="soft"
+            onPress={handleCreate}
+            disabled={creating}
+          />
+        ),
       }}>
       <FadeUp index={0} style={{ flexGrow: 1, gap: spacing.xxl }}>
         <View>
@@ -60,42 +80,57 @@ export default function NotesScreen() {
         </View>
 
         <Panel style={{ flex: 1 }} coreStyle={{ flex: 1, padding: 0, overflow: 'hidden' }}>
-          <FlashList
-            style={{ flex: 1 }}
-            data={rows}
-            keyExtractor={(item: NoteListRow) => item.id}
-            renderItem={({ item, index }: { item: NoteListRow; index: number }) => (
-              <ListRow
-                icon={
-                  item.pinned ? (
-                    <PushPin size={16} color={colors.accent} weight="fill" />
-                  ) : (
-                    <NotePencil size={16} color={colors.textTertiary} weight="light" />
-                  )
-                }
-                title={item.title || 'Untitled note'}
-                subtitle={item.preview.replaceAll('\n', ' ') || 'Empty note'}
-                showSeparator={index < rows.length - 1}
-                onPress={() => router.push({ pathname: '/note/[id]', params: { id: item.id } })}
-                trailing={
-                  <AppText variant="caption" tone="tertiary">
-                    {formatDayLabel(item.updated_at)}
-                  </AppText>
-                }
-              />
-            )}
-            ListEmptyComponent={
-              <EmptyState
-                icon={Notebook}
-                title={deferredSearch ? 'No matches' : 'No notes yet'}
-                message={
-                  deferredSearch
-                    ? 'Try a different word — search looks at titles and bodies.'
-                    : 'Capture the plan, the snippet, the client call. It stays here.'
-                }
-              />
-            }
-          />
+          {notes.status === 'loading' && rows.length === 0 ? (
+            <Loading label="reading the shelf…" />
+          ) : notes.status === 'error' && rows.length === 0 ? (
+            <View style={{ padding: spacing.xl, gap: spacing.sm }}>
+              <AppText variant="subheadMedium" tone="danger">
+                Could not read notes.
+              </AppText>
+              <PressableScale haptic="selection" onPress={() => notes.refresh()}>
+                <AppText variant="captionMedium" tone="accent">
+                  Retry
+                </AppText>
+              </PressableScale>
+            </View>
+          ) : (
+            <FlashList
+              style={{ flex: 1 }}
+              data={rows}
+              keyExtractor={(item: NoteListRow) => item.id}
+              renderItem={({ item, index }: { item: NoteListRow; index: number }) => (
+                <ListRow
+                  icon={
+                    item.pinned ? (
+                      <PushPin size={16} color={colors.accent} weight="fill" />
+                    ) : (
+                      <NotePencil size={16} color={colors.textTertiary} weight="light" />
+                    )
+                  }
+                  title={item.title || 'Untitled note'}
+                  subtitle={item.preview.replaceAll('\n', ' ') || 'Empty note'}
+                  showSeparator={index < rows.length - 1}
+                  onPress={() => router.push({ pathname: '/note/[id]', params: { id: item.id } })}
+                  trailing={
+                    <AppText variant="caption" tone="tertiary">
+                      {formatDayLabel(item.updated_at)}
+                    </AppText>
+                  }
+                />
+              )}
+              ListEmptyComponent={
+                <EmptyState
+                  icon={Notebook}
+                  title={deferredSearch ? 'No matches' : 'No notes yet'}
+                  message={
+                    deferredSearch
+                      ? 'Try a different word — search looks at titles and bodies.'
+                      : 'Capture the plan, the snippet, the client call. It stays here.'
+                  }
+                />
+              }
+            />
+          )}
         </Panel>
       </FadeUp>
     </Screen>

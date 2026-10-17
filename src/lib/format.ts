@@ -42,3 +42,19 @@ export function formatShortDate(iso: string | null): string {
 export function clamp01(value: number): number {
   return Math.min(1, Math.max(0, value));
 }
+
+/** "07:42" or "1:03:11" — running timers. */
+export function formatTimer(totalSeconds: number): string {
+  const s = Math.max(0, Math.floor(totalSeconds));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  const mm = String(m).padStart(2, '0');
+  const ss = String(sec).padStart(2, '0');
+  return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+}
+
+export function countWords(text: string): number {
+  const trimmed = text.trim();
+  return trimmed ? trimmed.split(/\s+/).length : 0;
+}
