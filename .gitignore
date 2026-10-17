@@ -49,3 +49,5 @@ graphify-out/
 .agents/skills/expo-sqlite
 .claude/skills/expo-sqlite
 # @generated expo skills end
+
+__pycache__/
