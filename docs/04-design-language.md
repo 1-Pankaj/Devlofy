@@ -33,6 +33,12 @@ Signature move: uppercase mono **eyebrows** (`FOCUS · 42M`, `SAT · OCT 17`) ov
 - `borderCurve: 'continuous'` (squircle) on every non-capsule radius.
 - Shadows are `boxShadow` strings only — never legacy shadow/elevation props. Two elevations + one ambient glow token, nothing else.
 
+## Safe areas & chrome
+
+- `Screen` owns the **top inset** (`useSafeAreaInsets`); the floating bar owns its bottom inset; the note editor owns both. Screens never render under the status bar or home indicator.
+- Android edge-to-edge is the baseline: the window resizes for the keyboard (`adjustResize`), so editors use `KeyboardAvoidingView` on iOS only.
+- The 3D scene may sit full-bleed inside a `Panel` with the timer as a floating chip (`scrim` + hairline).
+
 ## Motion
 
 - Tokens in `src/theme/motion.ts` — never an ad-hoc curve.
@@ -40,14 +46,15 @@ Signature move: uppercase mono **eyebrows** (`FOCUS · 42M`, `SAT · OCT 17`) ov
 - Boring transitions are *fast* (180 ms); entrances can take 420 ms.
 - Stagger entrances (`FadeUp`, 70 ms apart, max 6 items). No entrance animation on virtualized rows.
 - Haptics: selection on tabs/toggles, light on buttons, success on completed sessions/tasks. Nothing on web.
-- `ReduceMotion.System` respected on entrance choreography.
+- `ReduceMotion.System` respected on entrance choreography; `ProgressRing` animates its stroke on the UI thread and snaps under reduced motion; `LiveDot` pulses only for live sessions and rests steady under reduced motion.
+- No spinners on text: save state is a calm dot + mono label (`saved / saving`).
 
 ## Anti-slop rules (from the design skills)
 
 1. No emoji as icons, no stock Material/Lucide thick icons → Phosphor thin/regular.
 2. No purple-blue "AI gradient" heroes. The only gradient is the ambient radial `Glow` (sprout/sky, very low alpha).
 3. Not everything is a card. Lists are lists; cards are for grouped surfaces.
-4. Every screen has four states: loading, error, empty, ready — designed, not defaulted.
+4. Every screen has four states: loading, error, empty, ready — designed, not defaulted. Lists show the shared `Loading` reader while the database answers instead of flashing the empty state.
 5. Every control does something; dead-end rows are not pressable.
 6. One accent action per screen. Primary button is the only colored button.
 7. Tab switches don't animate; cards don't float on scroll; blur is not decoration.
