@@ -154,7 +154,17 @@ export default function GardenScreen() {
       <FadeUp index={0}>
         <Panel glow coreStyle={{ padding: 0, overflow: 'hidden' }}>
           <View style={{ height: 320 }}>
-            <GardenScene seed={seed} growth={stage.growth} animated />
+            <GardenScene
+              seed={seed}
+              growth={stage.growth}
+              stats={{
+                totalMinutes: totals.data?.total ?? 0,
+                streakDays: totals.data?.streak ?? 0,
+                todayMinutes: totals.data?.today ?? 0,
+              }}
+              focusing={!!active}
+              animated
+            />
             <View
               style={{
                 position: 'absolute',

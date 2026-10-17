@@ -11,8 +11,9 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
 import type { Group, InstancedMesh, Mesh } from 'three';
 
-import { makeTree, type Branch } from '@/lib/garden/model';
+import { makeTree, type Branch, type GrowthInput } from '@/lib/garden/model';
 import { loadVariant, variantForGrowth, type GardenVariant } from '@/lib/garden/models';
+import { dressingFor, loadProp, trophiesFor, type PropPlacement } from '@/lib/garden/props';
 import { Canvas, THREE, useFrame, useThree } from '@/lib/three';
 
 const TRUNK_COLOR = '#6E5B4C';
@@ -150,6 +151,62 @@ function Tree({ seed, growth }: { seed: number; growth: number }) {
   );
 }
 
+/**
+ * One prop placement: the prop's GLB cloned at the slot's transform. The
+ * lantern's glow panes burn brighter while a session runs (`focusing`).
+ */
+function Prop({ placement, focusing }: { placement: PropPlacement; focusing: boolean }) {
+  const [model, setModel] = useState<Group | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadProp(placement.prop)
+      .then((scene) => {
+        if (cancelled) return;
+        const clone = scene.clone(true);
+        clone.traverse((object) => {
+          if ((object as Mesh).isMesh) {
+            object.castShadow = true;
+            object.receiveShadow = true;
+          }
+        });
+        setModel(clone);
+      })
+      .catch(() => {
+        // Props are seasoning — the scene works without them.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [placement.prop]);
+
+  // The lantern answers focus: dim glass at rest, live glow mid-session.
+  useEffect(() => {
+    if (!model || placement.prop !== 'lantern') return;
+    model.traverse((object) => {
+      const mesh = object as Mesh;
+      if (!mesh.isMesh) return;
+      const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      materials.forEach((material) => {
+        if (material.name === 'DevlofyLeafBright' && 'emissiveIntensity' in material) {
+          (material as THREE.MeshStandardMaterial).emissiveIntensity = focusing ? 2.6 : 0.5;
+        }
+      });
+    });
+  }, [focusing, model, placement.prop]);
+
+  if (!model) return null;
+
+  return (
+    <primitive
+      object={model}
+      position={placement.position}
+      rotation={[0, placement.rotationY, 0]}
+      scale={placement.scale}
+    />
+  );
+}
+
 function Ground() {
   return (
     <group>
@@ -181,12 +238,34 @@ export type GardenSceneProps = {
   seed?: number;
   /** 0 → seedling, 1 → fully grown. */
   growth?: number;
+  /** Focus history — drives dressing tiers and the earned trophies. */
+  stats?: GrowthInput;
+  /** A session is running; the lantern burns brighter. */
+  focusing?: boolean;
   /** False for teasers: renders on demand instead of a continuous loop. */
   animated?: boolean;
   style?: ViewStyle;
 };
 
-export function GardenScene({ seed = 7, growth = 0.5, animated = true, style }: GardenSceneProps) {
+export function GardenScene({
+  seed = 7,
+  growth = 0.5,
+  stats,
+  focusing = false,
+  animated = true,
+  style,
+}: GardenSceneProps) {
+  const totalMinutes = stats?.totalMinutes ?? 0;
+  const streakDays = stats?.streakDays ?? 0;
+  const todayMinutes = stats?.todayMinutes ?? 0;
+  const hasStats = stats !== undefined;
+  const placements = useMemo(
+    () =>
+      hasStats
+        ? [...dressingFor(growth), ...trophiesFor({ totalMinutes, streakDays, todayMinutes })]
+        : [],
+    [hasStats, growth, totalMinutes, streakDays, todayMinutes],
+  );
   return (
     <View style={[styles.frame, style]}>
       <Canvas
@@ -216,6 +295,9 @@ export function GardenScene({ seed = 7, growth = 0.5, animated = true, style }: 
         <directionalLight position={[-4, 2.5, -3]} intensity={0.4} color="#7CC4FF" />
         <Ground />
         <Tree seed={seed} growth={growth} />
+        {placements.map((item) => (
+          <Prop key={`${item.prop}-${item.slot}`} placement={item} focusing={focusing} />
+        ))}
       </Canvas>
     </View>
   );

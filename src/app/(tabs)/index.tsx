@@ -462,7 +462,17 @@ export default function TodayScreen() {
             accessibilityLabel="Open the focus garden"
             onPress={() => router.push('/garden')}>
             <View style={{ height: 190 }}>
-              <GardenScene seed={seed} growth={stage.growth} animated={false} />
+              <GardenScene
+                seed={seed}
+                growth={stage.growth}
+                stats={{
+                  totalMinutes: totalFocus.data ?? 0,
+                  streakDays: streak.data ?? 0,
+                  todayMinutes: focusMinutes,
+                }}
+                focusing={!!active}
+                animated={false}
+              />
             </View>
             <View
               style={{

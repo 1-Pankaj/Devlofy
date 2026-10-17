@@ -43,3 +43,5 @@ created: 2026-10-17
 |---|---|---|
 | v0.1 (2026-10-17) | Today, Garden 3D, Work (projects/clients), Notes, More, desktop mode, export | iOS native, notifications, git, invoicing, FTS |
 | v0.1 polish (2026-10-17) | Safe-area pass, live timer heroes, quick-add tasks, focus blocks w/ auto-close, editor templates + markdown preview, client detail, animated ring/dot primitives, crash boundary | Task scheduling (due/energy), comm log, notifications, time-log editing |
+| 3D world v2 (2026-10-17) | Trees v3 (visible branch scaffold, lobed crowns, knuckles, twig tips), 11-prop Blender kit (rock…lantern…bird), growth-tiered dressing, data-driven trophies, focus-reactive lantern glow | none displaced — Garden depth is additive |
+| Design + features wave (next) | Type scale + elevation pass, premium empty states, notes upgrades (checklists, tags + search, pin, links), full client/project add-edit | Scoped when it lands |

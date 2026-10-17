@@ -11,7 +11,8 @@ The Focus Garden renders a **deterministic procedural tree** from `(seed, growth
 
 - Growth is *real data*: `growthFromStats({ totalMinutes, streakDays, todayMinutes })` → 0..1, bucketed to 5% steps so the tree only regenerates when it actually grows.
 - Rendering: `garden-scene.tsx` via the `@/lib/three` platform shim (expo-gl native / WebGL web). Instanced leaves, DPR clamped, `frameloop="demand"` for teasers.
-- **Blender models v2 (2026-10-17, live session):** `assets/models/garden-{seed,sprout,sapling,young,canopy}.glb` — hand-crafted stages built by the re-runnable script `tools/blender/garden_models.py` (source of truth): skin-modifier limbs with root flare and S-curves, tiered foliage clumps (deep/mid/bright, faint emissive on bright), per-stage dressing (soil mound, grass tufts, pebbles, mushrooms). ~26k tris total across all five; each stage is one joined mesh at the origin with identity transforms.
+- **Blender models v3 (2026-10-17, live session):** `assets/models/garden-{seed,sprout,sapling,young,canopy}.glb` — hand-crafted stages built by the re-runnable script `tools/blender/garden_models.py` (source of truth): deep limb scaffolds (4 branch levels + bare twig tips, root knuckles, decimated skin limbs), **lobed crowns** (left / right / top lobes with open gaps so the fork structure reads through), per-stage dressing (soil mound, grass tufts, pebbles, mushrooms). Canopy ≈ 12.1k tris; each stage is one joined mesh at the origin with identity transforms.
+- **Garden props kit (2026-10-17):** `assets/models/props/prop-{rock,rocks,grass,fern,log,stump,mushrooms,flowers,cairn,lantern,bird}.glb` — built by `tools/blender/garden_props.py`; ≈ 4.6k tris across all eleven (flowers heaviest at 2.1k). Wired in `src/lib/garden/props.ts`: **dressing tiers** unlock with growth (grass/rocks → fern + lantern → log/stump/rock → the full clearing) and **trophies** follow real history — mushrooms per 2 h focused (max 3), daisy patches at 3/7-day streaks, a stacked cairn at 6 h, a sparrow at a 5-day streak. The lantern's panes burn brighter while a session runs.
 - Stage → model: `< 0.12` seed, `< 0.32` sprout, `< 0.58` sapling, `< 0.8` young, `≥ 0.8` canopy. Loaded lazily, cached per variant, cloned per consumer (`src/lib/garden/models.ts`); the scene enables soft shadows and aims the camera at each stage's height. **Any load failure keeps the procedural tree on screen** ([[07-decisions|ADR-007]]).
 
 ## The Blender day-one commitment
@@ -20,17 +21,17 @@ The user opens **Blender** (the MCP addon is wired: `get_addon_status`, `execute
 
 ### Model backlog (make in this order)
 
-1. **Tree variants** *(done: seed / sprout / sapling / young / canopy, integrated 2026-10-17)* — next: alternative species (oak / pine / blossom) as a garden-style setting.
-2. **Garden props** — stones, grass tufts, fallen log, lantern, ferns: an always-on "clearing" dressing pass around the tree.
-3. **Session trophies** — mushrooms, flowers, cairn stones, a bird: deterministic props that spawn as real focus data accumulates.
-4. **Focus props** — a lantern that glows while a session runs; a bench; a signpost with a notch per active project.
+1. **Tree variants** *(done: seed / sprout / sapling / young / canopy; detail pass + visible branches, integrated 2026-10-17)* — next: alternative species (oak / pine / blossom) as a garden-style setting.
+2. **Garden props** *(done 2026-10-17: rock, rocks, grass, fern, log, stump — dressing tiers wired to growth)*.
+3. **Session trophies** *(done 2026-10-17: mushrooms, flowers, cairn, bird — data-driven; lantern glows mid-session)*.
+4. **Focus props** — still open: a bench; a signpost with a notch per active project.
 5. **Logo mark** — the sprout-in-squircle as an actual 3D object for the splash/celebration.
 
 ### Hard rules for assets
 
 - **GLB only**, Y-up, meters, origin at the base, applied transforms.
 - Flat-shaded, low-poly, single material per object where possible; baked vertex colors over textures.
-- Budget: ≤ 15k tris *total* on the garden screen (largest stage, canopy, is ≈ 11k — trivial for expo-gl; only one tree is ever mounted); textures ≤ 1k if any.
+- Budget: ≤ 15k tris *total* on the garden screen (largest stage, canopy, is ≈ 12.1k; the always-on dressing adds ≈ 1.5k and trophies ≈ 2.5k worst case — only one tree is ever mounted); textures ≤ 1k if any.
 - Export from Blender: `File → Export → glTF 2.0 (.glb)` with +Y up, apply modifiers on.
 
 ## Integration path
