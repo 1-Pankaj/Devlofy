@@ -18,7 +18,7 @@ created: 2026-10-17
 ## v0.1 — foundation (built 2026-10-17)
 
 - **Today** — greeting, focus hero + live session timer, streak strip, today's tasks with completion, craft tip.
-- **Garden** — procedural 3D tree grown from real focus data (streak + total + today), recent sessions, focus start/end.
+- **Garden** — 3D tree grown from real focus data (streak + total + today): Blender-authored GLBs over the procedural fallback, recent sessions, focus start/end.
 - **Work** — projects list with progress rings, project detail (milestones + tasks), clients list, **create project / create client**.
 - **Notes** — search over titles + bodies, pinned notes, autosaving editor.
 - **More** — name, theme (System / Ink / Paper), desktop mode, data stats, JSON export, about.

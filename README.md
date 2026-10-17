@@ -45,7 +45,7 @@ Everything lives in [`docs/`](docs/index.md) — an Obsidian vault:
 
 ## 3D
 
-The garden is procedural today (`src/lib/garden/model.ts`) and Blender-authored GLBs layer in through the same scene API (`docs/05-blender-pipeline.md`). One scene, two runtimes: `src/lib/three` resolves the native expo-gl renderer or the web renderer per platform.
+The garden renders Blender-authored GLBs (sprout/sapling/canopy, authored through the live Blender MCP) with a procedural fallback (`src/lib/garden/model.ts` → `src/lib/garden/models.ts`, see `docs/05-blender-pipeline.md`). One scene, two runtimes: `src/lib/three` resolves the native expo-gl renderer or the web renderer per platform.
 
 ## Project rules
 

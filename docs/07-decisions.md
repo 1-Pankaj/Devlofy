@@ -61,3 +61,8 @@ Format: **decision → why → consequences**. Newest at the bottom. Superseding
 **Decision:** settings persist through `createJSONStorage(() => kv)` where `kv` is `expo-sqlite/kv-store` on native and `localStorage` on web. Zustand stays out of the database.
 **Why:** settings aren't syncable user content; they're cheap, local, and must load before the DB opens.
 **Consequence:** new persisted stores must use `src/lib/storage`, not direct platform APIs.
+
+## ADR-012 · Garden models: Blender GLBs over the procedural fallback
+**Decision:** the garden prefers one Blender-authored GLB per growth stage (sprout/sapling/canopy in `assets/models/`); the procedural tree remains the loading state and the permanent failure fallback.
+**Why:** authored geometry reads better than recursion, while the fallback guarantees 3D from the first frame on any device and keeps the app shippable if loading ever breaks.
+**Consequence:** new stages/props ship as GLBs plus an entry in `src/lib/garden/models.ts`; loading stays behind `src/lib/three/load-model.*` (ADR-008), and failure must never blank the scene.

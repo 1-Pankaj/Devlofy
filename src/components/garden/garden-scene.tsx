@@ -2,15 +2,17 @@
  * Focus Garden scene — the app's 3D centerpiece.
  *
  * One implementation, two runtimes: `@/lib/three` resolves to the expo-gl
- * renderer on native and the DOM renderer on web. The tree is generated from
- * `src/lib/garden/model.ts`; a Blender-authored GLB can later be layered in
- * (see docs/05-blender-pipeline.md) without touching this component's API.
+ * renderer on native and the DOM renderer on web. The tree prefers the
+ * Blender-authored GLB for its growth stage (`lib/garden/models.ts`) and falls
+ * back to the procedural generator in `lib/garden/model.ts` until it loads —
+ * or forever, if loading fails.
  */
-import { useLayoutEffect, useMemo, useRef } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
 import type { Group, InstancedMesh } from 'three';
 
 import { makeTree, type Branch } from '@/lib/garden/model';
+import { loadVariant, variantForGrowth, type GardenVariant } from '@/lib/garden/models';
 import { Canvas, THREE, useFrame } from '@/lib/three';
 
 const TRUNK_COLOR = '#6E5B4C';
@@ -42,8 +44,34 @@ function toCylinder(branch: Branch): CylinderTransform {
   };
 }
 
+/**
+ * The Blender model for the current stage, cloned per consumer. `null` keeps
+ * the procedural tree on screen — also the failure path, so there is never a
+ * blank frame.
+ */
+function useGardenModel(variant: GardenVariant): Group | null {
+  const [model, setModel] = useState<Group | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadVariant(variant)
+      .then((scene) => {
+        if (!cancelled) setModel(scene.clone(true) as Group);
+      })
+      .catch(() => {
+        // Procedural fallback remains.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [variant]);
+
+  return model;
+}
+
 function Tree({ seed, growth }: { seed: number; growth: number }) {
   const sway = useRef<Group>(null);
+  const model = useGardenModel(variantForGrowth(growth));
   const tree = useMemo(() => makeTree(seed, growth), [seed, growth]);
   const segments = useMemo(() => tree.branches.map(toCylinder), [tree]);
   const leafMesh = useRef<InstancedMesh>(null);
@@ -70,6 +98,14 @@ function Tree({ seed, growth }: { seed: number; growth: number }) {
       sway.current.rotation.y = Math.sin(t * 0.13) * 0.05 + t * 0.012;
     }
   });
+
+  if (model) {
+    return (
+      <group ref={sway}>
+        <primitive object={model} />
+      </group>
+    );
+  }
 
   return (
     <group ref={sway}>

@@ -8,7 +8,7 @@ This is **Devlofy**, an offline-first command center for solo developers (Expo/R
 - **No backend, no cloud AI.** Local SQLite is the product. Intelligence = local rules/algorithms ("the Engine"), never a chat.
 - Platforms: **Android native (primary, tablets included) + web (equal partner)**. iOS is later — keep code iOS-safe but don't build UI hunting for it.
 - **Desktop mode is core scope**: expanded widths (≥840) get a side rail; compact gets the floating tab bar.
-- **3D day one**: procedural garden now; Blender-authored GLBs layer in via the live Blender MCP (`get_addon_status` first).
+- **3D day one**: Blender-authored GLBs (sprout/sapling/canopy in `assets/models/`) over a procedural fallback; author more via the live Blender MCP (`get_addon_status` first).
 - Docs vault: `docs/` (wikilinks, Obsidian). Decision log: `docs/07-decisions.md` — read it before proposing architecture changes. Feature budget rule applies: new feature displaces one or goes to `docs/08-backlog.md`.
 
 ## Verify before writing API code
