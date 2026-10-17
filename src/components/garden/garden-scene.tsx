@@ -9,11 +9,11 @@
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
-import type { Group, InstancedMesh } from 'three';
+import type { Group, InstancedMesh, Mesh } from 'three';
 
 import { makeTree, type Branch } from '@/lib/garden/model';
 import { loadVariant, variantForGrowth, type GardenVariant } from '@/lib/garden/models';
-import { Canvas, THREE, useFrame } from '@/lib/three';
+import { Canvas, THREE, useFrame, useThree } from '@/lib/three';
 
 const TRUNK_COLOR = '#6E5B4C';
 const GROUND_COLOR = '#0B100D';
@@ -56,7 +56,16 @@ function useGardenModel(variant: GardenVariant): Group | null {
     let cancelled = false;
     loadVariant(variant)
       .then((scene) => {
-        if (!cancelled) setModel(scene.clone(true) as Group);
+        if (cancelled) return;
+        const clone = scene.clone(true);
+        // Let every part of the model cast and receive the key light's shadow.
+        clone.traverse((object) => {
+          if ((object as Mesh).isMesh) {
+            object.castShadow = true;
+            object.receiveShadow = true;
+          }
+        });
+        setModel(clone);
       })
       .catch(() => {
         // Procedural fallback remains.
@@ -67,6 +76,16 @@ function useGardenModel(variant: GardenVariant): Group | null {
   }, [variant]);
 
   return model;
+}
+
+/** Aims the camera at the tree's centre of mass — R3F's default aims at y=0,
+ *  which buries the small stages in the lower half of the frame. */
+function CameraAim({ y }: { y: number }) {
+  const camera = useThree((state) => state.camera);
+  useEffect(() => {
+    camera.lookAt(0, y, 0);
+  }, [camera, y]);
+  return null;
 }
 
 function Tree({ seed, growth }: { seed: number; growth: number }) {
@@ -114,7 +133,7 @@ function Tree({ seed, growth }: { seed: number; growth: number }) {
           key={index}
           position={segment.position}
           quaternion={segment.quaternion as unknown as THREE.Quaternion}
-          castShadow={false}>
+          castShadow>
           <cylinderGeometry args={[segment.radius * 0.72, segment.radius, segment.length, 6]} />
           <meshStandardMaterial color={TRUNK_COLOR} roughness={0.9} flatShading />
         </mesh>
@@ -122,7 +141,8 @@ function Tree({ seed, growth }: { seed: number; growth: number }) {
       <instancedMesh
         ref={leafMesh}
         args={[undefined, undefined, tree.leaves.length]}
-        frustumCulled={false}>
+        frustumCulled={false}
+        castShadow>
         <icosahedronGeometry args={[1, 0]} />
         <meshStandardMaterial color="#3EE08F" roughness={0.75} flatShading />
       </instancedMesh>
@@ -147,10 +167,10 @@ function Ground() {
         <ringGeometry args={[2.05, 2.08, 64]} />
         <meshBasicMaterial color={RING_COLOR} transparent opacity={0.1} />
       </mesh>
-      {/* Soft contact shadow */}
+      {/* Soft contact shadow (ambient-occlusion helper under the real shadow) */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.004, 0]}>
         <circleGeometry args={[0.9, 32]} />
-        <meshBasicMaterial color="#000000" transparent opacity={0.32} />
+        <meshBasicMaterial color="#000000" transparent opacity={0.22} />
       </mesh>
     </group>
   );
@@ -170,14 +190,30 @@ export function GardenScene({ seed = 7, growth = 0.5, animated = true, style }: 
   return (
     <View style={[styles.frame, style]}>
       <Canvas
+        shadows
         style={styles.canvas}
         dpr={[1, 1.75]}
         frameloop={animated ? 'always' : 'demand'}
         camera={{ position: [3.5, 2.4, 4.6], fov: 38 }}
         gl={{ antialias: true, alpha: true }}>
-        <ambientLight intensity={0.5} color="#CFE9DA" />
-        <directionalLight position={[5, 7, 4]} intensity={1.25} color="#FFF3DF" />
-        <directionalLight position={[-4, 2.5, -3]} intensity={0.35} color="#7CC4FF" />
+        <CameraAim y={0.35 + 0.72 * growth} />
+        <ambientLight intensity={0.45} color="#CFE9DA" />
+        <directionalLight
+          position={[5, 7, 4]}
+          intensity={1.35}
+          color="#FFF3DF"
+          castShadow
+          shadow-mapSize={[1024, 1024]}
+          shadow-camera-left={-3.2}
+          shadow-camera-right={3.2}
+          shadow-camera-top={3.6}
+          shadow-camera-bottom={-1.4}
+          shadow-camera-near={1}
+          shadow-camera-far={24}
+          shadow-bias={-0.0004}
+          shadow-normalBias={0.03}
+        />
+        <directionalLight position={[-4, 2.5, -3]} intensity={0.4} color="#7CC4FF" />
         <Ground />
         <Tree seed={seed} growth={growth} />
       </Canvas>

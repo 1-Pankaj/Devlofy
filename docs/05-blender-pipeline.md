@@ -11,8 +11,8 @@ The Focus Garden renders a **deterministic procedural tree** from `(seed, growth
 
 - Growth is *real data*: `growthFromStats({ totalMinutes, streakDays, todayMinutes })` → 0..1, bucketed to 5% steps so the tree only regenerates when it actually grows.
 - Rendering: `garden-scene.tsx` via the `@/lib/three` platform shim (expo-gl native / WebGL web). Instanced leaves, DPR clamped, `frameloop="demand"` for teasers.
-- **Blender models (authored 2026-10-17, in the live session):** `assets/models/garden-{sprout,sapling,canopy}.glb` — flat-shaded, two leaf tones plus a subtle sprout emissive, ~1.5k faces / ~140 KB in total. Built via `execute_blender_code`, reviewed with MCP viewport screenshots.
-- Stage → model: `< 0.2` sprout, `< 0.5` sapling, `≥ 0.5` canopy. Loaded lazily, cached per variant, cloned per consumer (`src/lib/garden/models.ts`). **Any load failure keeps the procedural tree on screen** ([[07-decisions|ADR-007]]).
+- **Blender models v2 (2026-10-17, live session):** `assets/models/garden-{seed,sprout,sapling,young,canopy}.glb` — hand-crafted stages built by the re-runnable script `tools/blender/garden_models.py` (source of truth): skin-modifier limbs with root flare and S-curves, tiered foliage clumps (deep/mid/bright, faint emissive on bright), per-stage dressing (soil mound, grass tufts, pebbles, mushrooms). ~26k tris total across all five; each stage is one joined mesh at the origin with identity transforms.
+- Stage → model: `< 0.12` seed, `< 0.32` sprout, `< 0.58` sapling, `< 0.8` young, `≥ 0.8` canopy. Loaded lazily, cached per variant, cloned per consumer (`src/lib/garden/models.ts`); the scene enables soft shadows and aims the camera at each stage's height. **Any load failure keeps the procedural tree on screen** ([[07-decisions|ADR-007]]).
 
 ## The Blender day-one commitment
 
@@ -20,17 +20,17 @@ The user opens **Blender** (the MCP addon is wired: `get_addon_status`, `execute
 
 ### Model backlog (make in this order)
 
-1. **Tree variants** *(done: sprout / sapling / canopy integrated 2026-10-17)* — extend with more stages/seeds the same way.
-2. **Garden props** — stones, a lantern, flower clumps, a fence post. Kit-bash scale, CC0-clean.
-3. **Focus props** — a log/desk, a coffee mug, a tiny terminal. Props appear at milestone moments.
-4. **Trophy shelf** — per-milestone trophies for shipped projects.
+1. **Tree variants** *(done: seed / sprout / sapling / young / canopy, integrated 2026-10-17)* — next: alternative species (oak / pine / blossom) as a garden-style setting.
+2. **Garden props** — stones, grass tufts, fallen log, lantern, ferns: an always-on "clearing" dressing pass around the tree.
+3. **Session trophies** — mushrooms, flowers, cairn stones, a bird: deterministic props that spawn as real focus data accumulates.
+4. **Focus props** — a lantern that glows while a session runs; a bench; a signpost with a notch per active project.
 5. **Logo mark** — the sprout-in-squircle as an actual 3D object for the splash/celebration.
 
 ### Hard rules for assets
 
 - **GLB only**, Y-up, meters, origin at the base, applied transforms.
 - Flat-shaded, low-poly, single material per object where possible; baked vertex colors over textures.
-- Budget: ≤ 10k tris *total* on the garden screen; textures ≤ 1k if any.
+- Budget: ≤ 15k tris *total* on the garden screen (largest stage, canopy, is ≈ 11k — trivial for expo-gl; only one tree is ever mounted); textures ≤ 1k if any.
 - Export from Blender: `File → Export → glTF 2.0 (.glb)` with +Y up, apply modifiers on.
 
 ## Integration path
@@ -43,9 +43,11 @@ The user opens **Blender** (the MCP addon is wired: `get_addon_status`, `execute
 
 ## Aesthetic direction for Blender assets
 
-Match [[04-design-language]]: faceted low-poly with confident silhouette, ink-deep greens on ambient, sprout-green emissive accents used like a light source, **no photoreal grass, no PBR bark scans**. Think *Monument Valley meets terminal*.
+Match [[04-design-language]]: sculpted low-poly with confident silhouette — smooth organic limbs (skin-modifier craft), tiered foliage clumps with scalloped edges, ink-deep greens on ambient, sprout-green accents used like light sources, **no photoreal grass, no PBR bark scans**. Think *Monument Valley meets terminal*.
 
-Theme colors used by the authored models: trunk `#6E5B4C`; leaves `#1F8A55` (deep) and `#3EE08F` (sprout accent, slight emissive).
+Craft rules (the difference between a model and slop): hierarchy of masses (big primaries → medium fills → small accents), overlap ≥ 40% inside a crown, per-vertex noise on every organic surface, asymmetry everywhere, a soil mound + micro-dressing at the base so nothing floats, and only 3-4 tones per model.
+
+Theme colors used by the authored models: trunk `#6E5B4C`; leaves `#1E7B4E` (deep), `#2FA96C` (mid), `#3EE08F` (bright accent, faint emissive); soil `#33291F`; stone `#57534C`; grass `#1F6B45`.
 
 ## Performance guardrails
 
