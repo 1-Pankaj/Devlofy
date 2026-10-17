@@ -1,56 +1,55 @@
-# Welcome to your Expo app 👋
+# Devlofy
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+**The offline-first command center for solo developers.** Plan your day, run your clients, ship your projects, get paid, and level up — with a 3D focus garden for the time you actually spend.
 
-## Get started
+All data lives on your device. No account, no backend, no cloud AI.
 
-1. Install dependencies
+## Status — v0.1 foundation
 
-   ```bash
-   npm install
-   ```
+| Screen | What works today |
+|---|---|
+| **Today** | Greeting, live focus session timer, streak strip, today's tasks, craft tip |
+| **Garden** | Procedural 3D tree that grows from your real focus data + session history |
+| **Work** | Projects with progress, project detail (milestones + tasks), clients, create flows |
+| **Notes** | Search, pinned notes, autosaving editor |
+| **More** | Name, theme (System/Ink/Paper), **desktop mode**, data stats, JSON export |
 
-2. Start the app
+Targets: **Android (native, phones + tablets)** and **web** — equally. iOS comes later.
+Desktop mode is built in: expanded widths (tablets, wide web) get a side-rail layout automatically.
 
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Run it
 
 ```bash
-npm run reset-project
+npm install
+npx expo start        # then: a → Android, w → web
 ```
 
-This command will move the starter code to the **example** directory and create a blank **src/app** directory where you can start developing.
+Checks that must pass before any commit:
 
-### Other setup steps
+```bash
+npx tsc --noEmit
+npx eslint .
+```
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+## Stack
 
-## Learn more
+Expo SDK 58 · React 19 · expo-router · expo-sqlite (native SQLite / wasm+OPFS on web) · three + react-three-fiber (expo-gl native / WebGL web) · reanimated 4 · zustand · Phosphor icons · Geist + Space Grotesk + JetBrains Mono.
 
-To learn more about developing your project with Expo, look at the following resources:
+## Documentation
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Everything lives in [`docs/`](docs/index.md) — an Obsidian vault:
 
-## Join the community
+- [Vision](docs/01-vision.md) · [Scope](docs/02-scope.md) · [Architecture](docs/03-architecture.md)
+- [Design language](docs/04-design-language.md) · [Blender pipeline](docs/05-blender-pipeline.md)
+- [Data model](docs/06-data-model.md) · [Decision log](docs/07-decisions.md) · [Backlog](docs/08-backlog.md)
 
-Join our community of developers creating universal apps.
+## 3D
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+The garden is procedural today (`src/lib/garden/model.ts`) and Blender-authored GLBs layer in through the same scene API (`docs/05-blender-pipeline.md`). One scene, two runtimes: `src/lib/three` resolves the native expo-gl renderer or the web renderer per platform.
+
+## Project rules
+
+- Lint + typecheck clean before "done".
+- Tokens only: no hardcoded colors/spacing outside `src/theme/`.
+- Platform-specific code uses adapter files (`feature.native.ts` / `feature.web.ts`).
+- Feature budget: every new feature displaces one or goes to the backlog.

@@ -1,0 +1,29 @@
+---
+tags: [devlofy, moc]
+created: 2026-10-17
+---
+
+# Devlofy — documentation index
+
+This folder is an **Obsidian vault**. Open it directly in Obsidian (`Open folder as vault`) and every `[[link]]` below becomes part of the graph view. `graphify` can also index the codebase into `graphify-out/` (see [[03-architecture]]).
+
+## Start here
+
+- [[01-vision]] — what Devlofy is, who it's for, the wedge.
+- [[02-scope]] — what's in, what's out, which phase, which platform.
+- [[03-architecture]] — the stack, adapter architecture, folder map, commands.
+- [[04-design-language]] — "Ink & Sprout": the visual system and its rules.
+- [[05-blender-pipeline]] — how 3D models get made and integrated.
+- [[06-data-model]] — SQLite schema, migrations, sync-readiness.
+- [[07-decisions]] — the decision log (ADRs).
+- [[08-backlog]] — feature budget, next, later.
+
+## The one-liner
+
+> Devlofy is the offline-first command center for solo developers — plan your day, run your clients, ship your projects, get paid, and level up. All data on your device. A game-like focus garden in 3D.
+
+## Status (2026-10-17)
+
+- v0.1 foundation is **built**: Today, Garden (3D), Work, Notes, More + desktop mode.
+- Targets: **Android (native) + web** now; iOS later. Tablets included — desktop mode ships with v0.1.
+- Blender: models are integrated day one via the MCP pipeline ([[05-blender-pipeline]]).

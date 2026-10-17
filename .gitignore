@@ -41,3 +41,7 @@ example
 # generated native folders
 /ios
 /android
+# @generated expo skills start
+.agents/skills/expo-sqlite
+.claude/skills/expo-sqlite
+# @generated expo skills end
