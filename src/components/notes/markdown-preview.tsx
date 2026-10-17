@@ -7,13 +7,14 @@ import { Check } from 'phosphor-react-native';
 import { View } from 'react-native';
 
 import { AppText, type TextTone } from '@/components/ui/app-text';
+import { PressableScale } from '@/components/ui/pressable-scale';
 import { fonts, radius, spacing, useTheme, type ThemeColors } from '@/theme';
 
 type Block =
   | { kind: 'heading'; level: 1 | 2 | 3; text: string }
   | { kind: 'paragraph'; text: string }
   | { kind: 'bullet'; text: string }
-  | { kind: 'check'; checked: boolean; text: string }
+  | { kind: 'check'; checked: boolean; text: string; line: number }
   | { kind: 'numbered'; index: number; text: string }
   | { kind: 'quote'; text: string }
   | { kind: 'code'; lines: string[] };
@@ -31,7 +32,8 @@ function parse(raw: string): Block[] {
     }
   };
 
-  for (const line of lines) {
+  for (let lineNumber = 0; lineNumber < lines.length; lineNumber += 1) {
+    const line = lines[lineNumber];
     if (code !== null) {
       if (line.trim().startsWith('```')) {
         blocks.push({ kind: 'code', lines: code });
@@ -59,7 +61,7 @@ function parse(raw: string): Block[] {
     const check = /^\s*[-*]\s+\[( |x|X)\]\s+(.*)$/.exec(line);
     if (check) {
       flushParagraph();
-      blocks.push({ kind: 'check', checked: check[1].toLowerCase() === 'x', text: check[2] });
+      blocks.push({ kind: 'check', checked: check[1].toLowerCase() === 'x', text: check[2], line: lineNumber });
       continue;
     }
     const bullet = /^\s*[-*]\s+(.*)$/.exec(line);
@@ -139,7 +141,14 @@ function Inline({ text, colors, tone }: { text: string; colors: ThemeColors; ton
   );
 }
 
-export function MarkdownPreview({ source }: { source: string }) {
+export function MarkdownPreview({
+  source,
+  onToggleCheck,
+}: {
+  source: string;
+  /** Tap a task box to flip `- [ ]` ↔ `- [x]` in the note's source. */
+  onToggleCheck?: (line: number) => void;
+}) {
   const { colors } = useTheme();
   const blocks = parse(source);
 
@@ -198,40 +207,63 @@ export function MarkdownPreview({ source }: { source: string }) {
                 </AppText>
               </View>
             );
-          case 'check':
+          case 'check': {
+            const checkbox = (
+              <View
+                style={{
+                  width: 19,
+                  height: 19,
+                  marginTop: 3,
+                  borderRadius: 6,
+                  borderWidth: 1.5,
+                  borderColor: block.checked ? colors.accentBorder : colors.hairlineStrong,
+                  backgroundColor: block.checked ? colors.accentSoft : 'transparent',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                {block.checked ? <Check size={11} color={colors.accent} weight="bold" /> : null}
+              </View>
+            );
+            const label = (
+              <AppText
+                variant="body"
+                tone={block.checked ? 'tertiary' : 'default'}
+                style={{
+                  flex: 1,
+                  textDecorationLine: block.checked ? 'line-through' : 'none',
+                }}>
+                <Inline
+                  text={block.text}
+                  colors={colors}
+                  tone={block.checked ? 'tertiary' : 'default'}
+                />
+              </AppText>
+            );
+            if (onToggleCheck) {
+              return (
+                <PressableScale
+                  key={index}
+                  haptic="selection"
+                  hitSlop={6}
+                  accessibilityLabel={block.checked ? 'Mark task not done' : 'Mark task done'}
+                  onPress={() => onToggleCheck(block.line)}>
+                  <View
+                    style={{ flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' }}>
+                    {checkbox}
+                    {label}
+                  </View>
+                </PressableScale>
+              );
+            }
             return (
               <View
                 key={index}
                 style={{ flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' }}>
-                <View
-                  style={{
-                    width: 19,
-                    height: 19,
-                    marginTop: 3,
-                    borderRadius: 6,
-                    borderWidth: 1.5,
-                    borderColor: block.checked ? colors.accentBorder : colors.hairlineStrong,
-                    backgroundColor: block.checked ? colors.accentSoft : 'transparent',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                  {block.checked ? <Check size={11} color={colors.accent} weight="bold" /> : null}
-                </View>
-                <AppText
-                  variant="body"
-                  tone={block.checked ? 'tertiary' : 'default'}
-                  style={{
-                    flex: 1,
-                    textDecorationLine: block.checked ? 'line-through' : 'none',
-                  }}>
-                  <Inline
-                    text={block.text}
-                    colors={colors}
-                    tone={block.checked ? 'tertiary' : 'default'}
-                  />
-                </AppText>
+                {checkbox}
+                {label}
               </View>
             );
+          }
           case 'numbered':
             return (
               <View key={index} style={{ flexDirection: 'row', gap: spacing.md }}>

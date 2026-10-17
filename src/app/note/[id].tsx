@@ -29,15 +29,24 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MarkdownPreview } from '@/components/notes/markdown-preview';
+import { NoteMeta } from '@/components/notes/note-meta';
 import { AppText } from '@/components/ui/app-text';
 import { BackRow } from '@/components/ui/back-button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Eyebrow } from '@/components/ui/pill';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { useLiveQuery } from '@/lib/db/hooks';
-import { deleteNote, getNote, updateNote } from '@/lib/db/repo';
+import {
+  deleteNote,
+  getNote,
+  listClients,
+  listExistingTags,
+  listProjects,
+  updateNote,
+} from '@/lib/db/repo';
 import { countWords, formatDayLabel } from '@/lib/format';
 import { NOTE_TEMPLATES, type NoteTemplate } from '@/lib/note-templates';
+import { normalizeTag, serializeTags, splitTags } from '@/lib/tags';
 import { fonts, radius, spacing, useTheme } from '@/theme';
 
 type Draft = { title: string; body: string };
@@ -122,6 +131,14 @@ export default function NoteEditorScreen() {
   const [previewing, setPreviewing] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [pinned, setPinned] = useState<boolean | null>(null);
+  const [tagOverride, setTagOverride] = useState<string[] | null>(null);
+  // `undefined` = follow the database, `null` = explicitly unlinked.
+  const [clientOverride, setClientOverride] = useState<string | null | undefined>(undefined);
+  const [projectOverride, setProjectOverride] = useState<string | null | undefined>(undefined);
+
+  const clientList = useLiveQuery((d) => listClients(d));
+  const projectList = useLiveQuery((d) => listProjects(d));
+  const tagPool = useLiveQuery((d) => listExistingTags(d));
 
   const bodyRef = useRef<ComponentRef<typeof TextInput>>(null);
   const savedRef = useRef<Draft>({ title: '', body: '' });
@@ -196,6 +213,11 @@ export default function NoteEditorScreen() {
   const chars = draft?.body.length ?? 0;
   const freshNote = data?.title === 'Untitled note' && data?.body === '';
   const effectivePinned = pinned ?? data?.pinned === 1;
+  const effectiveTags = tagOverride ?? splitTags(data?.tags);
+  const effectiveClientId = clientOverride === undefined ? data?.client_id ?? null : clientOverride;
+  const effectiveProjectId = projectOverride === undefined ? data?.project_id ?? null : projectOverride;
+  const clientName = (clientList.data ?? []).find((c) => c.id === effectiveClientId)?.name ?? null;
+  const projectName = (projectList.data ?? []).find((p) => p.id === effectiveProjectId)?.name ?? null;
 
   const applyTemplate = useCallback((template: NoteTemplate) => {
     setDraft({ title: template.title, body: template.body });
@@ -208,6 +230,66 @@ export default function NoteEditorScreen() {
     setPinned(next);
     await updateNote(db, id, { pinned: next });
   }, [db, effectivePinned, id]);
+
+  const commitTags = useCallback(
+    (next: string[]) => {
+      const clean = [...new Set(next.map(normalizeTag).filter(Boolean))];
+      setTagOverride(clean);
+      updateNote(db, id, { tags: serializeTags(clean) })
+        .then(() => refreshRef.current())
+        .catch(() => {});
+    },
+    [db, id],
+  );
+
+  const handleAddTag = useCallback(
+    (tag: string) => {
+      const current = tagOverride ?? splitTags(data?.tags);
+      commitTags([...current, tag]);
+    },
+    [commitTags, data?.tags, tagOverride],
+  );
+
+  const handleRemoveTag = useCallback(
+    (tag: string) => {
+      const current = tagOverride ?? splitTags(data?.tags);
+      commitTags(current.filter((existing) => existing !== normalizeTag(tag)));
+    },
+    [commitTags, data?.tags, tagOverride],
+  );
+
+  const handlePickClient = useCallback(
+    (nextId: string | null) => {
+      setClientOverride(nextId);
+      updateNote(db, id, { client_id: nextId })
+        .then(() => refreshRef.current())
+        .catch(() => {});
+    },
+    [db, id],
+  );
+
+  const handlePickProject = useCallback(
+    (nextId: string | null) => {
+      setProjectOverride(nextId);
+      updateNote(db, id, { project_id: nextId })
+        .then(() => refreshRef.current())
+        .catch(() => {});
+    },
+    [db, id],
+  );
+
+  // Tap a task box in the preview to flip `- [ ]` ↔ `- [x]` in the source.
+  const toggleCheck = useCallback((line: number) => {
+    setDraft((prev) => {
+      const base = prev ?? savedRef.current;
+      const lines = base.body.replace(/\r\n/g, '\n').split('\n');
+      if (line < 0 || line >= lines.length) return prev;
+      const match = /^(\s*[-*]\s+\[)( |x|X)(\]\s+.*)$/.exec(lines[line]);
+      if (!match) return prev;
+      lines[line] = `${match[1]}${match[2].toLowerCase() === 'x' ? ' ' : 'x'}${match[3]}`;
+      return { ...base, body: lines.join('\n') };
+    });
+  }, []);
 
   const handleDelete = useCallback(async () => {
     await deleteNote(db, id);
@@ -340,6 +422,21 @@ export default function NoteEditorScreen() {
             }}
           />
 
+          <NoteMeta
+            tags={effectiveTags}
+            clientId={effectiveClientId}
+            projectId={effectiveProjectId}
+            clientName={clientName}
+            projectName={projectName}
+            clients={(clientList.data ?? []).map((c) => ({ id: c.id, name: c.name }))}
+            projects={(projectList.data ?? []).map((p) => ({ id: p.id, name: p.name }))}
+            suggestions={tagPool.data ?? []}
+            onAddTag={handleAddTag}
+            onRemoveTag={handleRemoveTag}
+            onPickClient={handlePickClient}
+            onPickProject={handlePickProject}
+          />
+
           <View
             style={{
               height: 1,
@@ -351,7 +448,7 @@ export default function NoteEditorScreen() {
 
           {previewing ? (
             <View style={{ minHeight: 320 }}>
-              <MarkdownPreview source={draft?.body ?? ''} />
+              <MarkdownPreview source={draft?.body ?? ''} onToggleCheck={toggleCheck} />
             </View>
           ) : (
             <TextInput

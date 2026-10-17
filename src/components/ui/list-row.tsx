@@ -13,6 +13,8 @@ export type ListRowProps = {
   subtitle?: string;
   icon?: ReactNode;
   trailing?: ReactNode;
+  /** Extra content under the subtitle (tag chips, links). */
+  footer?: ReactNode;
   onPress?: () => void;
   /** True when this row is inside a group and more rows follow. */
   showSeparator?: boolean;
@@ -23,6 +25,7 @@ export function ListRow({
   subtitle,
   icon,
   trailing,
+  footer,
   onPress,
   showSeparator = false,
 }: ListRowProps) {
@@ -66,6 +69,7 @@ export function ListRow({
               {subtitle}
             </AppText>
           ) : null}
+          {footer ? <View style={{ marginTop: 3 }}>{footer}</View> : null}
         </View>
         {trailing}
       </View>

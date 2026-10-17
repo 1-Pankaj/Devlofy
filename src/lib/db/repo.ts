@@ -4,6 +4,7 @@
  */
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { createId } from '../ids';
+import { splitTags } from '../tags';
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -15,6 +16,9 @@ export type NoteListRow = {
   id: string;
   title: string;
   preview: string;
+  tags: string | null;
+  client_name: string | null;
+  project_name: string | null;
   pinned: number;
   updated_at: string;
 };
@@ -24,6 +28,8 @@ export type Note = {
   title: string;
   body: string;
   project_id: string | null;
+  client_id: string | null;
+  tags: string | null;
   pinned: number;
   created_at: string;
   updated_at: string;
@@ -34,18 +40,24 @@ export async function listNotes(db: SQLiteDatabase, search?: string): Promise<No
   if (query) {
     const like = `%${query}%`;
     return db.getAllAsync<NoteListRow>(
-      `SELECT id, title, substr(body, 1, 140) AS preview, pinned, updated_at
-       FROM notes
-       WHERE deleted_at IS NULL AND (title LIKE ? OR body LIKE ?)
-       ORDER BY pinned DESC, updated_at DESC`,
-      [like, like],
+      `SELECT n.id, n.title, substr(n.body, 1, 140) AS preview, n.tags, n.pinned, n.updated_at,
+              c.name AS client_name, p.name AS project_name
+       FROM notes n
+       LEFT JOIN clients c ON c.id = n.client_id AND c.deleted_at IS NULL
+       LEFT JOIN projects p ON p.id = n.project_id AND p.deleted_at IS NULL
+       WHERE n.deleted_at IS NULL AND (n.title LIKE ? OR n.body LIKE ? OR n.tags LIKE ?)
+       ORDER BY n.pinned DESC, n.updated_at DESC`,
+      [like, like, like],
     );
   }
   return db.getAllAsync<NoteListRow>(
-    `SELECT id, title, substr(body, 1, 140) AS preview, pinned, updated_at
-     FROM notes
-     WHERE deleted_at IS NULL
-     ORDER BY pinned DESC, updated_at DESC`,
+    `SELECT n.id, n.title, substr(n.body, 1, 140) AS preview, n.tags, n.pinned, n.updated_at,
+            c.name AS client_name, p.name AS project_name
+     FROM notes n
+     LEFT JOIN clients c ON c.id = n.client_id AND c.deleted_at IS NULL
+     LEFT JOIN projects p ON p.id = n.project_id AND p.deleted_at IS NULL
+     WHERE n.deleted_at IS NULL
+     ORDER BY n.pinned DESC, n.updated_at DESC`,
   );
 }
 
@@ -70,10 +82,17 @@ export async function createNote(db: SQLiteDatabase): Promise<string> {
 export async function updateNote(
   db: SQLiteDatabase,
   id: string,
-  patch: { title?: string; body?: string; pinned?: boolean },
+  patch: {
+    title?: string;
+    body?: string;
+    pinned?: boolean;
+    tags?: string | null;
+    client_id?: string | null;
+    project_id?: string | null;
+  },
 ) {
   const sets: string[] = [];
-  const params: (string | number)[] = [];
+  const params: (string | number | null)[] = [];
   if (patch.title !== undefined) {
     sets.push('title = ?');
     params.push(patch.title);
@@ -86,6 +105,18 @@ export async function updateNote(
     sets.push('pinned = ?');
     params.push(patch.pinned ? 1 : 0);
   }
+  if (patch.tags !== undefined) {
+    sets.push('tags = ?');
+    params.push(patch.tags);
+  }
+  if (patch.client_id !== undefined) {
+    sets.push('client_id = ?');
+    params.push(patch.client_id);
+  }
+  if (patch.project_id !== undefined) {
+    sets.push('project_id = ?');
+    params.push(patch.project_id);
+  }
   if (sets.length === 0) return;
   params.push(nowIso(), id);
   await db.runAsync(`UPDATE notes SET ${sets.join(', ')}, updated_at = ? WHERE id = ?`, params);
@@ -94,6 +125,18 @@ export async function updateNote(
 export async function deleteNote(db: SQLiteDatabase, id: string) {
   const now = nowIso();
   await db.runAsync('UPDATE notes SET deleted_at = ?, updated_at = ? WHERE id = ?', [now, now, id]);
+}
+
+/** Every tag in use across live notes — feeds the tag editor's suggestions. */
+export async function listExistingTags(db: SQLiteDatabase): Promise<string[]> {
+  const rows = await db.getAllAsync<{ tags: string }>(
+    `SELECT tags FROM notes WHERE deleted_at IS NULL AND tags IS NOT NULL AND tags != ''`,
+  );
+  const seen = new Set<string>();
+  for (const row of rows) {
+    for (const tag of splitTags(row.tags)) seen.add(tag);
+  }
+  return [...seen].sort();
 }
 
 // ─────────────────────────── Clients ───────────────────────────

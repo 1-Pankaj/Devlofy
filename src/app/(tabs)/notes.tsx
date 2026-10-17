@@ -4,7 +4,14 @@
 import { FlashList } from '@shopify/flash-list';
 import { useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { MagnifyingGlass, NotePencil, Notebook, PushPin } from 'phosphor-react-native';
+import {
+  Briefcase,
+  MagnifyingGlass,
+  NotePencil,
+  Notebook,
+  PushPin,
+  UsersThree,
+} from 'phosphor-react-native';
 import { useDeferredValue, useState } from 'react';
 import { View } from 'react-native';
 
@@ -21,6 +28,7 @@ import { TextField } from '@/components/ui/text-field';
 import { useLiveQuery } from '@/lib/db/hooks';
 import { createNote, listNotes, type NoteListRow } from '@/lib/db/repo';
 import { formatDayLabel } from '@/lib/format';
+import { splitTags } from '@/lib/tags';
 import { spacing, useTheme } from '@/theme';
 
 export default function NotesScreen() {
@@ -74,7 +82,7 @@ export default function NotesScreen() {
           <TextField
             value={search}
             onChangeText={setSearch}
-            placeholder="Search titles and bodies…"
+            placeholder="Search titles, bodies, tags…"
             inputStyle={{ paddingLeft: 42, minHeight: 48 }}
           />
         </View>
@@ -98,33 +106,70 @@ export default function NotesScreen() {
               style={{ flex: 1 }}
               data={rows}
               keyExtractor={(item: NoteListRow) => item.id}
-              renderItem={({ item, index }: { item: NoteListRow; index: number }) => (
-                <ListRow
-                  icon={
-                    item.pinned ? (
-                      <PushPin size={16} color={colors.accent} weight="fill" />
-                    ) : (
-                      <NotePencil size={16} color={colors.textTertiary} weight="light" />
-                    )
-                  }
-                  title={item.title || 'Untitled note'}
-                  subtitle={item.preview.replaceAll('\n', ' ') || 'Empty note'}
-                  showSeparator={index < rows.length - 1}
-                  onPress={() => router.push({ pathname: '/note/[id]', params: { id: item.id } })}
-                  trailing={
-                    <AppText variant="caption" tone="tertiary">
-                      {formatDayLabel(item.updated_at)}
-                    </AppText>
-                  }
-                />
-              )}
+              renderItem={({ item, index }: { item: NoteListRow; index: number }) => {
+                const tags = splitTags(item.tags);
+                const hasMeta = tags.length > 0 || item.client_name || item.project_name;
+                return (
+                  <ListRow
+                    icon={
+                      item.pinned ? (
+                        <PushPin size={16} color={colors.accent} weight="fill" />
+                      ) : (
+                        <NotePencil size={16} color={colors.textTertiary} weight="light" />
+                      )
+                    }
+                    title={item.title || 'Untitled note'}
+                    subtitle={item.preview.replace(/\s+/g, ' ').trim() || 'Empty note'}
+                    footer={
+                      hasMeta ? (
+                        <View
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            flexWrap: 'wrap',
+                            gap: spacing.sm,
+                          }}>
+                          {item.project_name ? (
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                              <Briefcase size={10} color={colors.textTertiary} weight="light" />
+                              <AppText variant="caption" tone="tertiary">
+                                {item.project_name}
+                              </AppText>
+                            </View>
+                          ) : null}
+                          {item.client_name ? (
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                              <UsersThree size={10} color={colors.textTertiary} weight="light" />
+                              <AppText variant="caption" tone="tertiary">
+                                {item.client_name}
+                              </AppText>
+                            </View>
+                          ) : null}
+                          {tags.map((tag) => (
+                            <AppText key={tag} variant="captionMedium" tone="accent">
+                              #{tag}
+                            </AppText>
+                          ))}
+                        </View>
+                      ) : undefined
+                    }
+                    showSeparator={index < rows.length - 1}
+                    onPress={() => router.push({ pathname: '/note/[id]', params: { id: item.id } })}
+                    trailing={
+                      <AppText variant="caption" tone="tertiary">
+                        {formatDayLabel(item.updated_at)}
+                      </AppText>
+                    }
+                  />
+                );
+              }}
               ListEmptyComponent={
                 <EmptyState
                   icon={Notebook}
                   title={deferredSearch ? 'No matches' : 'No notes yet'}
                   message={
                     deferredSearch
-                      ? 'Try a different word — search looks at titles and bodies.'
+                      ? 'Try a different word — search looks at titles, bodies, and tags.'
                       : 'Capture the plan, the snippet, the client call. It stays here.'
                   }
                 />

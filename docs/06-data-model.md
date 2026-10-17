@@ -25,7 +25,7 @@ If sync ever happens (it's a "maybe"), the schema is already shaped for last-wri
 | `milestones` | project timeline | `project_id`, `due_date`, `status` (pending/hit), `order_index` |
 | `tasks` | the day's work | `project_id` (nullable = inbox), `status`, `priority` (0–2), `energy` (deep/shallow), `est_minutes`, `due_at`, `completed_at`, `tags` |
 | `sessions` | time log / focus | `kind` (focus/meeting/break), `started_at`, `ended_at`, `minutes`, `billable`, `note` |
-| `notes` | knowledge | `title`, `body` (markdown-ish), `pinned`, optional `project_id`/`client_id` |
+| `notes` | knowledge | `title`, `body` (markdown-ish), `pinned`, `tags` (comma-separated lowercase slugs — see `src/lib/tags.ts`), optional `project_id`/`client_id` (link chips in the editor) |
 
 Indexes: `tasks(status)`, `tasks(project_id)`, `sessions(started_at)`, `notes(updated_at DESC)`, `projects(client_id)` — all partial on `deleted_at IS NULL`.
 
@@ -39,6 +39,7 @@ Indexes: `tasks(status)`, `tasks(project_id)`, `sessions(started_at)`, `notes(up
 
 v0.1: `LIKE` over `title` + `body` (works everywhere).
 v1.5: **FTS5** on native behind a capability check; web keeps LIKE (the wasm build has no FTS5 — see [[03-architecture]]).
+Notes search additionally matches `tags` and can be narrowed by linked client/project chips shown on each row.
 
 ## Seeding
 
