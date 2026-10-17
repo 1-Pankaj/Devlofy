@@ -41,6 +41,10 @@ example
 # generated native folders
 /ios
 /android
+
+# regenerable knowledge-graph output (run: graphify update . && graphify export obsidian)
+graphify-out/
+
 # @generated expo skills start
 .agents/skills/expo-sqlite
 .claude/skills/expo-sqlite
