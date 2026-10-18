@@ -15,8 +15,16 @@ import type { Group, InstancedMesh, Mesh } from 'three';
 import { AppText } from '@/components/ui/app-text';
 import { makeTree, type Branch, type GrowthInput } from '@/lib/garden/model';
 import { loadVariant, variantForGrowth, type GardenVariant } from '@/lib/garden/models';
-import { dressingFor, loadProp, trophiesFor, type PropPlacement } from '@/lib/garden/props';
+import {
+  dressingFor,
+  isKitOnly,
+  kitFor,
+  loadProp,
+  trophiesFor,
+  type PropPlacement,
+} from '@/lib/garden/props';
 import { Canvas, THREE, useFrame, useThree } from '@/lib/three';
+import { GLOW_MATERIAL } from '@/lib/three/kit';
 import { hasWebGL } from '@/lib/three/webgl';
 import { radius, spacing, useTheme } from '@/theme';
 
@@ -158,15 +166,26 @@ function Tree({ seed, growth }: { seed: number; growth: number }) {
 }
 
 /**
- * One prop placement: the prop's GLB cloned at the slot's transform. The
- * lantern's glow panes burn brighter while a session runs (`focusing`).
+ * One prop placement, answered three ways:
+ *
+ *  - the two **kit-only** props (`bench`, `signpost`) are built in code and are
+ *    on screen from the first frame — no GLB exists to wait for;
+ *  - everything else prefers its **authored GLB**, cloned per consumer;
+ *  - if that GLB never arrives, the prop is built **from the kit** instead of
+ *    leaving a hole in the garden.
+ *
+ * The lantern's glass — authored or code-built — burns brighter mid-session.
  */
 function Prop({ placement, focusing }: { placement: PropPlacement; focusing: boolean }) {
+  const kitOnly = isKitOnly(placement.prop);
   const [model, setModel] = useState<Group | null>(null);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
+    const prop = placement.prop;
+    if (isKitOnly(prop)) return;
     let cancelled = false;
-    loadProp(placement.prop)
+    loadProp(prop)
       .then((scene) => {
         if (cancelled) return;
         const clone = scene.clone(true);
@@ -179,33 +198,41 @@ function Prop({ placement, focusing }: { placement: PropPlacement; focusing: boo
         setModel(clone);
       })
       .catch(() => {
-        // Props are seasoning — the scene works without them.
+        // The kit answers instead — see `object` below.
+        if (!cancelled) setFailed(true);
       });
     return () => {
       cancelled = true;
     };
   }, [placement.prop]);
 
+  const object = useMemo(() => {
+    if (model) return model;
+    if (!kitOnly && !failed) return null;
+    return kitFor(placement);
+  }, [failed, kitOnly, model, placement]);
+
   // The lantern answers focus: dim glass at rest, live glow mid-session.
   useEffect(() => {
-    if (!model || placement.prop !== 'lantern') return;
-    model.traverse((object) => {
-      const mesh = object as Mesh;
+    if (!object || placement.prop !== 'lantern') return;
+    object.traverse((child) => {
+      const mesh = child as Mesh;
       if (!mesh.isMesh) return;
       const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
       materials.forEach((material) => {
-        if (material.name === 'DevlofyLeafBright' && 'emissiveIntensity' in material) {
+        const glows = material.name === 'DevlofyLeafBright' || material.name === GLOW_MATERIAL;
+        if (glows && 'emissiveIntensity' in material) {
           (material as THREE.MeshStandardMaterial).emissiveIntensity = focusing ? 2.6 : 0.5;
         }
       });
     });
-  }, [focusing, model, placement.prop]);
+  }, [focusing, object, placement.prop]);
 
-  if (!model) return null;
+  if (!object) return null;
 
   return (
     <primitive
-      object={model}
+      object={object}
       position={placement.position}
       rotation={[0, placement.rotationY, 0]}
       scale={placement.scale}
@@ -275,6 +302,8 @@ export type GardenSceneProps = {
   growth?: number;
   /** Focus history — drives dressing tiers and the earned trophies. */
   stats?: GrowthInput;
+  /** Active projects — the signpost hangs one plate per project. */
+  projects?: number;
   /** A session is running; the lantern burns brighter. */
   focusing?: boolean;
   /** False for teasers: renders on demand instead of a continuous loop. */
@@ -286,6 +315,7 @@ export function GardenScene({
   seed = 7,
   growth = 0.5,
   stats,
+  projects = 0,
   focusing = false,
   animated = true,
   style,
@@ -299,9 +329,12 @@ export function GardenScene({
   const placements = useMemo(
     () =>
       hasStats
-        ? [...dressingFor(growth), ...trophiesFor({ totalMinutes, streakDays, todayMinutes })]
+        ? [
+            ...dressingFor(growth, projects),
+            ...trophiesFor({ totalMinutes, streakDays, todayMinutes }),
+          ]
         : [],
-    [hasStats, growth, totalMinutes, streakDays, todayMinutes],
+    [hasStats, growth, projects, totalMinutes, streakDays, todayMinutes],
   );
   // No GPU context — a locked-down browser, WebGL switched off, a headless
   // render. Show a still instead of letting the renderer throw and take the

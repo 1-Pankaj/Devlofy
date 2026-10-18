@@ -31,6 +31,7 @@ import { SectionHeader } from '@/components/ui/section';
 import { FadeUp } from '@/components/ui/stagger';
 import { useLiveQuery } from '@/lib/db/hooks';
 import {
+  countActiveProjects,
   endFocusSession,
   focusMinutesByDay,
   getActiveSession,
@@ -86,6 +87,7 @@ export default function GardenScreen() {
   }));
   const history = useLiveQuery((d) => listRecentSessions(d, 6));
   const rhythm = useLiveQuery((d) => focusMinutesByDay(d, 84));
+  const projects = useLiveQuery(countActiveProjects);
   const engine = useEngine();
   const { refresh: refreshEngine } = engine;
   const focusProjectId = useSettings((s) => s.focusProjectId);
@@ -197,6 +199,7 @@ export default function GardenScreen() {
                 streakDays: totals.data?.streak ?? 0,
                 todayMinutes: totals.data?.today ?? 0,
               }}
+              projects={projects.data ?? 0}
               focusing={!!active}
               animated
             />

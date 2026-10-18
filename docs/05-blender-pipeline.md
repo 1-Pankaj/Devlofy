@@ -24,15 +24,54 @@ The user opens **Blender** (the MCP addon is wired: `get_addon_status`, `execute
 1. **Tree variants** *(done: seed / sprout / sapling / young / canopy; detail pass + visible branches, integrated 2026-10-17)* — next: alternative species (oak / pine / blossom) as a garden-style setting.
 2. **Garden props** *(done 2026-10-17: rock, rocks, grass, fern, log, stump — dressing tiers wired to growth)*.
 3. **Session trophies** *(done 2026-10-17: mushrooms, flowers, cairn, bird — data-driven; lantern glows mid-session)*.
-4. **Focus props** — still open: a bench; a signpost with a notch per active project.
+4. **Focus props** — *done 2026-10-19, in code rather than in Blender*: the **bench** (unlocks at sapling growth) and the **signpost** — one hanging plate per **active project**. They are the first garden objects whose shape is *data*, and they are authored by the code kit below because no Blender session was available (see [[07-decisions|ADR-022]]).
 5. **Logo mark** — the sprout-in-squircle as an actual 3D object for the splash/celebration.
+
+## The code-authored kit (v0.6) — the second way a prop arrives
+
+The GLBs above come from a **live** Blender session. When that session is not available — another machine, a locked-down environment, a contributor without the MCP addon — the garden would otherwise be frozen at the models it already has. So there is a second authoring path that needs no tooling at all: **`src/lib/three/kit/`**, eight props written as three.js geometry, merged from parts (`parts.ts` → `models.ts` → `index.ts`).
+
+It is not decorative. `src/lib/garden/props.ts` answers every placement through one of three paths, and a placement does not know which one answered it:
+
+| Path | Which props |
+|---|---|
+| **Authored GLB** | the eleven in `assets/models/props/` — preferred whenever the file loads |
+| **Code kit** | the two with no GLB (**bench**, **signpost**) *always*, and any other prop whose GLB never arrives, so the garden is dressed on every device |
+| **Nothing** | an earned trophy whose GLB is missing — it waits rather than showing a stand-in that would teach the wrong shape |
+
+**Invariants the kit holds**, all of them checked by the tool below rather than asserted: *deterministic* (surface noise is a hash of each vertex's own position, so the same model is identical on every device and two vertices sharing a corner never crack apart); **one draw call per prop** (parts merge into a single vertex-coloured, flat-shaded geometry); **base at y = 0 in metres**, matching the GLB convention exactly, so a placement can swap between the two without moving; ≤ **700 triangles** per prop.
+
+The two code-only props are the interesting ones:
+
+- **bench** — three seat planks, a back on a 12° lean, four legs, one stretcher. Unlocks at sapling growth.
+- **signpost** — a bilateral arm and one hanging plate per **active project** (`countActiveProjects()` → `dressingFor(growth, projects)`), up to five, alternating sides. Zero projects is an honest bare post.
+
+The rest: **rock** (1–3 jittered stones), **grass** (nine tapered blades), **fern** (seven arching fronds), **log** (cut ends, a branch stub, moss on the up-side), **stump** (roots tapered into the soil, rings on the sawn face), **lantern** (glass on `DevlofyKitGlow`, so it still answers focus — dim at rest, lit mid-session).
+
+## Seeing 3D without a GPU: `tools/preview`
+
+A browser with no WebGL context — headless in a container, a webview that has it switched off — can only show the app's "3D is unavailable" still, and **a model you cannot look at is a model you cannot judge.** `tools/preview/render.js` closes that gap with no new dependency:
+
+1. it builds **every** kit variant through the real three.js code paths and checks the invariants above — finite vertices, base on the ground, height and footprint sane, triangle budget, determinism (build twice, compare the geometry), exactly one glow mesh on the lantern, and every kit model having a consumer in `props.ts`;
+2. it **software-rasterises a contact sheet** — z-buffered, flat-shaded, lit by the scene's own three lights, with the same linear→sRGB conversion — and writes it to `/tmp/shots/kit-sheet.png` for review, no renderer required.
+
+```bash
+npx tsc src/lib/three/kit/index.ts --ignoreConfig --outDir /tmp/kit \
+  --module commonjs --target es2020 --moduleResolution node --skipLibCheck
+NODE_PATH=$PWD/node_modules node tools/preview/render.js
+```
+
+The last tile of the sheet is the **procedural tree**: what the garden shows when no GLB ever arrives, and the one 3D object in this app that had no way of being seen before this tool existed.
+
+The kit's other half of the contract is compile-time, not runtime: `props.ts` types its two maps so a hole cannot be expressed — `Record<GlbProp, GltfAssetModule>` requires a module for every authored prop and `Record<KitProp, KitAnswer>` requires a kit entry for every prop that has no GLB — so adding a prop to either union without an answer fails `npx tsc --noEmit` instead of quietly rendering an empty clearing on a device whose GLB did not load.
 
 ### Hard rules for assets
 
 - **GLB only**, Y-up, meters, origin at the base, applied transforms.
 - Flat-shaded, low-poly, single material per object where possible; baked vertex colors over textures.
-- Budget: ≤ 15k tris *total* on the garden screen (largest stage, canopy, is ≈ 12.1k; the always-on dressing adds ≈ 1.5k and trophies ≈ 2.5k worst case — only one tree is ever mounted); textures ≤ 1k if any.
+- Budget: ≤ 15k tris *total* on the garden screen (largest stage, canopy, is ≈ 12.1k; the always-on dressing adds ≈ 1.5k and trophies ≈ 2.5k worst case — only one tree is ever mounted); textures ≤ 1k if any. The code kit totals ≈ 1.4k across *all* its variants, but a garden mounts at most two of them (bench 144 + signpost ≤ 120) — the rest exist for the fallback path and for a missing prop.
 - Export from Blender: `File → Export → glTF 2.0 (.glb)` with +Y up, apply modifiers on.
+- If you author a prop in code instead, the same rules bind: base at y = 0, metres, flat-shaded, 3–4 tones, per-vertex noise, and you must run `tools/preview` (below) to see it.
 
 ## Integration path
 

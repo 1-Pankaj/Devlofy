@@ -403,6 +403,19 @@ export type MilestoneRow = {
   order_index: number;
 };
 
+/**
+ * How many projects are running. The garden's signpost hangs one plate per
+ * project, so a count is all that shape needs — and it is a query, never a
+ * counter kept in sync by hand.
+ */
+export async function countActiveProjects(db: SQLiteDatabase): Promise<number> {
+  const row = await db.getFirstAsync<{ count: number }>(
+    `SELECT COUNT(*) AS count FROM projects
+      WHERE status = 'active' AND deleted_at IS NULL`,
+  );
+  return row?.count ?? 0;
+}
+
 export async function listProjects(db: SQLiteDatabase): Promise<ProjectRow[]> {
   return db.getAllAsync<ProjectRow>(
     `SELECT p.id, p.client_id, c.name AS client_name, c.hourly_rate AS client_rate,

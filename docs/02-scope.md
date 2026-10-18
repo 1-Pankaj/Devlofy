@@ -91,6 +91,8 @@ The first new **category** since v0.1 ([[10-categories]]), and the first release
 
 Surfaces touched: More gains its **Bench** section; new route `/bench` (shelf, `[tool]`, `snippets`); `src/lib/bench/*` + `src/components/bench/*`; the shared `src/lib/diff.ts`, `base64.ts` and `src/components/ui/code-block|diff-view` are now used by two features; **schema v3** ([[06-data-model]]).
 
+The same release also closes [[05-blender-pipeline]]'s last open model item — **the Garden's code-authored kit** ([[07-decisions]] ADR-022): a bench that unlocks with growth and a **signpost with one plate per active project** (the first garden objects whose shape is data), plus a code model for every other prop so the garden is dressed when its GLB never arrives. Eight models in `src/lib/three/kit/`, all offline, no new dependency — and `tools/preview/` renders them to a PNG without a GPU, because a browser without WebGL (like a headless container) can only show the "3D is unavailable" still.
+
 ## v1 — the spine *(next)*
 
 - Task scheduling follow-ons: energy pairing, manual reordering, due-date editing after creation.

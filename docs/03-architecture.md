@@ -82,7 +82,8 @@ src/
                           #   patch.ts (parses GitHub's patch *into* DiffHunks), device.ts, token.ts,
                           #   cache.ts, config.ts
     layout/breakpoints.ts # window size classes + desktop mode
-    three/                # platform shim
+    three/                # platform shim (index/load-model/webgl: ts + native + web)
+      kit/                # the code-authored prop kit (parts → models → index; docs/05)
     base64.ts, diff.ts    # transport-free primitives shared by GitHub and Bench
     highlight.ts          # the app's own syntax tokenizer (no dependency)
     money.ts              # rates → line items → invoice text (pure)
@@ -91,6 +92,8 @@ src/
   state/settings.ts       # zustand persisted settings
   theme/                  # colors, spacing, radius, typography, motion, shadows, provider
 ```
+
+Beside `src/`: `tools/blender/` holds the re-runnable scripts that `assets/models/*.glb` were generated from (the source of truth for the trees, not for the props), and `tools/preview/` is the GPU-less renderer and invariant check for the 3D kit below.
 
 ## Commands
 
@@ -116,6 +119,10 @@ node -e "require('/tmp/bv/bench/self-check.js').runSelfCheck()"
 ```
 
 It prints `total / passed / failed` and the detail of anything that failed. When a pure module changes, add the case that would have caught the change: this file is the reason a hand-written SHA-1 can be trusted next to `git` ([[07-decisions]] ADR-021). The intent in [[08-backlog]] is to extend this habit to the Engine and the GitHub parsers rather than introduce vitest.
+
+## Checking 3D without a GPU
+
+Same idea, applied to geometry: `tools/preview/render.js` (**dev-only — nothing in the app imports it**) builds every model in the code-authored kit through the real three.js code paths, asserts the kit's invariants (finite vertices, base at y = 0, triangle budget, determinism by rebuilding, one glow mesh on the lantern, a consumer in `props.ts` for every model), then software-rasterises a contact sheet to `/tmp/shots/kit-sheet.png`. That is the only way to *look* at the garden's models in an environment without WebGL, where the app itself can only show its "3D is unavailable" still. Recipe and rules: [[05-blender-pipeline]].
 
 ## Boot order
 

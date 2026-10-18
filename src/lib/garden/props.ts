@@ -1,17 +1,23 @@
 /**
- * Blender-authored garden props — life beyond the tree.
+ * Garden props — life beyond the tree.
  *
- * Eleven small GLBs (source of truth: `tools/blender/garden_props.py`) placed
- * deterministically around the tree. Two layers:
+ * Eleven authored GLBs (source of truth: `tools/blender/garden_props.py`) plus
+ * the code-authored kit in `src/lib/three/kit`, placed deterministically around
+ * the tree. Three layers:
  *
- *  - `dressingFor(growth)`   — always-on world: rocks, grass, fern, log, stump,
- *    the focus lantern. Unlocks in tiers as the tree grows.
- *  - `trophiesFor(stats)`    — earned objects: mushroom clusters per hours
+ *  - `dressingFor(growth, projects)` — always-on world: stones, grass, fern, log,
+ *    stump, the focus lantern, the bench and the project signpost. Unlocks in
+ *    tiers as the tree grows.
+ *  - `trophiesFor(stats)`          — earned objects: mushroom clusters per hours
  *    focused, daisy patches per streak, a cairn for depth, a sparrow for
  *    consistency. Pure functions of history — same data, same garden.
+ *  - `kitFor(placement)`           — the code answer to a placement: what the two
+ *    props with no GLB (`KIT_ONLY`) always use, and what every other prop falls
+ *    back to when its GLB never arrives.
  *
- * Loaded lazily and cached per prop, cloned per consumer (same contract as
- * `models.ts`).
+ * GLBs are loaded lazily and cached per prop, cloned per consumer (same contract
+ * as `models.ts`). The kit is synchronous and cached per variant, so a placement
+ * does not know which of the two answered it.
  */
 import type { Group } from 'three';
 
@@ -27,9 +33,11 @@ import rockModule from '@/assets/models/props/prop-rock.glb';
 import rocksModule from '@/assets/models/props/prop-rocks.glb';
 import stumpModule from '@/assets/models/props/prop-stump.glb';
 import { hashString, mulberry32, type GrowthInput } from '@/lib/garden/model';
+import { kitObject, type KitModelId, type KitOptions } from '@/lib/three/kit';
 import { loadGltf, type GltfAssetModule } from '@/lib/three/load-model';
 
-export type GardenProp =
+/** Props the Blender file answers. */
+export type GlbProp =
   | 'rock'
   | 'rocks'
   | 'grass'
@@ -42,7 +50,12 @@ export type GardenProp =
   | 'lantern'
   | 'bird';
 
-const MODULES: Record<GardenProp, GltfAssetModule> = {
+/** Props only the code kit has — the sheet `05-blender-pipeline` left open. */
+export type KitProp = 'bench' | 'signpost';
+
+export type GardenProp = GlbProp | KitProp;
+
+const MODULES: Record<GlbProp, GltfAssetModule> = {
   rock: rockModule,
   rocks: rocksModule,
   grass: grassModule,
@@ -56,10 +69,10 @@ const MODULES: Record<GardenProp, GltfAssetModule> = {
   bird: birdModule,
 };
 
-const cache = new Map<GardenProp, Promise<Group>>();
+const cache = new Map<GlbProp, Promise<Group>>();
 
 /** Resolves to the shared scene graph — clone it before rendering. */
-export function loadProp(prop: GardenProp): Promise<Group> {
+export function loadProp(prop: GlbProp): Promise<Group> {
   let entry = cache.get(prop);
   if (!entry) {
     entry = loadGltf(MODULES[prop]);
@@ -67,6 +80,40 @@ export function loadProp(prop: GardenProp): Promise<Group> {
   }
   return entry;
 }
+
+/**
+ * The kit's answer to a prop. `KIT_ONLY` members are always built in code — no
+ * authored model exists for them — and every other prop falls back here if its
+ * GLB never arrives, which is what turns "props are seasoning" into "the garden
+ * is dressed either way".
+ *
+ * The earned trophies (mushrooms, flowers, cairn, bird) have no entry on
+ * purpose: they wait for their model rather than showing a stand-in that would
+ * teach the wrong shape. They are still *authored*, so they are not a hole.
+ */
+export const KIT_ONLY: readonly GardenProp[] = ['bench', 'signpost'];
+
+type KitAnswer = { id: KitModelId; options?: KitOptions };
+
+/**
+ * Which model answers which prop, enforced in the type rather than in a comment:
+ * the intersection below means **every kit-only prop must have an entry** (while
+ * `Record<GlbProp, GltfAssetModule>` above means every authored prop must have a
+ * module). Add a prop to either union without an answer and `npx tsc --noEmit`
+ * fails here, instead of rendering an empty clearing on a device whose GLB did
+ * not load.
+ */
+const KIT_FOR_PROP: Partial<Record<GardenProp, KitAnswer>> & Record<KitProp, KitAnswer> = {
+  bench: { id: 'bench' },
+  signpost: { id: 'signpost' },
+  rock: { id: 'rock', options: { stones: 1 } },
+  rocks: { id: 'rock', options: { stones: 3 } },
+  grass: { id: 'grass' },
+  fern: { id: 'fern' },
+  log: { id: 'log' },
+  stump: { id: 'stump' },
+  lantern: { id: 'lantern' },
+};
 
 export type PropPlacement = {
   prop: GardenProp;
@@ -77,7 +124,24 @@ export type PropPlacement = {
   /** Facing, radians. */
   rotationY: number;
   scale: number;
+  /** Signpost only: plates to hang — the count of projects you are running. */
+  notches?: number;
 };
+
+/** Does this prop exist only in code? Then it never waits for a load. */
+export function isKitOnly(prop: GardenProp): prop is KitProp {
+  return KIT_ONLY.includes(prop);
+}
+
+/** A fresh code-built object for a placement, or null when the kit has none. */
+export function kitFor(placement: PropPlacement): Group | null {
+  const entry = KIT_FOR_PROP[placement.prop];
+  if (!entry) return null;
+  return kitObject(entry.id, {
+    ...entry.options,
+    ...(placement.notches !== undefined ? { notches: placement.notches } : {}),
+  });
+}
 
 /**
  * Anchor slots around the tree (degrees, metres). Hand-placed once so props
@@ -102,9 +166,16 @@ const SLOTS: { angle: number; radius: number }[] = [
   { angle: -25, radius: 1.45 }, // 15 · flowers (second)
   { angle: -55, radius: 2.3 }, // 16 · rock (third)
   { angle: 145, radius: 0.8 }, // 17 · grass (third)
+  { angle: -130, radius: 2.1 }, // 18 · bench (code kit)
+  { angle: 155, radius: 2.2 }, // 19 · signpost (code kit)
 ];
 
-function placement(prop: GardenProp, slot: number, scaleBoost = 1): PropPlacement {
+function placement(
+  prop: GardenProp,
+  slot: number,
+  scaleBoost = 1,
+  notches?: number,
+): PropPlacement {
   const rand = mulberry32(hashString(`garden-prop:${prop}:${slot}`));
   const { angle, radius } = SLOTS[slot % SLOTS.length];
   const radians = (angle * Math.PI) / 180;
@@ -124,30 +195,38 @@ function placement(prop: GardenProp, slot: number, scaleBoost = 1): PropPlacemen
     position,
     rotationY: facing,
     scale: (0.92 + rand() * 0.22) * scaleBoost,
+    ...(notches !== undefined ? { notches } : {}),
   };
 }
 
 /**
  * The always-present world, unlocking in tiers as the tree grows:
- * bare seed keeps only stones and grass; a sprout gets a fern and its
- * lantern; saplings live with a fallen log and stump; grown trees keep the
- * fullest garden.
+ * bare seed keeps only stones, grass and the signpost; a sprout gets a fern and
+ * its lantern; saplings live with a fallen log, a stump and the bench; grown
+ * trees keep the fullest garden.
+ *
+ * `projects` is the count of active projects: the signpost hangs one plate per
+ * project, so the garden says how much is on your plate. It is the only prop
+ * whose *shape* is data.
  */
-export function dressingFor(growth: number): PropPlacement[] {
+export function dressingFor(growth: number, projects = 0): PropPlacement[] {
   const items: [GardenProp, number][] = [
     ['grass', 3],
     ['rocks', 5],
+    ['signpost', 19],
   ];
   if (growth >= 0.12) {
     items.push(['fern', 1], ['lantern', 7]);
   }
   if (growth >= 0.32) {
-    items.push(['log', 0], ['stump', 2], ['rock', 4]);
+    items.push(['log', 0], ['stump', 2], ['rock', 4], ['bench', 18]);
   }
   if (growth >= 0.58) {
     items.push(['grass', 13], ['rock', 16]);
   }
-  return items.map(([prop, slot]) => placement(prop, slot));
+  return items.map(([prop, slot]) =>
+    prop === 'signpost' ? placement(prop, slot, 1, projects) : placement(prop, slot),
+  );
 }
 
 /**
