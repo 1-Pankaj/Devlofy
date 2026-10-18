@@ -54,7 +54,7 @@
     },
     "extra": {
       "comment": "githubClientId is the public client ID of the user's own GitHub OAuth App (Device Flow enabled). Empty = on-device sign-in is hidden and a pasted token is the only way in. A client ID is public and safe to commit; a client secret is not, and device flow never needs one.",
-      "githubClientId": ""
+      "githubClientId": "Ov23lil9vqHnIZFi1QWM"
     }
   }
 }

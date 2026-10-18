@@ -290,10 +290,25 @@ export default function GithubScreen() {
                     <Loading label="asking GitHub for a code…" />
                   ) : github.device.stage === 'waiting' ? (
                     <>
-                      <View style={{ alignItems: 'center', gap: spacing.xs }}>
-                        <Eyebrow tone="accent">enter this on GitHub</Eyebrow>
-                        <AppText variant="mono" style={{ fontSize: 30, letterSpacing: 3 }}>
-                          {github.device.userCode}
+                      <View style={{ alignItems: 'center', gap: spacing.md }}>
+                        <Eyebrow tone="accent">type this code on GitHub</Eyebrow>
+                        <View
+                          style={{
+                            alignSelf: 'stretch',
+                            alignItems: 'center',
+                            backgroundColor: colors.surfaceSunken,
+                            borderRadius: radius.md,
+                            borderCurve: 'continuous',
+                            paddingVertical: spacing.md,
+                          }}>
+                          <AppText variant="mono" style={{ fontSize: 30, letterSpacing: 3 }}>
+                            {github.device.userCode}
+                          </AppText>
+                        </View>
+                        <AppText variant="caption" tone="tertiary" style={{ textAlign: 'center' }}>
+                          at {github.device.verificationUri.replace('https://', '')}. The code is
+                          good for about 15 minutes, and this screen finishes by itself once you
+                          approve.
                         </AppText>
                       </View>
                       <AppButton
@@ -301,10 +316,6 @@ export default function GithubScreen() {
                         icon={ArrowSquareOut}
                         onPress={() => openExternal(github.device.approveUri)}
                       />
-                      <AppText variant="caption" tone="tertiary">
-                        This screen finishes by itself once you approve. The code is good for about
-                        15 minutes.
-                      </AppText>
                       <AppButton
                         label="Cancel"
                         variant="text"
