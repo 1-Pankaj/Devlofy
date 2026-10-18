@@ -24,8 +24,8 @@ neutral ramp, plus a **tertiary** hue reserved for exactly one meaning.
 
 | Role | Hue | Means |
 |---|---|---|
-| `accent` (+ `accentSoft`, `accentBorder`) | **indigo** `#4B5AA0` / `#BCC2FF` | the brand: active nav, the primary action, progress, selection |
-| `ember` (+ `emberSoft`) | **amber** `#A85A08` / `#FFB870` | focus and time only: a running session, the timer, the streak |
+| `accent` (+ `accentSoft`, `accentBorder`) | **indigo** `#4B5AA0` / `#BCC2FF` | the brand: active nav, the primary action, progress, selection, **money** (rates, line items, the draft total) |
+| `ember` (+ `emberSoft`) | **amber** `#A85A08` / `#FFB870` | focus and time only: a running session, the timer, the streak, minutes tracked |
 | `info` / `danger` | blue-grey / red | state: sync state, destructive and failure |
 
 - **Everything is a token** in `src/theme/colors.ts`. No component holds a literal colour.
@@ -71,6 +71,11 @@ extended, bottom-end, above the nav bar) and it is the screen's only action:
 Everything else on those screens is tonal, outlined, or plain text (`AppButton` `tonal` /
 `outlined` / `text`). The FAB floats over content; `Screen` grows the scroll padding to clear
 it.
+
+**Detail and modal routes have no FAB** (a form's action is its submit button; `/search` and
+`/invoice` are *for* their content). They may carry **one** filled `AppButton`; anything else
+is tonal or text — e.g. `/invoice` keeps its export action tonal so the draft total stays the
+loudest thing on the screen.
 
 ## Life — where richness comes from
 

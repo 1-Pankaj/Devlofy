@@ -18,6 +18,8 @@ import { TextField } from '@/components/ui/text-field';
 import { useLiveQuery } from '@/lib/db/hooks';
 import { createProject, getProject, listClients, updateProject } from '@/lib/db/repo';
 import { formatDayLabel } from '@/lib/format';
+import { parseRate } from '@/lib/money';
+import { useSettings } from '@/state/settings';
 import { spacing, useTheme } from '@/theme';
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -65,6 +67,7 @@ export default function ProjectFormScreen() {
     refreshOnFocus: false,
   });
   const clients = useLiveQuery((d) => listClients(d));
+  const currency = useSettings((s) => s.currency);
 
   const [name, setName] = useState('');
   const [clientId, setClientId] = useState<string | null>(null);
@@ -72,6 +75,7 @@ export default function ProjectFormScreen() {
   const [description, setDescription] = useState('');
   const [repoUrl, setRepoUrl] = useState('');
   const [stack, setStack] = useState('');
+  const [rate, setRate] = useState('');
   const [dueWindow, setDueWindow] = useState<DueWindow>('none');
   const [saving, setSaving] = useState(false);
   const hydratedRef = useRef(false);
@@ -86,6 +90,7 @@ export default function ProjectFormScreen() {
     setDescription(project.description ?? '');
     setRepoUrl(project.repo_url ?? '');
     setStack(parseStack(project.stack_tags).join(', '));
+    setRate(project.hourly_rate != null ? String(project.hourly_rate) : '');
     setDueWindow(project.due_date ? 'keep' : 'none');
   }, [editing, existing.data]);
 
@@ -109,6 +114,7 @@ export default function ProjectFormScreen() {
           repo_url: repoUrl,
           stack_tags: serializeStack(stack),
           due_date: resolveDueDate(),
+          hourly_rate: parseRate(rate),
         });
       } else {
         await createProject(db, {
@@ -119,6 +125,7 @@ export default function ProjectFormScreen() {
           repoUrl,
           stackTags: serializeStack(stack) ?? undefined,
           dueDate: resolveDueDate() ?? null,
+          hourlyRate: parseRate(rate),
         });
       }
       router.back();
@@ -219,6 +226,21 @@ export default function ProjectFormScreen() {
             placeholder="Scope, constraints, what done looks like…"
             multiline
           />
+
+          <View style={{ gap: spacing.sm }}>
+            <TextField
+              label={`Hourly rate (${currency})`}
+              value={rate}
+              onChangeText={setRate}
+              placeholder="e.g. 2500"
+              keyboardType="numeric"
+              returnKeyType="next"
+            />
+            <AppText variant="caption" tone="tertiary">
+              Focus blocks on this project are priced at this rate as they finish. Leave it empty
+              to fall back to the client&apos;s rate, or to bill nothing.
+            </AppText>
+          </View>
 
           <TextField
             label="Repository"

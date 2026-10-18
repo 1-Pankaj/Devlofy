@@ -23,16 +23,19 @@ import {
   DefaultTheme,
   Stack,
   ThemeProvider as NavThemeProvider,
+  usePathname,
+  useRouter,
   type ErrorBoundaryProps,
 } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { WarningOctagon } from 'phosphor-react-native';
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { DatabaseProvider } from '@/lib/db/provider';
+import { useSearchShortcut } from '@/lib/search-shortcut';
 import { applyWebReset } from '@/lib/web-reset';
 import { AppThemeProvider, palettes, useTheme } from '@/theme';
 
@@ -47,6 +50,17 @@ if (Constants.executionEnvironment !== ExecutionEnvironment.StoreClient) {
 
 function RootNavigator() {
   const { colors, scheme } = useTheme();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // Cmd/Ctrl-K, web only (the native anchor is a no-op). Ignored while search is
+  // already open, so the shortcut cannot stack copies of the modal.
+  useSearchShortcut(
+    useCallback(() => {
+      if (pathname === '/search') return;
+      router.push('/search');
+    }, [pathname, router]),
+  );
 
   const navTheme = useMemo(() => {
     const base = scheme === 'dark' ? DarkTheme : DefaultTheme;
@@ -77,6 +91,11 @@ function RootNavigator() {
         <Stack.Screen name="note/[id]" />
         <Stack.Screen name="project/[id]" />
         <Stack.Screen name="client/[id]" />
+        <Stack.Screen name="invoice" />
+        <Stack.Screen
+          name="search"
+          options={{ presentation: 'modal', animation: 'fade' }}
+        />
         <Stack.Screen
           name="project-form"
           options={{ presentation: 'modal', animation: 'slide_from_bottom' }}

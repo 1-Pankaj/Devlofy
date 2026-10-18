@@ -20,14 +20,21 @@ If sync ever happens (it's a "maybe"), the schema is already shaped for last-wri
 
 | Table | Purpose | Notable columns |
 |---|---|---|
-| `clients` | people/companies you build for | `status` (lead/active/archived), contact fields |
-| `projects` | the builds | `client_id` (nullable = personal), `status`, `repo_url`, `stack_tags` (JSON array), `start_date`, `due_date` |
+| `clients` | people/companies you build for | `status` (lead/active/archived), contact fields, **`hourly_rate`** (v2 — the default rate for all of their projects) |
+| `projects` | the builds | `client_id` (nullable = personal), `status`, `repo_url`, `stack_tags` (JSON array), `start_date`, `due_date`, **`hourly_rate`** (v2 — overrides the client's) |
 | `milestones` | project timeline | `project_id`, `due_date`, `status` (pending/hit), `order_index` |
 | `tasks` | the day's work | `project_id` (nullable = inbox), `status`, `priority` (0–2, **2 = high** — the task grammar's `!3` maps to it), `energy` (deep/shallow), `est_minutes`, `due_at` (nullable, 09:00 local on the due day), `completed_at`, `tags` |
-| `sessions` | time log / focus | `kind` (focus/meeting/break), `started_at`, `ended_at`, `minutes`, `project_id` (nullable — what the block was *for*), `billable`, `note` |
+| `sessions` | time log / focus | `kind` (focus/meeting/break), `started_at`, `ended_at`, `minutes`, `project_id` (nullable — what the block was *for*), `task_id` (nullable — what the block was *spent on*, which is what makes estimate drift possible), `billable` (set at start from the resolved rate), `note` |
 | `notes` | knowledge | `title`, `body` (markdown-ish), `pinned`, `tags` (comma-separated lowercase slugs — see `src/lib/tags.ts`), optional `project_id`/`client_id` (link chips in the editor) |
 
-Indexes: `tasks(status)`, `tasks(project_id)`, `sessions(started_at)`, `notes(updated_at DESC)`, `projects(client_id)` — all partial on `deleted_at IS NULL`.
+Indexes: `tasks(status)`, `tasks(project_id)`, `sessions(started_at)`, `notes(updated_at DESC)`, `projects(client_id)`, **`sessions(project_id)`** (v2) — all partial on `deleted_at IS NULL`.
+
+## Migrations
+
+| Version | What it adds | Why |
+|---|---|---|
+| 1 | the six tables above + five partial indexes | the foundation ([[03-architecture]]) |
+| 2 | `clients.hourly_rate`, `projects.hourly_rate`, `idx_sessions_project` | money-lite: a block's price resolves from its project, so pricing needs no new join table and no per-block input ([[07-decisions]] ADR-017) |
 
 ## Derived data (computed, never stored)
 
@@ -35,17 +42,22 @@ Indexes: `tasks(status)`, `tasks(project_id)`, `sessions(started_at)`, `notes(up
 - **Streak** = distinct session days walked backwards from today/yesterday (`getFocusStreakDays`).
 - **Project progress** = `done_count / task_count` per project (subquery in `listProjects`).
 - **Time tracked per project** = `SUM(minutes)` / `COUNT(*)` / `MAX(started_at)` over that project's finished focus sessions (same subquery block in `listProjects` / `getProject`) — a query, never a denormalised counter, so editing or deleting a session can't desync it.
+- **Billable minutes per project** = the same `SUM` restricted to `billable = 1` (`billable_minutes`); billability is decided once, when a session starts, from the resolved rate ([[07-decisions]] ADR-017).
 - **Rhythm bands** = today's minutes bucketed per day (< 30, < 75, ≥ 75) for the twelve-week heatmap.
+- **Rhythm (the Engine)** = finished blocks bucketed by **local** hour and weekday, the best contiguous 3-hour band, and the median block length — computed in JS, not SQL, so the buckets are in the user's timezone rather than UTC (`src/lib/engine/rhythm.ts`).
+- **Next up** = a weighted score over every open task plus the reasons behind it (`src/lib/engine/next-up.ts`); never persisted, and re-ranked on every read.
+- **Estimate drift** = per-task `SUM(sessions.minutes)` against `tasks.est_minutes` (`listEstimateSamples`), reported as a ratio once four tasks have both numbers.
+- **Invoice draft** = a *view*, not a table: sessions in a window, grouped by project, each priced at `COALESCE(projects.hourly_rate, clients.hourly_rate)` (`src/lib/money.ts`). Nothing to keep in sync, nothing to go stale.
 
 ## Search
 
-v0.1: `LIKE` over `title` + `body` (works everywhere).
-v1.5: **FTS5** on native behind a capability check; web keeps LIKE (the wasm build has no FTS5 — see [[03-architecture]]).
-Notes search additionally matches `tags` and can be narrowed by linked client/project chips shown on each row.
+- **Global** (v0.3): `searchEverything()` runs four bounded `LIKE` queries over projects (name/description/stack), clients (name/company/email/notes), notes (title/body) and tasks (title/project name), and returns one grouped result set (six per kind, `perKind`). Reached from Today's header or ⌘/Ctrl-K on web ([[07-decisions]] ADR-018).
+- **Notes**: `LIKE` over `title` + `body` + `tags`, narrowable by linked client/project chips.
+- **v1.5**: **FTS5** on native behind a capability check; web keeps LIKE (the wasm build has no FTS5 — see [[03-architecture]]). Any FTS result must keep the v0.3 shape.
 
 ## Seeding
 
-First run seeds a living demo (idempotent, guarded on `clients` being empty): Codeloom (self) + Northwind Labs (client) + Personal; four projects (Devlofy included); milestones for Northwind Portal; today's tasks; a welcome note; a week of focus sessions so the garden starts grown. It's normal data afterwards — delete freely.
+First run seeds a living demo (idempotent, guarded on `clients` being empty): Codeloom (self) + Northwind Labs (client, **rated ₹2,500/h**) + Personal; four projects (Devlofy included); milestones for Northwind Portal; today's tasks; a welcome note; and a week of focus sessions — attributed to tasks at realistic local hours (morning-weighted, so the rhythm card has a shape) and **billable where the project is rated**, so the invoice draft has a real number on a fresh install. Devlofy and Starlight blocks stay unrated on purpose, so the "not priced" state is visible too. It's normal data afterwards — delete freely.
 
 ## Export & backup
 

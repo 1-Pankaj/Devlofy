@@ -36,14 +36,25 @@ created: 2026-10-17
 - **Daily focus goal** — 1h / 1.5h / 2h / 3h in More, driving the Today ring, "to go", and the heatmap's intensity bands.
 - **Precise motion** — every overshoot removed: critically damped springs only, timing curves for everything else ([[04-design-language]]).
 
+## v0.3 — the majors *(built)*
+
+Three features that change what the app *is*, all offline, all local compute ([[07-decisions]] ADR-016 → 018):
+
+- **The Engine** — today's answer to "what next?". A pure ranking over every open task (priority, due proximity, estimate-vs-your-typical-block, energy-vs-your-peak-hours, momentum on a project already touched today, age) that shows its reasons as pills, starts the block attributed to the *task*, and lets you skip to the next candidate. [[04-design-language]].
+- **Rhythm & estimate truth** — the session log becomes a report: focus minutes per hour of day with the learned 3-hour peak band, your strongest weekday, your median block, and **estimate drift** ("your 70m estimates take about 82m").
+- **Money-lite** — an hourly rate on a project (inheriting the client's), automatic billability for blocks on rated work, and **/invoice**: a period- or client-scoped draft with line items, per-block evidence you can exclude with a tap, and copy-as-text export. Currency is a setting you pick.
+- **Search & palette** — one screen over projects, clients, notes and tasks, from the Today header or **⌘/Ctrl-K** on web; results act (navigate, or complete a task in place).
+- **Schema v2** — `clients.hourly_rate`, `projects.hourly_rate`, plus an index on `sessions(project_id)` ([[06-data-model]]).
+
+Surfaces touched: Today gains the **Next up** card and a header search action; Garden gains the **Rhythm** card; Work gains a **Billing** section; client detail gains its rate pill and a scoped draft; new routes `/invoice` and `/search`; both forms gain a rate field; More is untouched (currency lives on the invoice screen, where the question arises).
+
 ## v1 — the spine *(next)*
 
 - Task scheduling follow-ons: energy pairing, manual reordering, due-date editing after creation.
-- Time log editing, manual entries, billable flags.
-- Command palette / keyboard-first navigation on desktop mode.
-- Git dashboard (GitHub device flow, read-mostly: PRs, commits, issues, CI) — needs online, degrades to last-synced.
+- Time log editing and manual entries (the log is read-only today).
+- Git dashboard (GitHub device flow, read-mostly: PRs, commits, issues, CI) — needs online, degrades to last-synced. **Blocked on the user's own OAuth client ID.**
 - Notifications/alarms (mobile-only; **expo-notifications does not support web**).
-- Money-lite: rates per client, manual invoice drafts (manual-confirm only).
+- Weekly review ritual: period summary, what slipped, one-tap carry-over.
 - Learning: spaced repetition (FSRS) over notes and project tips.
 - Content packs: game-dev track (Unity/Godot data, shader notes, prototyping recipes).
 
@@ -63,7 +74,7 @@ created: 2026-10-17
 
 ## v3
 
-- "The Engine": local analytics that tune recommendations; optional tiny on-device models (react-native-executorch) behind a flag. Never a chat.
+- "The Engine" beyond rules: optional tiny on-device models (react-native-executorch) behind a flag — the deterministic ranking, rhythm and estimate drift shipped in v0.3 (ADR-016). Never a chat.
 
 ## Explicitly out of scope (for now)
 

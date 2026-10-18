@@ -26,5 +26,6 @@ This folder is an **Obsidian vault**. Open it directly in Obsidian (`Open folder
 
 - v0.1 foundation is **built**: Today, Garden (3D), Work, Notes, More + desktop mode.
 - v0.2 "working day" is **built**: precise motion, project attribution for focus blocks, time tracked per project, a twelve-week rhythm heatmap, a daily focus goal, and a quick-add task grammar ([[02-scope]]).
+- v0.3 "the majors" is **built**: **the Engine** (Next up with its reasons, plus your rhythm and estimate drift learned from your own session log), **money-lite** (rates → billable blocks → an invoice draft you can copy), and **search** over everything (⌘K on web). Schema v2 ([[06-data-model]], [[07-decisions]] ADR-016 → 018).
 - Targets: **Android (native) + web** now; iOS later. Tablets included — desktop mode ships with v0.1.
 - Blender: models are integrated day one via the MCP pipeline ([[05-blender-pipeline]]).

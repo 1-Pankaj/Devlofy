@@ -17,10 +17,9 @@ import { FadeUp } from '@/components/ui/stagger';
 import { TextField } from '@/components/ui/text-field';
 import { useLiveQuery } from '@/lib/db/hooks';
 import { exportAll, getDataStats } from '@/lib/db/repo';
+import { APP_VERSION } from '@/lib/version';
 import { GOAL_OPTIONS, useSettings, type DesktopMode, type ThemeMode } from '@/state/settings';
 import { radius, spacing, useTheme } from '@/theme';
-
-const APP_VERSION = '0.2.0';
 
 function SettingBlock({
   title,

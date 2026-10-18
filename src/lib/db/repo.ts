@@ -147,12 +147,13 @@ export type ClientRow = {
   company: string | null;
   email: string | null;
   status: string;
+  hourly_rate: number | null;
   project_count: number;
 };
 
 export async function listClients(db: SQLiteDatabase): Promise<ClientRow[]> {
   return db.getAllAsync<ClientRow>(
-    `SELECT c.id, c.name, c.company, c.email, c.status,
+    `SELECT c.id, c.name, c.company, c.email, c.status, c.hourly_rate,
             (SELECT COUNT(*) FROM projects p
               WHERE p.client_id = c.id AND p.deleted_at IS NULL) AS project_count
      FROM clients c
@@ -170,13 +171,14 @@ export async function createClient(
     phone?: string;
     notes?: string;
     status?: string;
+    hourlyRate?: number | null;
   },
 ) {
   const id = createId();
   const now = nowIso();
   await db.runAsync(
-    `INSERT INTO clients (id, name, company, email, phone, notes, status, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO clients (id, name, company, email, phone, notes, status, hourly_rate, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       input.name.trim(),
@@ -185,6 +187,7 @@ export async function createClient(
       input.phone?.trim() || null,
       input.notes?.trim() || null,
       input.status ?? 'lead',
+      input.hourlyRate ?? null,
       now,
       now,
     ],
@@ -202,10 +205,11 @@ export async function updateClient(
     phone?: string | null;
     notes?: string | null;
     status?: string;
+    hourlyRate?: number | null;
   },
 ) {
   const sets: string[] = [];
-  const params: (string | null)[] = [];
+  const params: (string | number | null)[] = [];
   const text = (value: string | null | undefined) => value?.trim() || null;
   if (patch.name !== undefined && patch.name.trim()) {
     sets.push('name = ?');
@@ -231,6 +235,10 @@ export async function updateClient(
     sets.push('status = ?');
     params.push(patch.status);
   }
+  if (patch.hourlyRate !== undefined) {
+    sets.push('hourly_rate = ?');
+    params.push(patch.hourlyRate);
+  }
   if (sets.length === 0) return;
   params.push(nowIso(), id);
   await db.runAsync(`UPDATE clients SET ${sets.join(', ')}, updated_at = ? WHERE id = ?`, params);
@@ -244,12 +252,13 @@ export type ClientDetail = {
   phone: string | null;
   notes: string | null;
   status: string;
+  hourly_rate: number | null;
   created_at: string;
 };
 
 export async function getClient(db: SQLiteDatabase, id: string): Promise<ClientDetail | null> {
   return db.getFirstAsync<ClientDetail>(
-    `SELECT id, name, company, email, phone, notes, status, created_at
+    `SELECT id, name, company, email, phone, notes, status, hourly_rate, created_at
      FROM clients
      WHERE id = ? AND deleted_at IS NULL`,
     [id],
@@ -261,12 +270,25 @@ export async function listClientProjects(
   clientId: string,
 ): Promise<ProjectRow[]> {
   return db.getAllAsync<ProjectRow>(
-    `SELECT p.id, p.client_id, c.name AS client_name, p.name, p.description, p.status,
-            p.repo_url, p.stack_tags, p.due_date,
+    `SELECT p.id, p.client_id, c.name AS client_name, c.hourly_rate AS client_rate,
+            p.name, p.description, p.status,
+            p.repo_url, p.stack_tags, p.due_date, p.hourly_rate,
             (SELECT COUNT(*) FROM tasks t
               WHERE t.project_id = p.id AND t.deleted_at IS NULL) AS task_count,
             (SELECT COUNT(*) FROM tasks t
-              WHERE t.project_id = p.id AND t.status = 'done' AND t.deleted_at IS NULL) AS done_count
+              WHERE t.project_id = p.id AND t.status = 'done' AND t.deleted_at IS NULL) AS done_count,
+            (SELECT COALESCE(SUM(s.minutes), 0) FROM sessions s
+              WHERE s.project_id = p.id AND s.minutes IS NOT NULL
+                AND s.deleted_at IS NULL) AS focus_minutes,
+            (SELECT COALESCE(SUM(s.minutes), 0) FROM sessions s
+              WHERE s.project_id = p.id AND s.minutes IS NOT NULL
+                AND s.deleted_at IS NULL AND s.billable = 1) AS billable_minutes,
+            (SELECT COUNT(*) FROM sessions s
+              WHERE s.project_id = p.id AND s.minutes IS NOT NULL
+                AND s.deleted_at IS NULL) AS focus_sessions,
+            (SELECT MAX(s.started_at) FROM sessions s
+              WHERE s.project_id = p.id AND s.minutes IS NOT NULL
+                AND s.deleted_at IS NULL) AS last_session_at
      FROM projects p
      LEFT JOIN clients c ON c.id = p.client_id
      WHERE p.deleted_at IS NULL AND p.client_id = ?
@@ -318,10 +340,16 @@ export type ProjectRow = {
   repo_url: string | null;
   stack_tags: string | null;
   due_date: string | null;
+  /** Overrides the client's rate when set; both null = not billable. */
+  hourly_rate: number | null;
+  /** Falls back to this when the project has none. */
+  client_rate: number | null;
   task_count: number;
   done_count: number;
   /** Minutes of finished focus sessions logged against this project. */
   focus_minutes: number;
+  /** Of those, the minutes flagged billable. */
+  billable_minutes: number;
   focus_sessions: number;
   last_session_at: string | null;
 };
@@ -336,8 +364,9 @@ export type MilestoneRow = {
 
 export async function listProjects(db: SQLiteDatabase): Promise<ProjectRow[]> {
   return db.getAllAsync<ProjectRow>(
-    `SELECT p.id, p.client_id, c.name AS client_name, p.name, p.description, p.status,
-            p.repo_url, p.stack_tags, p.due_date,
+    `SELECT p.id, p.client_id, c.name AS client_name, c.hourly_rate AS client_rate,
+            p.name, p.description, p.status,
+            p.repo_url, p.stack_tags, p.due_date, p.hourly_rate,
             (SELECT COUNT(*) FROM tasks t
               WHERE t.project_id = p.id AND t.deleted_at IS NULL) AS task_count,
             (SELECT COUNT(*) FROM tasks t
@@ -345,6 +374,9 @@ export async function listProjects(db: SQLiteDatabase): Promise<ProjectRow[]> {
             (SELECT COALESCE(SUM(s.minutes), 0) FROM sessions s
               WHERE s.project_id = p.id AND s.minutes IS NOT NULL
                 AND s.deleted_at IS NULL) AS focus_minutes,
+            (SELECT COALESCE(SUM(s.minutes), 0) FROM sessions s
+              WHERE s.project_id = p.id AND s.minutes IS NOT NULL
+                AND s.deleted_at IS NULL AND s.billable = 1) AS billable_minutes,
             (SELECT COUNT(*) FROM sessions s
               WHERE s.project_id = p.id AND s.minutes IS NOT NULL
                 AND s.deleted_at IS NULL) AS focus_sessions,
@@ -366,8 +398,9 @@ export async function listProjects(db: SQLiteDatabase): Promise<ProjectRow[]> {
 
 export async function getProject(db: SQLiteDatabase, id: string): Promise<ProjectRow | null> {
   return db.getFirstAsync<ProjectRow>(
-    `SELECT p.id, p.client_id, c.name AS client_name, p.name, p.description, p.status,
-            p.repo_url, p.stack_tags, p.due_date,
+    `SELECT p.id, p.client_id, c.name AS client_name, c.hourly_rate AS client_rate,
+            p.name, p.description, p.status,
+            p.repo_url, p.stack_tags, p.due_date, p.hourly_rate,
             (SELECT COUNT(*) FROM tasks t
               WHERE t.project_id = p.id AND t.deleted_at IS NULL) AS task_count,
             (SELECT COUNT(*) FROM tasks t
@@ -375,6 +408,9 @@ export async function getProject(db: SQLiteDatabase, id: string): Promise<Projec
             (SELECT COALESCE(SUM(s.minutes), 0) FROM sessions s
               WHERE s.project_id = p.id AND s.minutes IS NOT NULL
                 AND s.deleted_at IS NULL) AS focus_minutes,
+            (SELECT COALESCE(SUM(s.minutes), 0) FROM sessions s
+              WHERE s.project_id = p.id AND s.minutes IS NOT NULL
+                AND s.deleted_at IS NULL AND s.billable = 1) AS billable_minutes,
             (SELECT COUNT(*) FROM sessions s
               WHERE s.project_id = p.id AND s.minutes IS NOT NULL
                 AND s.deleted_at IS NULL) AS focus_sessions,
@@ -417,13 +453,14 @@ export async function createProject(
     status?: string;
     repoUrl?: string;
     stackTags?: string;
+    hourlyRate?: number | null;
   },
 ) {
   const id = createId();
   const now = nowIso();
   await db.runAsync(
-    `INSERT INTO projects (id, client_id, name, description, status, repo_url, stack_tags, due_date, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO projects (id, client_id, name, description, status, repo_url, stack_tags, due_date, hourly_rate, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       input.clientId ?? null,
@@ -433,6 +470,7 @@ export async function createProject(
       input.repoUrl?.trim() || null,
       input.stackTags?.trim() || null,
       input.dueDate ?? null,
+      input.hourlyRate ?? null,
       now,
       now,
     ],
@@ -451,10 +489,11 @@ export async function updateProject(
     repo_url?: string | null;
     stack_tags?: string | null;
     due_date?: string | null;
+    hourly_rate?: number | null;
   },
 ) {
   const sets: string[] = [];
-  const params: (string | null)[] = [];
+  const params: (string | number | null)[] = [];
   const text = (value: string | null | undefined) => value?.trim() || null;
   if (patch.name !== undefined && patch.name.trim()) {
     sets.push('name = ?');
@@ -484,6 +523,10 @@ export async function updateProject(
     sets.push('due_date = ?');
     params.push(patch.due_date);
   }
+  if (patch.hourly_rate !== undefined) {
+    sets.push('hourly_rate = ?');
+    params.push(patch.hourly_rate);
+  }
   if (sets.length === 0) return;
   params.push(nowIso(), id);
   await db.runAsync(`UPDATE projects SET ${sets.join(', ')}, updated_at = ? WHERE id = ?`, params);
@@ -500,6 +543,7 @@ export type TaskRow = {
   energy: string;
   est_minutes: number | null;
   due_at: string | null;
+  created_at: string;
   project_name?: string | null;
 };
 
@@ -576,26 +620,54 @@ export type SessionRow = {
   ended_at: string | null;
   minutes: number | null;
   note: string | null;
+  task_id: string | null;
   project_id: string | null;
   project_name: string | null;
+  billable: number;
+  rate?: number | null;
 };
 
 /**
- * Start a focus session, optionally attributed to a project. Attribution is what
- * makes the project page able to answer "how much time did this actually take?".
+ * Start a focus session, optionally attributed to a project and/or a task.
+ * Attribution is what makes the project page able to answer "how much time did
+ * this actually take?" — and, if the project resolves to a rate, the block is
+ * marked billable the moment it starts, so nothing has to be remembered later.
  */
 export async function startFocusSession(
   db: SQLiteDatabase,
   projectId?: string | null,
+  taskId?: string | null,
 ): Promise<string> {
   const id = createId();
   const now = nowIso();
+
+  let billable = 0;
+  if (projectId) {
+    const rate = await resolveProjectRate(db, projectId);
+    billable = rate === null ? 0 : 1;
+  }
+
   await db.runAsync(
-    `INSERT INTO sessions (id, project_id, kind, started_at, created_at, updated_at)
-     VALUES (?, ?, 'focus', ?, ?, ?)`,
-    [id, projectId ?? null, now, now, now],
+    `INSERT INTO sessions (id, task_id, project_id, kind, started_at, billable, created_at, updated_at)
+     VALUES (?, ?, ?, 'focus', ?, ?, ?, ?)`,
+    [id, taskId ?? null, projectId ?? null, now, billable, now, now],
   );
   return id;
+}
+
+/** The project's own rate, else its client's, else null (not billable). */
+async function resolveProjectRate(
+  db: SQLiteDatabase,
+  projectId: string,
+): Promise<number | null> {
+  const row = await db.getFirstAsync<{ rate: number | null }>(
+    `SELECT COALESCE(p.hourly_rate, c.hourly_rate) AS rate
+     FROM projects p
+     LEFT JOIN clients c ON c.id = p.client_id
+     WHERE p.id = ?`,
+    [projectId],
+  );
+  return row?.rate ?? null;
 }
 
 export async function endFocusSession(db: SQLiteDatabase, id: string): Promise<number> {
@@ -738,4 +810,222 @@ export async function exportAll(db: SQLiteDatabase) {
     exported_at: nowIso(),
     data: dump,
   };
+}
+
+// ────────────────────────── The Engine (local analysis) ──────────────────────────
+//
+// Every input the Engine reads is *already* the product's own data: what you
+// said matters (tasks), what you actually did (sessions), and where the time
+// went (projects). No model, no network — just the user's own record, scored.
+
+/**
+ * The whole open backlog, not just today's page — the Engine ranks everything.
+ * `listTodayTasks` stays for the Today list; this is for "what next?".
+ */
+export async function listOpenTasks(db: SQLiteDatabase, limit = 200): Promise<TaskRow[]> {
+  return db.getAllAsync<TaskRow>(
+    `SELECT t.*, p.name AS project_name
+     FROM tasks t
+     LEFT JOIN projects p ON p.id = t.project_id
+     WHERE t.deleted_at IS NULL AND t.status != 'done'
+     ORDER BY t.priority DESC, t.created_at ASC
+     LIMIT ?`,
+    [limit],
+  );
+}
+
+/** Finished blocks since a date — the raw material for rhythm and drift. */
+export async function listSessionsSince(
+  db: SQLiteDatabase,
+  sinceIso: string,
+): Promise<SessionRow[]> {
+  return db.getAllAsync<SessionRow>(
+    `SELECT s.*, p.name AS project_name FROM sessions s
+     LEFT JOIN projects p ON p.id = s.project_id
+     WHERE s.kind = 'focus' AND s.deleted_at IS NULL AND s.minutes IS NOT NULL
+       AND s.started_at >= ?
+     ORDER BY s.started_at DESC`,
+    [sinceIso],
+  );
+}
+
+export type EstimateSample = {
+  task_id: string;
+  title: string;
+  est_minutes: number;
+  actual_minutes: number;
+  sessions: number;
+};
+
+/**
+ * Where an estimate met reality: tasks that were estimated *and* actually
+ * focused on. This is what lets the app say "you plan 45m, it takes 70m".
+ */
+export async function listEstimateSamples(
+  db: SQLiteDatabase,
+  limit = 60,
+): Promise<EstimateSample[]> {
+  return db.getAllAsync<EstimateSample>(
+    `SELECT t.id AS task_id, t.title, t.est_minutes,
+            SUM(s.minutes) AS actual_minutes, COUNT(*) AS sessions
+     FROM sessions s
+     JOIN tasks t ON t.id = s.task_id
+     WHERE s.minutes IS NOT NULL AND s.deleted_at IS NULL
+       AND t.deleted_at IS NULL AND t.est_minutes IS NOT NULL AND t.est_minutes > 0
+     GROUP BY t.id
+     ORDER BY MAX(s.started_at) DESC
+     LIMIT ?`,
+    [limit],
+  );
+}
+
+// ─────────────────────────────── Money ───────────────────────────────
+
+export type BillableSession = {
+  id: string;
+  started_at: string;
+  minutes: number;
+  billable: number;
+  project_id: string | null;
+  project_name: string | null;
+  client_id: string | null;
+  client_name: string | null;
+  task_title: string | null;
+  /** Project rate, else client rate. Null only for unattributed blocks. */
+  rate: number | null;
+};
+
+/**
+ * Every finished block in a window with its resolved rate — the invoice draft is
+ * this list, grouped. Nothing is stored: a draft is a *view* of your own record,
+ * so it can never go stale against the time it describes.
+ */
+export async function listSessionsInWindow(
+  db: SQLiteDatabase,
+  fromIso: string,
+  toIso: string,
+  clientId?: string | null,
+): Promise<BillableSession[]> {
+  const params: (string | null)[] = [fromIso, toIso];
+  let clientFilter = '';
+  if (clientId) {
+    clientFilter = 'AND p.client_id = ?';
+    params.push(clientId);
+  }
+  return db.getAllAsync<BillableSession>(
+    `SELECT s.id, s.started_at, s.minutes, s.billable,
+            s.project_id, p.name AS project_name,
+            p.client_id, c.name AS client_name,
+            t.title AS task_title,
+            COALESCE(p.hourly_rate, c.hourly_rate) AS rate
+     FROM sessions s
+     LEFT JOIN projects p ON p.id = s.project_id
+     LEFT JOIN clients c ON c.id = p.client_id
+     LEFT JOIN tasks t ON t.id = s.task_id
+     WHERE s.kind = 'focus' AND s.deleted_at IS NULL AND s.minutes IS NOT NULL
+       AND s.started_at >= ? AND s.started_at < ?
+       ${clientFilter}
+     ORDER BY s.started_at DESC`,
+    params,
+  );
+}
+
+/** Include or drop one block from the bill. */
+export async function setSessionBillable(
+  db: SQLiteDatabase,
+  id: string,
+  billable: boolean,
+): Promise<void> {
+  await db.runAsync('UPDATE sessions SET billable = ?, updated_at = ? WHERE id = ?', [
+    billable ? 1 : 0,
+    nowIso(),
+    id,
+  ]);
+}
+
+// ─────────────────────────────── Search ───────────────────────────────
+
+export type SearchHit = {
+  kind: 'project' | 'client' | 'note' | 'task';
+  id: string;
+  title: string;
+  subtitle: string | null;
+  /** Set for tasks: the project it belongs to, if any. */
+  project_id?: string | null;
+  /** Set for tasks: 1 when already done. */
+  done?: number;
+};
+
+/**
+ * One pass over everything the user has written. LIKE rather than FTS so the
+ * same code path works on native and the wasm web build (ADR — FTS5 is native
+ * only); the datasets are personal-sized, so it is instant either way.
+ */
+export async function searchEverything(
+  db: SQLiteDatabase,
+  rawQuery: string,
+  perKind = 6,
+): Promise<SearchHit[]> {
+  // LIKE wildcards typed by the user would change the meaning of the query.
+  const needle = rawQuery.trim().replace(/[%_]/g, '');
+  if (needle.length < 2) return [];
+  const like = `%${needle}%`;
+
+  const [projects, clients, notes, tasks] = await Promise.all([
+    db.getAllAsync<{ id: string; name: string; client_name: string | null; status: string }>(
+      `SELECT p.id, p.name, c.name AS client_name, p.status
+       FROM projects p LEFT JOIN clients c ON c.id = p.client_id
+       WHERE p.deleted_at IS NULL AND (p.name LIKE ? OR p.description LIKE ? OR p.stack_tags LIKE ?)
+       ORDER BY p.name COLLATE NOCASE ASC LIMIT ?`,
+      [like, like, like, perKind],
+    ),
+    db.getAllAsync<{ id: string; name: string; company: string | null; status: string }>(
+      `SELECT id, name, company, status FROM clients
+       WHERE deleted_at IS NULL AND (name LIKE ? OR company LIKE ? OR email LIKE ? OR notes LIKE ?)
+       ORDER BY name COLLATE NOCASE ASC LIMIT ?`,
+      [like, like, like, like, perKind],
+    ),
+    db.getAllAsync<{ id: string; title: string; body: string }>(
+      `SELECT id, title, body FROM notes
+       WHERE deleted_at IS NULL AND (title LIKE ? OR body LIKE ?)
+       ORDER BY pinned DESC, updated_at DESC LIMIT ?`,
+      [like, like, perKind],
+    ),
+    db.getAllAsync<{ id: string; title: string; status: string; project_id: string | null; project_name: string | null }>(
+      `SELECT t.id, t.title, t.status, t.project_id, p.name AS project_name
+       FROM tasks t LEFT JOIN projects p ON p.id = t.project_id
+       WHERE t.deleted_at IS NULL AND (t.title LIKE ? OR p.name LIKE ?)
+       ORDER BY t.status = 'done' ASC, t.priority DESC LIMIT ?`,
+      [like, like, perKind],
+    ),
+  ]);
+
+  return [
+    ...projects.map<SearchHit>((row) => ({
+      kind: 'project',
+      id: row.id,
+      title: row.name,
+      subtitle: row.client_name ?? row.status,
+    })),
+    ...clients.map<SearchHit>((row) => ({
+      kind: 'client',
+      id: row.id,
+      title: row.name,
+      subtitle: row.company ?? row.status,
+    })),
+    ...notes.map<SearchHit>((row) => ({
+      kind: 'note',
+      id: row.id,
+      title: row.title || 'Untitled',
+      subtitle: row.body.replace(/[#*`>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 90) || null,
+    })),
+    ...tasks.map<SearchHit>((row) => ({
+      kind: 'task',
+      id: row.id,
+      title: row.title,
+      subtitle: row.project_name,
+      project_id: row.project_id,
+      done: row.status === 'done' ? 1 : 0,
+    })),
+  ];
 }

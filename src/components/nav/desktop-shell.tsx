@@ -12,9 +12,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { radius, spacing, useTheme } from '@/theme';
 import { AppText } from '@/components/ui/app-text';
+import { APP_VERSION } from '@/lib/version';
 import { NAV_ITEMS } from './nav-items';
-
-const APP_VERSION = '0.1.0';
 
 export function DesktopShell() {
   const { colors } = useTheme();

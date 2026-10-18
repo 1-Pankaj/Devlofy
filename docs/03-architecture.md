@@ -60,17 +60,23 @@ src/
     client/[id].tsx       # client detail
     project-form.tsx      # modal
     client-form.tsx       # modal
+    invoice.tsx           # invoice draft (period/client scoped, a view over sessions)
+    search.tsx            # global search modal (four kinds)
     _layout.tsx           # providers, fonts, splash, stack
   components/
     ui/                   # Panel, AppButton, AppText, ListRow, Segmented, Screen, …
     nav/                  # nav-items, BottomTabBar, DesktopShell
     garden/               # garden-scene.tsx (R3F)
+    focus/                # heatmap, project chips, Next up (the Engine's card), rhythm card
   lib/
     db/                   # migrations, seed, repo, hooks, provider
+    engine/               # the Engine: rhythm.ts, next-up.ts, estimate.ts, use-engine.ts
     garden/model.ts       # pure tree math (deterministic PRNG)
     layout/breakpoints.ts # window size classes + desktop mode
     three/                # platform shim
-    format.ts, storage*.ts
+    money.ts              # rates → line items → invoice text (pure)
+    parse-task.ts         # the quick-add grammar (pure)
+    format.ts, share.ts, storage*.ts, search-shortcut*.ts
   state/settings.ts       # zustand persisted settings
   theme/                  # colors, spacing, radius, typography, motion, shadows, provider
 ```

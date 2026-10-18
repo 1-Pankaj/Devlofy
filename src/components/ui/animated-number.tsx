@@ -20,6 +20,11 @@ export type AnimatedNumberProps = {
   variant?: TypeVariant;
   /** Overrides the default text colour (e.g. on a gradient surface). */
   color?: string;
+  /**
+   * Decimal places to land on. Counts want none (the default); money wants 2,
+   * or the figure would settle a rupee off the truth.
+   */
+  precision?: number;
   style?: StyleProp<TextStyle>;
 };
 
@@ -28,6 +33,7 @@ export function AnimatedNumber({
   format = (n) => String(n),
   variant = 'numberLg',
   color,
+  precision = 0,
   style,
 }: AnimatedNumberProps) {
   const { colors } = useTheme();
@@ -47,7 +53,8 @@ export function AnimatedNumber({
   }, [count, value]);
 
   useDerivedValue(() => {
-    scheduleOnRN(commit, Math.round(count.get()));
+    const scale = 10 ** precision;
+    scheduleOnRN(commit, Math.round(count.get() * scale) / scale);
   });
 
   return (

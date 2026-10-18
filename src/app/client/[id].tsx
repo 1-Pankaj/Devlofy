@@ -3,7 +3,16 @@
  * and how much of it is done.
  */
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { CaretRight, Envelope, Folder, PencilSimple, Phone, UsersThree } from 'phosphor-react-native';
+import {
+  CaretRight,
+  CurrencyCircleDollar,
+  Envelope,
+  Folder,
+  PencilSimple,
+  Phone,
+  UsersThree,
+} from 'phosphor-react-native';
+import { useMemo } from 'react';
 import { View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
@@ -19,18 +28,28 @@ import { Screen } from '@/components/ui/screen';
 import { SectionHeader } from '@/components/ui/section';
 import { FadeUp } from '@/components/ui/stagger';
 import { useLiveQuery } from '@/lib/db/hooks';
-import { getClient, getClientStats, listClientProjects } from '@/lib/db/repo';
+import { getClient, getClientStats, listClientProjects, listSessionsInWindow } from '@/lib/db/repo';
 import { formatShortDate } from '@/lib/format';
+import { formatHours, formatMoney, invoiceTotals, periodRange } from '@/lib/money';
+import { useSettings } from '@/state/settings';
 import { radius, spacing, useTheme } from '@/theme';
 
 export default function ClientDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { colors } = useTheme();
+  const currency = useSettings((s) => s.currency);
 
   const client = useLiveQuery((d) => getClient(d, id), { deps: [id] });
   const stats = useLiveQuery((d) => getClientStats(d, id), { deps: [id] });
   const projects = useLiveQuery((d) => listClientProjects(d, id), { deps: [id] });
+
+  const allTime = useMemo(() => periodRange('all'), []);
+  const billable = useLiveQuery(
+    (d) => listSessionsInWindow(d, allTime.from.toISOString(), allTime.to.toISOString(), id),
+    { deps: [id] },
+  );
+  const billed = useMemo(() => invoiceTotals(billable.data ?? []), [billable.data]);
 
   const data = client.data;
   const projectCount = stats.data?.projects ?? 0;
@@ -79,6 +98,12 @@ export default function ClientDetailScreen() {
               label={`${projectCount} ${projectCount === 1 ? 'project' : 'projects'}`}
               tone="info"
             />
+            {data.hourly_rate != null ? (
+              <StatusPill
+                label={`${formatMoney(data.hourly_rate, currency)}/h`}
+                tone="accent"
+              />
+            ) : null}
           </View>
         </FadeUp>
       ) : null}
@@ -204,6 +229,37 @@ export default function ClientDetailScreen() {
                     );
                   })
                 )}
+              </Panel>
+            </View>
+          </FadeUp>
+
+          <FadeUp index={4}>
+            <View>
+              <SectionHeader eyebrow="money" title="Billing" />
+              <Panel coreStyle={{ padding: 0, overflow: 'hidden' }}>
+                <ListRow
+                  icon={<CurrencyCircleDollar size={17} color={colors.accent} weight="light" />}
+                  tone="accent"
+                  title="Draft invoice"
+                  subtitle={
+                    billed.sessions > 0
+                      ? `${formatHours(billed.minutes)} billable across ${billed.sessions} blocks`
+                      : 'No rated time yet — set a rate on them or a project'
+                  }
+                  onPress={() =>
+                    router.push({ pathname: '/invoice', params: { clientId: id } })
+                  }
+                  trailing={
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      {billed.sessions > 0 ? (
+                        <AppText variant="mono" tone="secondary">
+                          {formatMoney(billed.amount, currency)}
+                        </AppText>
+                      ) : null}
+                      <CaretRight size={14} color={colors.textTertiary} weight="bold" />
+                    </View>
+                  }
+                />
               </Panel>
             </View>
           </FadeUp>

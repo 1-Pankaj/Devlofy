@@ -14,6 +14,7 @@ import { View } from 'react-native';
 import { GardenScene } from '@/components/garden/garden-scene';
 import { FocusHeatmap } from '@/components/focus/focus-heatmap';
 import { ProjectChips } from '@/components/focus/project-chips';
+import { RhythmCard } from '@/components/focus/rhythm-card';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import { AppText } from '@/components/ui/app-text';
 import { emptyArt } from '@/components/ui/empty-art';
@@ -41,6 +42,7 @@ import {
 } from '@/lib/db/repo';
 import { hashString } from '@/lib/garden/model';
 import { stageFromStats } from '@/lib/garden/models';
+import { useEngine } from '@/lib/engine';
 import { formatClock, formatDayLabel, formatMinutes, formatTimer } from '@/lib/format';
 import { useSettings } from '@/state/settings';
 import { radius, spacing, useTheme } from '@/theme';
@@ -84,6 +86,8 @@ export default function GardenScreen() {
   }));
   const history = useLiveQuery((d) => listRecentSessions(d, 6));
   const rhythm = useLiveQuery((d) => focusMinutesByDay(d, 84));
+  const engine = useEngine();
+  const { refresh: refreshEngine } = engine;
   const focusProjectId = useSettings((s) => s.focusProjectId);
 
   const [block, setBlock] = useState<Block>(25);
@@ -120,7 +124,8 @@ export default function GardenScreen() {
 
   const refreshAll = useCallback(async () => {
     await Promise.all([session.refresh(), totals.refresh(), history.refresh()]);
-  }, [history, session, totals]);
+    refreshEngine();
+  }, [history, refreshEngine, session, totals]);
 
   const handleStart = useCallback(async () => {
     if (starting || active) return;
@@ -312,8 +317,13 @@ export default function GardenScreen() {
         <FocusHeatmap data={rhythm.data ?? []} />
       </FadeUp>
 
-      {/* Session log */}
+      {/* When the work actually happens */}
       <FadeUp index={3}>
+        <RhythmCard rhythm={engine.rhythm} insights={engine.insights} />
+      </FadeUp>
+
+      {/* Session log */}
+      <FadeUp index={4}>
         <View>
           <SectionHeader eyebrow="records" title="Recent sessions" />
           <Panel coreStyle={{ padding: 0, overflow: 'hidden' }}>

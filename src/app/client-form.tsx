@@ -17,6 +17,8 @@ import { Screen } from '@/components/ui/screen';
 import { TextField } from '@/components/ui/text-field';
 import { useLiveQuery } from '@/lib/db/hooks';
 import { createClient, getClient, updateClient } from '@/lib/db/repo';
+import { parseRate } from '@/lib/money';
+import { useSettings } from '@/state/settings';
 import { spacing, useTheme } from '@/theme';
 
 const STATUSES = [
@@ -43,8 +45,11 @@ export default function ClientFormScreen() {
   const [phone, setPhone] = useState('');
   const [notes, setNotes] = useState('');
   const [status, setStatus] = useState<string>('lead');
+  const [rate, setRate] = useState('');
   const [saving, setSaving] = useState(false);
   const hydratedRef = useRef(false);
+
+  const currency = useSettings((s) => s.currency);
 
   useEffect(() => {
     if (!editing || hydratedRef.current || !existing.data) return;
@@ -55,6 +60,7 @@ export default function ClientFormScreen() {
     setPhone(existing.data.phone ?? '');
     setNotes(existing.data.notes ?? '');
     setStatus(existing.data.status);
+    setRate(existing.data.hourly_rate != null ? String(existing.data.hourly_rate) : '');
   }, [editing, existing.data]);
 
   const handleSave = async () => {
@@ -62,9 +68,25 @@ export default function ClientFormScreen() {
     setSaving(true);
     try {
       if (editing && id) {
-        await updateClient(db, id, { name, company, email, phone, notes, status });
+        await updateClient(db, id, {
+          name,
+          company,
+          email,
+          phone,
+          notes,
+          status,
+          hourlyRate: parseRate(rate),
+        });
       } else {
-        await createClient(db, { name, company, email, phone, notes, status });
+        await createClient(db, {
+          name,
+          company,
+          email,
+          phone,
+          notes,
+          status,
+          hourlyRate: parseRate(rate),
+        });
       }
       router.back();
     } finally {
@@ -157,6 +179,22 @@ export default function ClientFormScreen() {
             keyboardType="phone-pad"
             returnKeyType="next"
           />
+
+          <View style={{ gap: spacing.sm }}>
+            <TextField
+              label={`Default hourly rate (${currency})`}
+              value={rate}
+              onChangeText={setRate}
+              placeholder="e.g. 2500"
+              keyboardType="numeric"
+              returnKeyType="next"
+            />
+            <AppText variant="caption" tone="tertiary">
+              Applied to every project of theirs that has no rate of its own, so their focus blocks
+              are priced without retyping anything.
+            </AppText>
+          </View>
+
           <TextField
             label="Notes"
             value={notes}

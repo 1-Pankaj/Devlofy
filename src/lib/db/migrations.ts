@@ -111,6 +111,16 @@ const MIGRATIONS: Migration[] = [
       `CREATE INDEX idx_projects_client ON projects (client_id) WHERE deleted_at IS NULL;`,
     ],
   },
+  {
+    // Money. A rate lives on the project, falling back to the client, so
+    // "billable" can be resolved from whatever a block was attributed to.
+    version: 2,
+    statements: [
+      `ALTER TABLE clients ADD COLUMN hourly_rate REAL;`,
+      `ALTER TABLE projects ADD COLUMN hourly_rate REAL;`,
+      `CREATE INDEX idx_sessions_project ON sessions (project_id) WHERE deleted_at IS NULL;`,
+    ],
+  },
 ];
 
 /**

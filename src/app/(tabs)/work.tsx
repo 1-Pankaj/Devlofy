@@ -4,8 +4,14 @@
  * open their detail page.
  */
 import { useRouter } from 'expo-router';
-import { CaretRight, Folder, Plus, UsersThree } from 'phosphor-react-native';
-import { useState } from 'react';
+import {
+  CaretRight,
+  CurrencyCircleDollar,
+  Folder,
+  Plus,
+  UsersThree,
+} from 'phosphor-react-native';
+import { useMemo, useState } from 'react';
 import { View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
@@ -23,8 +29,10 @@ import { SectionHeader } from '@/components/ui/section';
 import { Segmented } from '@/components/ui/segmented';
 import { FadeUp } from '@/components/ui/stagger';
 import { useLiveQuery } from '@/lib/db/hooks';
-import { listClients, listProjects } from '@/lib/db/repo';
+import { listClients, listProjects, listSessionsInWindow } from '@/lib/db/repo';
 import { formatMinutes, formatShortDate } from '@/lib/format';
+import { formatHours, formatMoney, invoiceTotals, periodRange } from '@/lib/money';
+import { useSettings } from '@/state/settings';
 import { spacing, useTheme } from '@/theme';
 
 type Segment = 'projects' | 'clients';
@@ -36,6 +44,14 @@ export default function WorkScreen() {
 
   const projects = useLiveQuery((d) => listProjects(d));
   const clients = useLiveQuery((d) => listClients(d));
+
+  const currency = useSettings((s) => s.currency);
+  const month = useMemo(() => periodRange('month'), []);
+  const draft = useLiveQuery(
+    (d) => listSessionsInWindow(d, month.from.toISOString(), month.to.toISOString()),
+    { deps: [] },
+  );
+  const billed = useMemo(() => invoiceTotals(draft.data ?? []), [draft.data]);
 
   const activeProjects = (projects.data ?? []).filter((p) => p.status === 'active').length;
   const subtitle =
@@ -183,6 +199,37 @@ export default function WorkScreen() {
           </View>
         </FadeUp>
       )}
+
+      {/* The money end of the chain, in one row — it is a draft, so it belongs
+          next to the work it came from rather than in its own tab. */}
+      <FadeUp index={2}>
+        <View>
+          <SectionHeader eyebrow="money" title="Billing" />
+          <Panel coreStyle={{ padding: 0, overflow: 'hidden' }}>
+            <ListRow
+              icon={<CurrencyCircleDollar size={17} color={colors.accent} weight="light" />}
+              tone="accent"
+              title="Invoice draft"
+              subtitle={
+                billed.sessions > 0
+                  ? `${formatHours(billed.minutes)} billable this month`
+                  : 'No rated time this month yet'
+              }
+              onPress={() => router.push('/invoice')}
+              trailing={
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  {billed.sessions > 0 ? (
+                    <AppText variant="mono" tone="secondary">
+                      {formatMoney(billed.amount, currency)}
+                    </AppText>
+                  ) : null}
+                  <CaretRight size={14} color={colors.textTertiary} weight="bold" />
+                </View>
+              }
+            />
+          </Panel>
+        </View>
+      </FadeUp>
     </Screen>
   );
 }

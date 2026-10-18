@@ -14,6 +14,7 @@ import {
   CaretRight,
   CheckCircle,
   Flame,
+  MagnifyingGlass,
   Play,
   Plus,
   Stop,
@@ -34,6 +35,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { GardenScene } from '@/components/garden/garden-scene';
+import { NextUp } from '@/components/focus/next-up';
 import { ProjectChips } from '@/components/focus/project-chips';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import { AppText } from '@/components/ui/app-text';
@@ -67,6 +69,7 @@ import {
 } from '@/lib/db/repo';
 import { hashString } from '@/lib/garden/model';
 import { stageFromStats } from '@/lib/garden/models';
+import { useEngine, type RankedTask } from '@/lib/engine';
 import { parseTaskInput } from '@/lib/parse-task';
 import { useSettings } from '@/state/settings';
 import {
@@ -202,6 +205,10 @@ export default function TodayScreen() {
 
   const dailyGoalMinutes = useSettings((s) => s.dailyGoalMinutes);
   const focusProjectId = useSettings((s) => s.focusProjectId);
+  const setFocusProjectId = useSettings((s) => s.setFocusProjectId);
+
+  const engine = useEngine();
+  const { refresh: refreshEngine } = engine;
 
   const active = session.data ?? null;
   const startedAt = active?.started_at ?? null;
@@ -255,6 +262,30 @@ export default function TodayScreen() {
     }
   }, [active, db, focusProjectId, session, starting]);
 
+  /**
+   * The Engine's loop, closed: start the block *from* the recommendation, and
+   * attribute it to the task (not just the project) so the app can later compare
+   * the estimate with what actually happened. The attribution setting follows
+   * the task, so the rest of the screen stays consistent with the running block.
+   */
+  const handleStartFromTask = useCallback(
+    async (ranked: RankedTask) => {
+      if (starting || active) return;
+      setStarting(true);
+      try {
+        await startFocusSession(db, ranked.task.project_id ?? focusProjectId, ranked.task.id);
+        if (ranked.task.project_id && ranked.task.project_id !== focusProjectId) {
+          setFocusProjectId(ranked.task.project_id);
+        }
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+        await session.refresh();
+      } finally {
+        setStarting(false);
+      }
+    },
+    [active, db, focusProjectId, session, setFocusProjectId, starting],
+  );
+
   const handleEnd = useCallback(async () => {
     if (!active || ending) return;
     setEnding(true);
@@ -269,10 +300,11 @@ export default function TodayScreen() {
         totalFocus.refresh(),
         recent.refresh(),
       ]);
+      refreshEngine();
     } finally {
       setEnding(false);
     }
-  }, [active, db, ending, recent, session, streak, todayFocus, totalFocus, week]);
+  }, [active, db, ending, recent, refreshEngine, session, streak, todayFocus, totalFocus, week]);
 
   const parsed = useMemo(
     () => parseTaskInput(title, (projects.data ?? []).map((p) => ({ id: p.id, name: p.name }))),
@@ -293,18 +325,20 @@ export default function TodayScreen() {
       setTitle('');
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
       await tasks.refresh();
+      refreshEngine();
     } finally {
       setAdding(false);
     }
-  }, [adding, db, parsed, tasks]);
+  }, [adding, db, parsed, refreshEngine, tasks]);
 
   const handleComplete = useCallback(
     async (taskId: string) => {
       await setTaskDone(db, taskId, true);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
       await Promise.all([tasks.refresh(), doneToday.refresh()]);
+      refreshEngine();
     },
-    [db, doneToday, tasks],
+    [db, doneToday, refreshEngine, tasks],
   );
 
   const tip = TIPS[new Date().getDate() % TIPS.length];
@@ -320,6 +354,24 @@ export default function TodayScreen() {
               ? `${formatMinutes(weekTotal)} focused this week`
               : 'No focus logged this week yet'
             : undefined,
+        trailing: (
+          <PressableScale
+            haptic="selection"
+            accessibilityLabel="Search everything"
+            onPress={() => router.push('/search')}>
+            <View
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: radius.full,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: colors.surfaceElevated,
+              }}>
+              <MagnifyingGlass size={17} color={colors.textSecondary} weight="bold" />
+            </View>
+          </PressableScale>
+        ),
       }}
       fab={
         <Fab
@@ -390,6 +442,18 @@ export default function TodayScreen() {
       {!active ? (
         <FadeUp index={1}>
           <ProjectChips />
+        </FadeUp>
+      ) : null}
+
+      {/* The Engine's answer. Hidden while a block runs: the hero owns the screen
+          then, and a recommendation you cannot act on is just noise. */}
+      {!active && engine.status === 'ready' ? (
+        <FadeUp index={1}>
+          <NextUp
+            ranked={engine.ranked}
+            starting={starting}
+            onStart={handleStartFromTask}
+          />
         </FadeUp>
       ) : null}
 

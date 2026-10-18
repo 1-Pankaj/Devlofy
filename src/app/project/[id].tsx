@@ -18,6 +18,8 @@ import { FadeUp } from '@/components/ui/stagger';
 import { useLiveQuery } from '@/lib/db/hooks';
 import { getProject, listMilestones, listProjectTasks, setTaskDone } from '@/lib/db/repo';
 import { formatMinutes, formatShortDate } from '@/lib/format';
+import { formatMoney } from '@/lib/money';
+import { useSettings } from '@/state/settings';
 import { radius, spacing, useTheme } from '@/theme';
 
 export default function ProjectDetailScreen() {
@@ -25,6 +27,7 @@ export default function ProjectDetailScreen() {
   const db = useSQLiteContext();
   const router = useRouter();
   const { colors } = useTheme();
+  const currency = useSettings((s) => s.currency);
 
   const project = useLiveQuery((d) => getProject(d, id), { deps: [id] });
   const milestones = useLiveQuery((d) => listMilestones(d, id), { deps: [id] });
@@ -61,6 +64,16 @@ export default function ProjectDetailScreen() {
     });
     if (data.due_date) {
       facts.push({ label: `due ${formatShortDate(data.due_date)}`, tone: 'ember' });
+    }
+    // The rate is a fact about the project, so it sits with the other facts.
+    // A project rate wins; the client's is shown as the inherited case.
+    if (data.hourly_rate != null) {
+      facts.push({ label: `${formatMoney(data.hourly_rate, currency)}/h`, tone: 'accent' });
+    } else if (data.client_rate != null) {
+      facts.push({
+        label: `${formatMoney(data.client_rate, currency)}/h from client`,
+        tone: 'neutral',
+      });
     }
     stackTags.forEach((tag) => facts.push({ label: tag, tone: 'info' }));
   }
@@ -123,9 +136,18 @@ export default function ProjectDetailScreen() {
             </AppText>
             <AppText variant="caption" tone={data && data.focus_minutes > 0 ? 'ember' : 'tertiary'}>
               {data && data.focus_minutes > 0
-                ? `${formatMinutes(data.focus_minutes)} focused · ${data.focus_sessions} ${
-                    data.focus_sessions === 1 ? 'session' : 'sessions'
-                  }`
+                ? [
+                    `${formatMinutes(data.focus_minutes)} focused`,
+                    `${data.focus_sessions} ${data.focus_sessions === 1 ? 'session' : 'sessions'}`,
+                    // Only worth saying when it is not simply everything.
+                    data.billable_minutes === 0
+                      ? null
+                      : data.billable_minutes === data.focus_minutes
+                        ? 'all billable'
+                        : `${formatMinutes(data.billable_minutes)} billable`,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')
                 : 'No focus time logged yet'}
             </AppText>
           </View>

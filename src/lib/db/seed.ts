@@ -39,6 +39,19 @@ function iso(daysAgo = 0, hoursAgo = 0): string {
   return new Date(Date.now() - daysAgo * day - hoursAgo * 60 * 60 * 1000).toISOString();
 }
 
+/**
+ * A local wall-clock time `daysAgo` back, never in the future. The seed uses this
+ * for sessions so the rhythm chart has a *shape* — mornings, not a single spike
+ * wherever "now" happened to be when the app was first opened.
+ */
+function localAt(daysAgo: number, hour: number, minute = 0): string {
+  const date = new Date();
+  date.setDate(date.getDate() - daysAgo);
+  date.setHours(hour, minute, 0, 0);
+  if (date.getTime() > Date.now()) date.setDate(date.getDate() - 7);
+  return date.toISOString();
+}
+
 export async function seedIfEmpty(db: SQLiteDatabase) {
   const row = await db.getFirstAsync<{ count: number }>('SELECT COUNT(*) AS count FROM clients');
   if ((row?.count ?? 0) > 0) return;
@@ -63,9 +76,9 @@ export async function seedIfEmpty(db: SQLiteDatabase) {
     params: [codeloomId, 'Codeloom', 'Codeloom Studio', 'hello@codeloom.dev', now, now],
   });
   statements.push({
-    sql: `INSERT INTO clients (id, name, company, email, status, created_at, updated_at)
-          VALUES (?, ?, ?, ?, 'active', ?, ?)`,
-    params: [northwindId, 'Northwind Labs', 'Northwind Labs', 'pm@northwind.io', now, now],
+    sql: `INSERT INTO clients (id, name, company, email, status, hourly_rate, created_at, updated_at)
+          VALUES (?, ?, ?, ?, 'active', ?, ?, ?)`,
+    params: [northwindId, 'Northwind Labs', 'Northwind Labs', 'pm@northwind.io', 2500, now, now],
   });
   statements.push({
     sql: `INSERT INTO clients (id, name, company, status, created_at, updated_at)
@@ -149,11 +162,12 @@ export async function seedIfEmpty(db: SQLiteDatabase) {
     title: string,
     opts: { priority?: number; energy?: string; est?: number; status?: string } = {},
   ) => {
+    const id = createId();
     statements.push({
       sql: `INSERT INTO tasks (id, project_id, title, status, priority, energy, est_minutes, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       params: [
-        createId(),
+        id,
         projectId,
         title,
         opts.status ?? 'todo',
@@ -164,12 +178,15 @@ export async function seedIfEmpty(db: SQLiteDatabase) {
         now,
       ],
     });
+    return id;
   };
-  task(devlofyId, 'Wire the garden growth model to focus minutes', { priority: 2, energy: 'deep', est: 90 });
-  task(devlofyId, 'Desk-check desktop mode rail on a wide window', { priority: 1, energy: 'shallow', est: 25 });
-  task(portalId, 'Billing screen: invoice list states', { priority: 2, energy: 'deep', est: 120 });
+  // Ids are kept so the seeded sessions can be attributed to tasks — that is
+  // what lets a fresh install show estimate-vs-reality without any user effort.
+  const gardenTask = task(devlofyId, 'Wire the garden growth model to focus minutes', { priority: 2, energy: 'deep', est: 90 });
+  const deskTask = task(devlofyId, 'Desk-check desktop mode rail on a wide window', { priority: 1, energy: 'shallow', est: 25 });
+  const billingTask = task(portalId, 'Billing screen: invoice list states', { priority: 2, energy: 'deep', est: 120 });
   task(portalId, 'Reply to Northwind about Phase 2 scope', { priority: 1, energy: 'shallow', est: 15 });
-  task(starlightId, 'Dash cooldown feels floaty — tighten curve', { priority: 0, energy: 'deep', est: 45 });
+  const dashTask = task(starlightId, 'Dash cooldown feels floaty — tighten curve', { priority: 0, energy: 'deep', est: 45 });
   task(null, 'Plan the learning track for FTS + local search', { priority: 0, energy: 'shallow', est: 20 });
 
   // Welcome note
@@ -200,21 +217,34 @@ export async function seedIfEmpty(db: SQLiteDatabase) {
   });
 
   // A week of focus sessions so the garden starts grown, not dead — and so the
-  // per-project time on Work has something to show.
+  // per-project time on Work has something to show. Northwind pays an hourly
+  // rate, so their blocks are seeded billable: the invoice draft has a real
+  // number on a fresh install, and the Devlofy/Starlight blocks deliberately
+  // stay unrated to show the "not priced" state too.
   const sessionMinutes = [45, 0, 70, 25, 90, 55, 42];
   const sessionProjects = [devlofyId, null, portalId, devlofyId, portalId, starlightId, devlofyId];
+  const sessionTasks = [gardenTask, null, billingTask, deskTask, billingTask, dashTask, gardenTask];
+  const sessionBillable = [0, 0, 1, 0, 1, 0, 0];
+  // Morning-weighted on purpose: a realistic solo-dev week, and enough shape for
+  // the rhythm card to name a peak band on a fresh install.
+  const sessionHours = [9, 9, 11, 14, 9, 10, 15];
   sessionMinutes.forEach((minutes, index) => {
     if (minutes <= 0) return;
-    const startedAt = iso(6 - index, 4);
+    // Today's block is relative ("a couple of hours ago") so the streak and
+    // "banked today" read true whenever the app is first opened; the rest sit at
+    // fixed local hours to give the rhythm chart its shape.
+    const startedAt = index === 6 ? iso(0, 2) : localAt(6 - index, sessionHours[index], 20);
     statements.push({
-      sql: `INSERT INTO sessions (id, project_id, kind, started_at, ended_at, minutes, created_at, updated_at)
-            VALUES (?, ?, 'focus', ?, ?, ?, ?, ?)`,
+      sql: `INSERT INTO sessions (id, task_id, project_id, kind, started_at, ended_at, minutes, billable, created_at, updated_at)
+            VALUES (?, ?, ?, 'focus', ?, ?, ?, ?, ?, ?)`,
       params: [
         createId(),
+        sessionTasks[index],
         sessionProjects[index],
         startedAt,
         new Date(new Date(startedAt).getTime() + minutes * 60 * 1000).toISOString(),
         minutes,
+        sessionBillable[index],
         startedAt,
         startedAt,
       ],
