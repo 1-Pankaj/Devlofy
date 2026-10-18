@@ -23,7 +23,7 @@ import {
   Vector3,
 } from 'three';
 
-import { aimY, aimZ, part, type Part } from './parts';
+import { aimY, aimZ, degrees, part, type Part } from './parts';
 
 /** The authored palette ([[05-blender-pipeline]]), so code and Blender agree. */
 export const KIT_COLORS = {
@@ -48,10 +48,6 @@ export type KitParts = {
   /** Glass and light: a second mesh on the emissive material. */
   glow?: Part[];
 };
-
-function degrees(value: number): number {
-  return (value * Math.PI) / 180;
-}
 
 /**
  * The focus bench — the seat under the tree (the item `05-blender-pipeline`

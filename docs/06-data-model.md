@@ -9,7 +9,7 @@ Local SQLite database `devlofy.db`, opened and migrated in `src/lib/db/`. Schema
 
 ## Sync-ready rules (from day one)
 
-1. **`id` is a nanoid** — globally unique, generated on-device. No autoincrement anywhere.
+1. **`id` is an app-generated string** — 16 base-36 characters from `src/lib/ids.ts` (Web Crypto when the runtime has it, `Math.random` otherwise; Hermes cannot rely on either). Globally unique at personal-app scale, generated on-device. No autoincrement anywhere.
 2. **`created_at` / `updated_at`** are ISO-8601 UTC strings on every table.
 3. **Deletes are tombstones**: `deleted_at` is set; nothing is hard-deleted. Every read filters `deleted_at IS NULL`.
 4. **No server assumptions**: no sequences, no triggers, no server time.
@@ -45,7 +45,7 @@ Indexes: `tasks(status)`, `tasks(project_id)`, `sessions(started_at)`, `notes(up
 - **Project progress** = `done_count / task_count` per project (subquery in `listProjects`).
 - **Time tracked per project** = `SUM(minutes)` / `COUNT(*)` / `MAX(started_at)` over that project's finished focus sessions (same subquery block in `listProjects` / `getProject`) — a query, never a denormalised counter, so editing or deleting a session can't desync it.
 - **Billable minutes per project** = the same `SUM` restricted to `billable = 1` (`billable_minutes`); billability is decided once, when a session starts, from the resolved rate ([[07-decisions]] ADR-017).
-- **Rhythm bands** = today's minutes bucketed per day (< 30, < 75, ≥ 75) for the twelve-week heatmap.
+- **Rhythm bands** = today's minutes bucketed per day, in four steps: `0` (nothing), `< 30`, ` < 75`, `≥ 75` for the twelve-week heatmap (`level()` in `src/components/focus/focus-heatmap.tsx`).
 - **Rhythm (the Engine)** = finished blocks bucketed by **local** hour and weekday, the best contiguous 3-hour band, and the median block length — computed in JS, not SQL, so the buckets are in the user's timezone rather than UTC (`src/lib/engine/rhythm.ts`).
 - **Next up** = a weighted score over every open task plus the reasons behind it (`src/lib/engine/next-up.ts`); never persisted, and re-ranked on every read.
 - **Estimate drift** = per-task `SUM(sessions.minutes)` against `tasks.est_minutes` (`listEstimateSamples`), reported as a ratio once four tasks have both numbers.

@@ -23,5 +23,3 @@ export function makeShadows(colors: ThemeColors) {
     brand: isDark ? `0 6px 18px ${colors.accentShadow}` : `0 6px 16px ${colors.accentShadow}`,
   } as const;
 }
-
-export type AppShadows = ReturnType<typeof makeShadows>;

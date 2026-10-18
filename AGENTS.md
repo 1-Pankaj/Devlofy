@@ -35,7 +35,7 @@ Run **lint + typecheck before declaring any task done.** If a task touches UI, s
 - **Tokens only**: colors/spacing/type/motion come from `src/theme` — no hardcoded values in components.
 - **Data**: all SQL lives in `src/lib/db/repo.ts`; screens use `useLiveQuery`. Migrations are append-only in `src/lib/db/migrations.ts` (update `docs/06-data-model.md` in the same change).
 - **Reanimated 4 (compiler-safe)**: shared values use `.get()`/`.set()`; no `runOnJS` (use `scheduleOnRN`); press feedback via `PressableScale`; entrances via `FadeUp`; tokens from `theme/motion`.
-- **Motion never overshoots**: springs are critically damped only (`dampingRatio: 1`) — a bouncy spring or `springify()` is a bug. Everything else is a timing curve from `theme/motion`.
+- **Motion never overshoots**: there is no spring anywhere in the app — no `withSpring`, no `springify()`, no `spring` token — only a `duration` against the two curves in `theme/motion` (`easing.out`, `easing.emphasized`). A bounce is a bug.
 - **Task quick-add grammar** is pure and lives in `src/lib/parse-task.ts` (`!3`, `45m`, `tomorrow`, `#Project`). The preview chips on Today must always state exactly what will be created; an unmatched `#tag` stays in the title.
 - **Focus attribution**: the next block's project is a persisted setting (`focusProjectId`), read by both Today and Garden, written to `sessions.project_id`. Per-project time is a query, not a counter. A block may also carry `task_id` (the Engine's "Focus on this"), which is what makes estimate drift measurable.
 - **The Engine** is `src/lib/engine/` — **pure functions over the user's own rows**, no model, no network: `rhythm.ts` (when you work, how long a block runs), `next-up.ts` (a documented weight table, and every score must produce a *reason* the UI can show), `estimate.ts` (estimated vs actual minutes). Wire it with `useEngine()`, never a bespoke query per screen.
@@ -57,7 +57,7 @@ Run **lint + typecheck before declaring any task done.** If a task touches UI, s
 
 - Files kebab-case; components `PascalCase` inside; hooks `use-*`.
 - Icons: Phosphor (`weight="light"|"regular"|"fill"`), never emoji.
-- Every screen handles loading / error / empty / ready.
+- Every screen handles loading / error / empty / ready — and a **failed read is never rendered as an empty one**: an `error` with no data gets `ErrorState` (with the query's `refresh`), not `EmptyState`, and "no longer exists" needs a *successful* read that came back null. Canon: [[04-design-language]] §States.
 - Every control does something; non-actionable rows are not pressable.
 - One filled action per screen — the FAB. The accent (indigo) is the brand; ember (amber) is for focus/time only.
 

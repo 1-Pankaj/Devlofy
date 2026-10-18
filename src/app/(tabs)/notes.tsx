@@ -18,11 +18,11 @@ import { View } from 'react-native';
 import { AppText } from '@/components/ui/app-text';
 import { emptyArt } from '@/components/ui/empty-art';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
 import { Fab } from '@/components/ui/fab';
 import { ListRow } from '@/components/ui/list-row';
 import { Loading } from '@/components/ui/loading';
 import { Panel } from '@/components/ui/panel';
-import { PressableScale } from '@/components/ui/pressable-scale';
 import { Screen } from '@/components/ui/screen';
 import { FadeUp } from '@/components/ui/stagger';
 import { TextField } from '@/components/ui/text-field';
@@ -86,16 +86,7 @@ export default function NotesScreen() {
           {notes.status === 'loading' && rows.length === 0 ? (
             <Loading label="reading the shelf…" />
           ) : notes.status === 'error' && rows.length === 0 ? (
-            <View style={{ padding: spacing.xl, gap: spacing.sm }}>
-              <AppText variant="subheadMedium" tone="danger">
-                Could not read notes.
-              </AppText>
-              <PressableScale haptic="selection" onPress={() => notes.refresh()}>
-                <AppText variant="captionMedium" tone="accent">
-                  Retry
-                </AppText>
-              </PressableScale>
-            </View>
+            <ErrorState what="notes" onRetry={() => notes.refresh()} />
           ) : (
             <FlashList
               style={{ flex: 1 }}

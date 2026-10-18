@@ -18,6 +18,7 @@ import { View } from 'react-native';
 import { AppText } from '@/components/ui/app-text';
 import { BackRow } from '@/components/ui/back-button';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
 import { ListRow } from '@/components/ui/list-row';
 import { Loading } from '@/components/ui/loading';
 import { Panel } from '@/components/ui/panel';
@@ -112,6 +113,10 @@ export default function ClientDetailScreen() {
         <Panel>
           <Loading label="reading the client…" />
         </Panel>
+      ) : client.status === 'error' && !data ? (
+        <Panel>
+          <ErrorState what="this client" onRetry={() => client.refresh()} />
+        </Panel>
       ) : !data ? (
         <Panel>
           <EmptyState
@@ -129,16 +134,26 @@ export default function ClientDetailScreen() {
               </ProgressRing>
               <View style={{ flex: 1, gap: spacing.xs }}>
                 <Eyebrow>delivery</Eyebrow>
-                <AppText variant="subhead">
-                  {stats.data
-                    ? `${stats.data.doneTasks} of ${stats.data.tasks} tasks done`
-                    : 'Reading…'}
-                </AppText>
-                <AppText variant="caption" tone="secondary">
-                  {stats.data
-                    ? `${stats.data.activeProjects} active of ${stats.data.projects} projects`
-                    : ''}
-                </AppText>
+                {stats.status === 'error' && !stats.data ? (
+                  <PressableScale haptic="selection" onPress={() => stats.refresh()}>
+                    <AppText variant="captionMedium" tone="accent">
+                      Could not read delivery — retry
+                    </AppText>
+                  </PressableScale>
+                ) : (
+                  <>
+                    <AppText variant="subhead">
+                      {stats.data
+                        ? `${stats.data.doneTasks} of ${stats.data.tasks} tasks done`
+                        : 'Reading…'}
+                    </AppText>
+                    <AppText variant="caption" tone="secondary">
+                      {stats.data
+                        ? `${stats.data.activeProjects} active of ${stats.data.projects} projects`
+                        : ''}
+                    </AppText>
+                  </>
+                )}
               </View>
             </Panel>
           </FadeUp>
@@ -191,6 +206,8 @@ export default function ClientDetailScreen() {
               <Panel coreStyle={{ padding: 0, overflow: 'hidden' }}>
                 {projects.status === 'loading' && !projects.data ? (
                   <Loading label="reading the portfolio…" />
+                ) : projects.status === 'error' && !projects.data ? (
+                  <ErrorState what="this client's projects" onRetry={() => projects.refresh()} />
                 ) : (projects.data?.length ?? 0) === 0 ? (
                   <EmptyState
                     icon={Folder}

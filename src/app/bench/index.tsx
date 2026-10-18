@@ -59,7 +59,18 @@ export default function BenchShelfScreen() {
         />
       </FadeUp>
 
-      {snippets.data !== null && snippets.data > 0 && !filtering ? (
+      {snippets.status === 'error' ? (
+        <FadeUp index={2}>
+          <Panel coreStyle={{ padding: 0, overflow: 'hidden' }}>
+            <ListRow
+              icon={<BookmarkSimple size={17} color={colors.textTertiary} weight="light" />}
+              title="Saved snippets"
+              subtitle="Could not read the count — open to look"
+              onPress={() => router.push('/bench/snippets')}
+            />
+          </Panel>
+        </FadeUp>
+      ) : snippets.data !== null && snippets.data > 0 && !filtering ? (
         <FadeUp index={2}>
           <Panel coreStyle={{ padding: 0, overflow: 'hidden' }}>
             <ListRow

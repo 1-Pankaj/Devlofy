@@ -166,12 +166,3 @@ export function searchTools(query: string): BenchTool[] {
   );
 }
 
-/** Neighbouring tools, so a screen can offer "next" without a list of its own. */
-export function neighbours(id: string): { previous: BenchTool | null; next: BenchTool | null } {
-  const index = BENCH_TOOLS.findIndex((tool) => tool.id === id);
-  if (index === -1) return { previous: null, next: null };
-  return {
-    previous: index === 0 ? null : BENCH_TOOLS[index - 1],
-    next: index === BENCH_TOOLS.length - 1 ? null : BENCH_TOOLS[index + 1],
-  };
-}

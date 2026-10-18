@@ -33,6 +33,7 @@ import { NoteMeta } from '@/components/notes/note-meta';
 import { AppText } from '@/components/ui/app-text';
 import { BackRow } from '@/components/ui/back-button';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
 import { Eyebrow } from '@/components/ui/pill';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { useLiveQuery } from '@/lib/db/hooks';
@@ -306,6 +307,22 @@ export default function NoteEditorScreen() {
           justifyContent: 'center',
         }}>
         <ActivityIndicator color={colors.accent} />
+      </View>
+    );
+  }
+
+  if (note.status === 'error' && !data) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: colors.background,
+          paddingHorizontal: spacing.xl,
+          paddingTop: insets.top + spacing.md,
+          gap: spacing.xl,
+        }}>
+        <BackRow label="Notes" />
+        <ErrorState what="this note" onRetry={() => note.refresh()} />
       </View>
     );
   }

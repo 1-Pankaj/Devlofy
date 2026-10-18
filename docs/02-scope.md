@@ -24,7 +24,7 @@ created: 2026-10-17
 - **More** — name, theme (System / Dark / Light), desktop mode, **daily focus goal**, data stats, JSON export, about.
 - **Desktop mode** — side rail + centered content; adaptive tab shell.
 - **System** — safe-area insets owned by `Screen` everywhere, animated `ProgressRing` / `LiveDot` / `Loading` primitives, root crash boundary, loading/error/empty handled on every list.
-- **Data layer** — full local schema ([[06-data-model]]), migrations, first-run seed, sync-ready (UUID ids, `updated_at`, tombstones).
+- **Data layer** — full local schema ([[06-data-model]]), migrations, first-run seed, sync-ready (app-generated ids, `updated_at`, tombstones).
 
 ## v0.2 — the working day (built 2026-10-18)
 
@@ -33,8 +33,8 @@ created: 2026-10-17
 - **Focus attribution** — the project the next block belongs to is chosen once and persisted, so Today and Garden agree; sessions store `project_id`, which is what makes per-project time real.
 - **Time tracked per project** — Work rows and the project page state focused minutes and session count.
 - **Rhythm heatmap** — twelve weeks of focus as a 4-step tonal grid on Garden, with the best day and the number of days focused.
-- **Daily focus goal** — 1h / 1.5h / 2h / 3h in More, driving the Today ring, "to go", and the heatmap's intensity bands.
-- **Precise motion** — every overshoot removed: critically damped springs only, timing curves for everything else ([[04-design-language]]).
+- **Daily focus goal** — 1h / 1.5h / 2h / 3h in More, driving the Today ring and "to go".
+- **Precise motion** — every overshoot removed: no spring anywhere, just timing curves for everything ([[04-design-language]]).
 
 ## v0.3 — the majors *(built)*
 
@@ -58,7 +58,7 @@ The first feature that leaves the device, and the only one that can be stale ([[
 - **Honest partial reads** — permissions are per-token, so any section that could not be read says so in its own words rather than showing an empty list.
 - **No schema change** — the token and the snapshot live in the KV store, not the database ([[06-data-model]]).
 
-Surfaces touched: Work gains a **GitHub** section (with a connected pill); new route `/github`; `app.json` gains `expo.extra.githubClientId` (empty by default — the on-device sign-in stays hidden until it is set).
+Surfaces touched: Work gains a **GitHub** section (with a connected pill); new route `/github`; `app.json` gains `expo.extra.githubClientId` — a public client ID, with the comment beside it saying what it is for. It was empty when this shipped (the on-device sign-in stays hidden until it is set); a real one is configured now, so the device flow is available on native and a pasted token remains the web path.
 
 ## v0.5 — GitHub, two-way *(built 2026-10-19)*
 
@@ -83,7 +83,7 @@ Surfaces touched: `/github` becomes a hub of twelve screens (`repo`, `browse`, `
 The first new **category** since v0.1 ([[10-categories]]), and the first release with nothing networked in it at all — every tool runs on the device, on both platforms, in Expo Go ([[07-decisions]] ADR-021):
 
 - **A shelf in More, not a sixth tab** — the tab bar keeps its five destinations; Bench opens from an `offline` section on More. Route `/bench` is a stack: the shelf, one host route per tool, and the kept-snippets list. Filtering the shelf matches tool names and their one-line promise.
-- **Eleven tools, grouped by kind** — *data*: JSON (format / minify / sort keys / types + stats), SQL (dialect-aware formatting with keyword casing), Diff (two texts or a paste-able unified patch, built on GitHub's own engine); *text*: Regex (highlighted hits, groups, a replacement preview, recipes), Text (word/character/reading stats and nine case conversions), Encode (base64, URL, HTML entities, hex, with byte previews); *time*: JWT (decode and *not* verify — said out loud, with iat/exp in human words), Hash (SHA-1/SHA-256, compared against an expected digest), Epoch (parse and format, plus a live "now"), Cron (a full parser that says the schedule in words and the next five runs); *colour*: Colour (hex/rgb/hsl, WCAG contrast grades against AA and AAA, and a tonal ramp that shows each step's ratio).
+- **Eleven tools, grouped by kind** — *data*: JSON (format / minify / sort keys / types + stats), SQL (dialect-aware formatting with keyword casing), Diff (two texts or a paste-able unified patch, built on GitHub's own engine); *text*: Regex (highlighted hits, groups, a replacement preview, recipes), Text (word/character/reading stats and nine case conversions), Encode (base64, URL, HTML entities, hex, with byte previews); *security*: JWT (decode and *not* verify — said out loud, with iat/exp in human words), Hash (SHA-1/SHA-256, compared against an expected digest); *time*: Epoch (parse and format, plus a live "now"), Cron (a full parser that says the schedule in words and the next five runs); *design*: Colour (hex/rgb/hsl, WCAG contrast grades against AA and AAA, and a tonal ramp that shows each step's ratio).
 - **Every tool computes as you type** — no Run button, no stale result.
 - **What you keep is the tool's own artifact** — the formatted document, the unified patch, the pattern, the digest, the ISO timestamp, the cron expression, the hex — saved to `bench_snippets` (**schema v3**) with a title, and re-opened **in the tool that made it** (`?snippet=<id>`, updating the same row).
 - **Honest by subtraction** — YAML and XML were cut from the plan rather than shipping a half-parser, and the HTTP/API client is Bench's *second* release ([[08-backlog]]).
@@ -91,7 +91,7 @@ The first new **category** since v0.1 ([[10-categories]]), and the first release
 
 Surfaces touched: More gains its **Bench** section; new route `/bench` (shelf, `[tool]`, `snippets`); `src/lib/bench/*` + `src/components/bench/*`; the shared `src/lib/diff.ts`, `base64.ts` and `src/components/ui/code-block|diff-view` are now used by two features; **schema v3** ([[06-data-model]]).
 
-The same release also closes [[05-blender-pipeline]]'s last open model item — **the Garden's code-authored kit** ([[07-decisions]] ADR-022): a bench that unlocks with growth and a **signpost with one plate per active project** (the first garden objects whose shape is data), plus a code model for every other prop so the garden is dressed when its GLB never arrives. Eight models in `src/lib/three/kit/`, all offline, no new dependency — and `tools/preview/` renders them to a PNG without a GPU, because a browser without WebGL (like a headless container) can only show the "3D is unavailable" still.
+The same release also closes [[05-blender-pipeline]]'s last open model item — **the Garden's code-authored kit** ([[07-decisions]] ADR-022): a bench that unlocks with growth and a **signpost with one plate per active project** (the first garden objects whose shape is data), plus a code model for every non-trophy prop so the garden is dressed when its GLB never arrives. Eight models in `src/lib/three/kit/`, all offline, no new dependency — and `tools/preview/` renders them to a PNG without a GPU, because a browser without WebGL (like a headless container) can only show the "3D is unavailable" still.
 
 ## v1 — the spine *(next)*
 

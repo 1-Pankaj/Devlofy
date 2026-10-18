@@ -41,6 +41,7 @@ import { AnimatedNumber } from '@/components/ui/animated-number';
 import { AppText } from '@/components/ui/app-text';
 import { emptyArt } from '@/components/ui/empty-art';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
 import { Fab } from '@/components/ui/fab';
 import { LiveDot } from '@/components/ui/live-dot';
 import { Loading } from '@/components/ui/loading';
@@ -661,16 +662,7 @@ export default function TodayScreen() {
             {tasks.status === 'loading' && !tasks.data ? (
               <Loading label="reading today's queue…" />
             ) : tasks.status === 'error' && !tasks.data ? (
-              <View style={{ padding: spacing.lg, gap: spacing.sm }}>
-                <AppText variant="subheadMedium" tone="danger">
-                  Could not read the task queue.
-                </AppText>
-                <PressableScale haptic="selection" onPress={() => tasks.refresh()}>
-                  <AppText variant="captionMedium" tone="accent">
-                    Retry
-                  </AppText>
-                </PressableScale>
-              </View>
+              <ErrorState what="the task queue" onRetry={() => tasks.refresh()} compact />
             ) : (tasks.data?.length ?? 0) === 0 ? (
               <EmptyState
                 icon={CheckCircle}

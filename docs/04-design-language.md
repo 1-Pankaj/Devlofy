@@ -99,6 +99,28 @@ this order:
 Never: gradient heroes, glow blobs, coloured shadows on static cards, tinted body text "for
 richness", or a second accent.
 
+## States — four, not three
+
+Every screen that reads data answers four questions, in this order: **loading**, **error**,
+**empty**, **ready**. The trap is collapsing the middle two, because the code is shorter:
+`!data ? <EmptyState /> : …` renders "Nothing here yet" — or worse, "It may have been deleted on
+this device" — when the read actually threw, which tells the user their own work is gone.
+
+- **Loading** is a `Loading` panel carrying the verb of the thing (`reading the shelf…`), and it
+  shows only when there is nothing else to show: `useLiveQuery` keeps the last good value, so a
+  silent refresh never flashes a spinner over real content.
+- **Error** is `ErrorState` (`src/components/ui/error-state.tsx`) — one sentence built from the
+  noun (`<ErrorState what="projects" />` → "Could not read projects.") and an explicit **Retry**
+  wired to the query's `refresh`. It is deliberately quiet: the same `danger` text and accent
+  retry as a form error, no red panel, no illustration.
+- **Empty** is `EmptyState`, using the `empty-art` still where one exists and copy that says what
+  to do next instead of what is missing.
+- **Ready** is the screen.
+
+An error is also **not "not found"**: "no longer exists" may only be said after a *successful*
+read that came back null. Where a screen has several queries, each panel carries its own state —
+one failed section is a sentence in that panel, never a blank page.
+
 ## Typography — one voice
 
 **Geist** does everything; hierarchy comes from weight and size, never from switching
@@ -153,15 +175,16 @@ prose.
 ## Motion
 
 The rule that governs every animation here: **motion states a change, then stops.** Nothing
-overshoots, nothing wobbles, nothing bounces. A spring with a damping ratio below 1 is a bug in
-this codebase, and so is `springify()`.
+overshoots, nothing wobbles, nothing bounces. **Any spring at all is a bug in this codebase**, and
+so is `springify()`. This is stronger than "damped correctly": the tokens do not exist, so a
+spring cannot be reached for by accident.
 
 - Tokens in `src/theme/motion.ts` — never an ad-hoc curve.
-- Springs are used only where a physical settle reads better than a curve, and they are
-  **critically damped** (`dampingRatio: 1`): `spring.settle` (300) and `spring.precise` (220).
-- Where a duration is enough, a curve is: `easing.out` (ease-out quint) for anything
-  entering or travelling, `easing.emphasized` (Material's `0.2, 0, 0, 1`) for on-screen
-  movement, `easing.inOut` for symmetric changes, `easing.sheet` for sheets. Never `linear`,
+- There is **no spring in the app at all**: no `withSpring`, no `springify()`, no `spring`
+  token. Where a value has to settle it is a duration against a curve, so "how long" is
+  always a number you can read.
+- Curves: `easing.out` (ease-out quint) for anything entering or travelling, and
+  `easing.emphasized` (Material's `0.2, 0, 0, 1`) for on-screen movement. Never `linear`,
   never a bare default.
 - Durations: `press` 110 · `fast` 160 · `base` 220 · `slow` 320 (values that travel) · `page`
   460 (the first paint of a screen).

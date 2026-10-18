@@ -62,10 +62,6 @@ export function formatDueLabel(iso: string): { label: string; overdue: boolean }
   return { label: format(date, 'MMM d'), overdue: false };
 }
 
-export function clamp01(value: number): number {
-  return Math.min(1, Math.max(0, value));
-}
-
 /**
  * "just now" / "20m ago" / "3h ago" / "2d ago" — how stale a snapshot or a CI
  * run is, which is the only thing that matters about a timestamp from GitHub.

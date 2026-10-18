@@ -19,6 +19,7 @@ import { AnimatedNumber } from '@/components/ui/animated-number';
 import { AppText } from '@/components/ui/app-text';
 import { emptyArt } from '@/components/ui/empty-art';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
 import { Fab } from '@/components/ui/fab';
 import { FormChip } from '@/components/ui/form-chip';
 import { ListRow } from '@/components/ui/list-row';
@@ -284,40 +285,52 @@ export default function GardenScreen() {
 
       {/* Momentum: one tonal block, one hero figure, two supporting figures */}
       <FadeUp index={1}>
-        <View
-          style={{
-            backgroundColor: colors.accentSoft,
-            borderRadius: radius.xl,
-            borderCurve: 'continuous',
-            padding: spacing.lg,
-            gap: spacing.lg,
-          }}>
-          <View style={{ gap: spacing.xxs }}>
-            <Eyebrow tone="accent">Total focus</Eyebrow>
-            <AnimatedNumber
-              value={totals.data?.total ?? 0}
-              variant="numberXl"
-              format={formatMinutes}
-              color={colors.accent}
-            />
-          </View>
+        {totals.status === 'error' && !totals.data ? (
+          <Panel>
+            <ErrorState what="your focus totals" onRetry={() => totals.refresh()} />
+          </Panel>
+        ) : (
           <View
             style={{
-              flexDirection: 'row',
+              backgroundColor: colors.accentSoft,
+              borderRadius: radius.xl,
+              borderCurve: 'continuous',
+              padding: spacing.lg,
               gap: spacing.lg,
-              paddingTop: spacing.lg,
-              borderTopWidth: 1,
-              borderTopColor: colors.accentBorder,
             }}>
-            <SubStat label="today" value={totals.data?.today ?? 0} format={formatMinutes} />
-            <SubStat label="streak" value={totals.data?.streak ?? 0} format={formatDays} />
+            <View style={{ gap: spacing.xxs }}>
+              <Eyebrow tone="accent">Total focus</Eyebrow>
+              <AnimatedNumber
+                value={totals.data?.total ?? 0}
+                variant="numberXl"
+                format={formatMinutes}
+                color={colors.accent}
+              />
+            </View>
+            <View
+              style={{
+                flexDirection: 'row',
+                gap: spacing.lg,
+                paddingTop: spacing.lg,
+                borderTopWidth: 1,
+                borderTopColor: colors.accentBorder,
+              }}>
+              <SubStat label="today" value={totals.data?.today ?? 0} format={formatMinutes} />
+              <SubStat label="streak" value={totals.data?.streak ?? 0} format={formatDays} />
+            </View>
           </View>
-        </View>
+        )}
       </FadeUp>
 
       {/* Twelve weeks of rhythm */}
       <FadeUp index={2}>
-        <FocusHeatmap data={rhythm.data ?? []} />
+        {rhythm.status === 'error' && !rhythm.data ? (
+          <Panel>
+            <ErrorState what="your rhythm" onRetry={() => rhythm.refresh()} />
+          </Panel>
+        ) : (
+          <FocusHeatmap data={rhythm.data ?? []} />
+        )}
       </FadeUp>
 
       {/* When the work actually happens */}
@@ -332,6 +345,8 @@ export default function GardenScreen() {
           <Panel coreStyle={{ padding: 0, overflow: 'hidden' }}>
             {history.status === 'loading' && !history.data ? (
               <Loading label="reading sessions…" />
+            ) : history.status === 'error' && !history.data ? (
+              <ErrorState what="the session log" onRetry={() => history.refresh()} />
             ) : (history.data?.length ?? 0) === 0 ? (
               <EmptyState
                 icon={Timer}

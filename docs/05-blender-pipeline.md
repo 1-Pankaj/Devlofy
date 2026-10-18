@@ -39,7 +39,7 @@ It is not decorative. `src/lib/garden/props.ts` answers every placement through 
 | **Code kit** | the two with no GLB (**bench**, **signpost**) *always*, and any other prop whose GLB never arrives, so the garden is dressed on every device |
 | **Nothing** | an earned trophy whose GLB is missing — it waits rather than showing a stand-in that would teach the wrong shape |
 
-**Invariants the kit holds**, all of them checked by the tool below rather than asserted: *deterministic* (surface noise is a hash of each vertex's own position, so the same model is identical on every device and two vertices sharing a corner never crack apart); **one draw call per prop** (parts merge into a single vertex-coloured, flat-shaded geometry); **base at y = 0 in metres**, matching the GLB convention exactly, so a placement can swap between the two without moving; ≤ **700 triangles** per prop.
+**Invariants the kit holds**, all of them checked by the tool below rather than asserted: *deterministic* (surface noise is a hash of each vertex's own position, so the same model is identical on every device and two vertices sharing a corner never crack apart); **one draw call per prop** — parts merge into a single vertex-coloured, flat-shaded geometry, the lantern excepted, which is two (its body plus the glow panes, so the emissive material can be lit without lighting the wood); **base at y = 0 in metres**, matching the GLB convention exactly, so a placement can swap between the two without moving; ≤ **700 triangles** per prop.
 
 The two code-only props are the interesting ones:
 
@@ -69,7 +69,7 @@ The kit's other half of the contract is compile-time, not runtime: `props.ts` ty
 
 - **GLB only**, Y-up, meters, origin at the base, applied transforms.
 - Flat-shaded, low-poly, single material per object where possible; baked vertex colors over textures.
-- Budget: ≤ 15k tris *total* on the garden screen (largest stage, canopy, is ≈ 12.1k; the always-on dressing adds ≈ 1.5k and trophies ≈ 2.5k worst case — only one tree is ever mounted); textures ≤ 1k if any. The code kit totals ≈ 1.4k across *all* its variants, but a garden mounts at most two of them (bench 144 + signpost ≤ 120) — the rest exist for the fallback path and for a missing prop.
+- Budget: ≤ **21k tris** *total* on the garden screen — measured, not estimated, and only one tree is ever mounted. Largest stage is canopy at 12,120 (seed 876, sprout 878, sapling 5,210, young 8,680); the eleven props are 4,632 together (bird 490, cairn 80, fern 694, **flowers 2,100**, grass 256, lantern 72, log 304, mushrooms 432, rock 20, rocks 60, stump 124), of which the always-on dressing is 1,806 worst case and the earned trophies 6,066 — two daisy patches are 4,200 of that, so *flowers* are the prop to thin first if this number ever has to come down. The code kit adds 264 at most (bench 144 + signpost ≤ 120) and totals 1,422 across *all* its variants. Textures ≤ 1k if any.
 - Export from Blender: `File → Export → glTF 2.0 (.glb)` with +Y up, apply modifiers on.
 - If you author a prop in code instead, the same rules bind: base at y = 0, metres, flat-shaded, 3–4 tones, per-vertex noise, and you must run `tools/preview` (below) to see it.
 

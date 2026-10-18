@@ -18,12 +18,12 @@ import { View } from 'react-native';
 import { AppText } from '@/components/ui/app-text';
 import { emptyArt } from '@/components/ui/empty-art';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
 import { Fab } from '@/components/ui/fab';
 import { ListRow } from '@/components/ui/list-row';
 import { Loading } from '@/components/ui/loading';
 import { Panel } from '@/components/ui/panel';
 import { StatusPill } from '@/components/ui/pill';
-import { PressableScale } from '@/components/ui/pressable-scale';
 import { ProgressRing } from '@/components/ui/progress-ring';
 import { Screen } from '@/components/ui/screen';
 import { SectionHeader } from '@/components/ui/section';
@@ -35,7 +35,7 @@ import { formatMinutes, formatShortDate } from '@/lib/format';
 import { useGithubConnected } from '@/lib/github/use-github';
 import { formatHours, formatMoney, invoiceTotals, periodRange } from '@/lib/money';
 import { useSettings } from '@/state/settings';
-import { spacing, useTheme } from '@/theme';
+import { useTheme } from '@/theme';
 
 type Segment = 'projects' | 'clients';
 
@@ -93,16 +93,7 @@ export default function WorkScreen() {
               {projects.status === 'loading' && !projects.data ? (
                 <Loading label="reading the portfolio…" />
               ) : projects.status === 'error' && !projects.data ? (
-                <View style={{ padding: spacing.xl, gap: spacing.sm }}>
-                  <AppText variant="subheadMedium" tone="danger">
-                    Could not read projects.
-                  </AppText>
-                  <PressableScale haptic="selection" onPress={() => projects.refresh()}>
-                    <AppText variant="captionMedium" tone="accent">
-                      Retry
-                    </AppText>
-                  </PressableScale>
-                </View>
+                <ErrorState what="projects" onRetry={() => projects.refresh()} />
               ) : (projects.data?.length ?? 0) === 0 ? (
                 <EmptyState
                   icon={Folder}
@@ -156,16 +147,7 @@ export default function WorkScreen() {
               {clients.status === 'loading' && !clients.data ? (
                 <Loading label="reading the roster…" />
               ) : clients.status === 'error' && !clients.data ? (
-                <View style={{ padding: spacing.xl, gap: spacing.sm }}>
-                  <AppText variant="subheadMedium" tone="danger">
-                    Could not read clients.
-                  </AppText>
-                  <PressableScale haptic="selection" onPress={() => clients.refresh()}>
-                    <AppText variant="captionMedium" tone="accent">
-                      Retry
-                    </AppText>
-                  </PressableScale>
-                </View>
+                <ErrorState what="clients" onRetry={() => clients.refresh()} />
               ) : (clients.data?.length ?? 0) === 0 ? (
                 <EmptyState
                   icon={UsersThree}

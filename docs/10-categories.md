@@ -60,7 +60,7 @@ engine, plus `src/lib/bench/patch.ts` to write a patch back out), and
 `src/lib/base64.ts`.
 
 **What shipped** (v0.6, offline, no new dependency) — eleven tools, grouped
-*data · text · time · colour*, each computing as you type:
+*data · text · security · time · design*, each computing as you type:
 
 | Tool | Reuses |
 |---|---|
@@ -83,7 +83,7 @@ worth having are covered by Epoch, Hash and Encode). The original estimate of
 not padding** ([[07-decisions]] ADR-021).
 
 **Shape.** `src/app/bench/index.tsx` is the shelf (grouped by kind: *data*,
-*text*, *time*, *colour*, plus a filtered search and the kept-snippets row);
+*text*, *security*, *time*, *design*, plus a filtered search and the kept-snippets row);
 `src/app/bench/[tool].tsx` is one host that renders the chosen tool, so adding a
 tool is one entry in `src/lib/bench/tools.ts` plus one component in
 `src/components/bench/`. Pure logic lives in `src/lib/bench/*`, covered by
@@ -172,7 +172,7 @@ repo ([[05-blender-pipeline]]).
 **Honest constraints.** Assets are binaries, so they belong on the filesystem
 (`expo-file-system` + document picker), not SQLite; web degrades to a
 metadata-only view. And **no new Blender art can be authored in this
-environment**: the gardening library that exists (5 growth stages + 7 props) is
+environment**: the gardening library that exists (5 growth stages + 11 props) is
 what we have, and anything new would be code-authored geometry or a flagged
 blocker for a desktop Blender session.
 

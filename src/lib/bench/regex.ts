@@ -41,15 +41,6 @@ export function flagString(flags: RegexFlags): string {
   }`;
 }
 
-export function flagLabels(flags: RegexFlags): string {
-  const parts: string[] = [];
-  if (flags.ignoreCase) parts.push('i — ignore case');
-  if (flags.multiline) parts.push('m — ^ and $ per line');
-  if (flags.dotAll) parts.push('s — . matches newlines');
-  if (flags.unicode) parts.push('u — unicode mode');
-  return parts.length > 0 ? parts.join(', ') : 'no flags';
-}
-
 export function compile(pattern: string, flags: RegexFlags): { ok: true; regex: RegExp } | RegexFailure {
   try {
     return { ok: true, regex: new RegExp(pattern, `${flagString(flags)}g`) };

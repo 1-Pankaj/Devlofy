@@ -19,15 +19,12 @@ export const fonts = {
   bodyBold: 'Geist_700Bold',
 
   /** Display rides the same grotesque — only the weight changes. */
-  displayMedium: 'Geist_500Medium',
   displaySemibold: 'Geist_600SemiBold',
-  displayBold: 'Geist_700Bold',
 
   /** Machine truth only: code, timers, tabular figures. */
   monoRegular: 'JetBrainsMono_400Regular',
   monoMedium: 'JetBrainsMono_500Medium',
   monoSemibold: 'JetBrainsMono_600SemiBold',
-  monoBold: 'JetBrainsMono_700Bold',
 } as const;
 
 /** Named text styles — components never touch raw fontSize. */

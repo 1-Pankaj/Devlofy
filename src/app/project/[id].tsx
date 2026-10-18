@@ -8,6 +8,7 @@ import { View } from 'react-native';
 
 import { BackRow } from '@/components/ui/back-button';
 import { AppText } from '@/components/ui/app-text';
+import { ErrorState } from '@/components/ui/error-state';
 import { Panel } from '@/components/ui/panel';
 import { Eyebrow, StatusPill, type StatusTone } from '@/components/ui/pill';
 import { PressableScale } from '@/components/ui/pressable-scale';
@@ -120,41 +121,58 @@ export default function ProjectDetailScreen() {
       ) : null}
 
       <FadeUp index={1}>
-        <Panel coreStyle={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xl }}>
-          <ProgressRing progress={progress} size={92} stroke={7}>
-            <AppText variant="headline">{Math.round(progress * 100)}%</AppText>
-          </ProgressRing>
-          <View style={{ flex: 1, gap: spacing.xs }}>
-            <Eyebrow>Progress</Eyebrow>
-            <AppText variant="subhead">
-              {data ? `${data.done_count} of ${data.task_count} tasks done` : 'Loading…'}
-            </AppText>
-            <AppText variant="caption" tone="secondary">
-              {milestones.data && milestones.data.length > 0
-                ? `${milestones.data.filter((m) => m.status === 'hit').length}/${milestones.data.length} milestones hit`
-                : 'No milestones set'}
-            </AppText>
-            <AppText variant="caption" tone={data && data.focus_minutes > 0 ? 'ember' : 'tertiary'}>
-              {data && data.focus_minutes > 0
-                ? [
-                    `${formatMinutes(data.focus_minutes)} focused`,
-                    `${data.focus_sessions} ${data.focus_sessions === 1 ? 'session' : 'sessions'}`,
-                    // Only worth saying when it is not simply everything.
-                    data.billable_minutes === 0
-                      ? null
-                      : data.billable_minutes === data.focus_minutes
-                        ? 'all billable'
-                        : `${formatMinutes(data.billable_minutes)} billable`,
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')
-                : 'No focus time logged yet'}
-            </AppText>
-          </View>
-        </Panel>
+        {project.status === 'error' && !data ? (
+          <Panel>
+            <ErrorState what="this project" onRetry={() => project.refresh()} />
+          </Panel>
+        ) : (
+          <Panel coreStyle={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xl }}>
+            <ProgressRing progress={progress} size={92} stroke={7}>
+              <AppText variant="headline">{Math.round(progress * 100)}%</AppText>
+            </ProgressRing>
+            <View style={{ flex: 1, gap: spacing.xs }}>
+              <Eyebrow>Progress</Eyebrow>
+              <AppText variant="subhead">
+                {data ? `${data.done_count} of ${data.task_count} tasks done` : 'Loading…'}
+              </AppText>
+              <AppText variant="caption" tone="secondary">
+                {milestones.status === 'error'
+                  ? 'Milestones unavailable'
+                  : milestones.data && milestones.data.length > 0
+                    ? `${milestones.data.filter((m) => m.status === 'hit').length}/${milestones.data.length} milestones hit`
+                    : 'No milestones set'}
+              </AppText>
+              <AppText variant="caption" tone={data && data.focus_minutes > 0 ? 'ember' : 'tertiary'}>
+                {data && data.focus_minutes > 0
+                  ? [
+                      `${formatMinutes(data.focus_minutes)} focused`,
+                      `${data.focus_sessions} ${data.focus_sessions === 1 ? 'session' : 'sessions'}`,
+                      // Only worth saying when it is not simply everything.
+                      data.billable_minutes === 0
+                        ? null
+                        : data.billable_minutes === data.focus_minutes
+                          ? 'all billable'
+                          : `${formatMinutes(data.billable_minutes)} billable`,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')
+                  : 'No focus time logged yet'}
+              </AppText>
+            </View>
+          </Panel>
+        )}
       </FadeUp>
 
-      {milestones.data && milestones.data.length > 0 ? (
+      {milestones.status === 'error' && !milestones.data ? (
+        <FadeUp index={2}>
+          <View>
+            <SectionHeader eyebrow="timeline" title="Milestones" />
+            <Panel>
+              <ErrorState what="milestones" onRetry={() => milestones.refresh()} />
+            </Panel>
+          </View>
+        </FadeUp>
+      ) : milestones.data && milestones.data.length > 0 ? (
         <FadeUp index={2}>
           <View>
             <SectionHeader eyebrow="timeline" title="Milestones" />
@@ -211,7 +229,9 @@ export default function ProjectDetailScreen() {
         <View>
           <SectionHeader eyebrow="execution" title="Tasks" />
           <Panel coreStyle={{ padding: 0, overflow: 'hidden' }}>
-            {tasks.data && tasks.data.length > 0 ? (
+            {tasks.status === 'error' && !tasks.data ? (
+              <ErrorState what="tasks" onRetry={() => tasks.refresh()} />
+            ) : tasks.data && tasks.data.length > 0 ? (
               tasks.data.map((task, index) => {
                 const done = task.status === 'done';
                 return (

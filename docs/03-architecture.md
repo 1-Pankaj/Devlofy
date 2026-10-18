@@ -64,6 +64,8 @@ src/
     invoice.tsx           # invoice draft (period/client scoped, a view over sessions)
     search.tsx            # global search modal (four kinds)
     bench/                # the offline toolbox: index (shelf), [tool] (one host route), snippets
+    github/               # the code host: index (hub), repo, browse, blob, edit, pulls, pr,
+                          #   issues, issue, new-issue, actions, notifications, release
     _layout.tsx           # providers, fonts, splash, stack
   components/
     ui/                   # Panel, AppButton, AppText, ListRow, Segmented, Screen, CodeBlock, DiffView, …
@@ -80,7 +82,7 @@ src/
     garden/model.ts       # pure tree math (deterministic PRNG)
     github/               # the one networked feature: api.ts, repo.ts, pulls.ts, issues.ts, ci.ts,
                           #   patch.ts (parses GitHub's patch *into* DiffHunks), device.ts, token.ts,
-                          #   cache.ts, config.ts
+                          #   cache.ts, config.ts, use-github.ts
     layout/breakpoints.ts # window size classes + desktop mode
     three/                # platform shim (index/load-model/webgl: ts + native + web)
       kit/                # the code-authored prop kit (parts → models → index; docs/05)
@@ -93,7 +95,7 @@ src/
   theme/                  # colors, spacing, radius, typography, motion, shadows, provider
 ```
 
-Beside `src/`: `tools/blender/` holds the re-runnable scripts that `assets/models/*.glb` were generated from (the source of truth for the trees, not for the props), and `tools/preview/` is the GPU-less renderer and invariant check for the 3D kit below.
+Beside `src/`: `tools/blender/` holds the re-runnable scripts that `assets/models/*.glb` were generated from (trees *and* props — the code kit is the exception, it has no Blender source), and `tools/preview/` is the GPU-less renderer and invariant check for the 3D kit below.
 
 ## Commands
 
@@ -126,7 +128,7 @@ Same idea, applied to geometry: `tools/preview/render.js` (**dev-only — nothin
 
 ## Boot order
 
-`_layout.tsx` → fonts (`useFonts`) + `DatabaseProvider` (`SQLiteProvider` with `onInit` = migrate + seed) → `AppThemeProvider` → `RootNavigator`. The native splash hides when fonts are ready; screens can assume a migrated, seeded database.
+`_layout.tsx` → fonts (`useFonts`) → `AppThemeProvider` → `DatabaseProvider` (`SQLiteProvider` with `onInit` = migrate + seed) → `RootNavigator`. The native splash hides when fonts are ready; screens can assume a migrated, seeded database.
 
 ## Knowledge tooling
 

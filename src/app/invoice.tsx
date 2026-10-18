@@ -27,6 +27,7 @@ import { AppButton } from '@/components/ui/app-button';
 import { AppText } from '@/components/ui/app-text';
 import { BackRow } from '@/components/ui/back-button';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
 import { FormChip } from '@/components/ui/form-chip';
 import { ListRow } from '@/components/ui/list-row';
 import { Loading } from '@/components/ui/loading';
@@ -129,6 +130,10 @@ export default function InvoiceScreen() {
       {sessions.status === 'loading' && !sessions.data ? (
         <Panel>
           <Loading label="adding up your time…" />
+        </Panel>
+      ) : sessions.status === 'error' && !sessions.data ? (
+        <Panel>
+          <ErrorState what="your focus sessions" onRetry={() => sessions.refresh()} />
         </Panel>
       ) : (
         <>

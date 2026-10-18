@@ -10,6 +10,7 @@ import { KeyboardAvoidingView, View } from 'react-native';
 import { AppButton } from '@/components/ui/app-button';
 import { AppText } from '@/components/ui/app-text';
 import { BackRow } from '@/components/ui/back-button';
+import { ErrorState } from '@/components/ui/error-state';
 import { FormChip } from '@/components/ui/form-chip';
 import { Loading } from '@/components/ui/loading';
 import { Panel } from '@/components/ui/panel';
@@ -98,6 +99,15 @@ export default function ClientFormScreen() {
     return (
       <View style={{ flex: 1, backgroundColor: colors.background }}>
         <Loading label="reading the client book…" />
+      </View>
+    );
+  }
+
+  if (editing && existing.status === 'error' && !existing.data) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.background, padding: spacing.xl, gap: spacing.xl }}>
+        <BackRow label="Clients" />
+        <ErrorState what="this client" onRetry={() => existing.refresh()} />
       </View>
     );
   }

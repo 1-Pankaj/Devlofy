@@ -26,6 +26,7 @@ import { TextInput, View } from 'react-native';
 import { AppText } from '@/components/ui/app-text';
 import { BackRow } from '@/components/ui/back-button';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
 import { ListRow } from '@/components/ui/list-row';
 import { Loading } from '@/components/ui/loading';
 import { Panel } from '@/components/ui/panel';
@@ -88,6 +89,8 @@ export default function SearchScreen() {
 
   const typed = debounced.trim().length >= 2;
   const searching = typed && results.status === 'loading' && !results.data;
+  // A failed search is not an empty one: `results.refresh` is the only way back.
+  const failed = typed && results.status === 'error' && !results.data;
   const total = (results.data ?? []).length;
 
   return (
@@ -150,6 +153,13 @@ export default function SearchScreen() {
       {searching ? (
         <Panel>
           <Loading label="searching this device…" />
+        </Panel>
+      ) : failed ? (
+        <Panel>
+          <ErrorState
+            what="your notes, tasks, projects and clients"
+            onRetry={() => results.refresh()}
+          />
         </Panel>
       ) : !typed ? (
         <Panel>

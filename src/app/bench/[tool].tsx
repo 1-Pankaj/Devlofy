@@ -28,6 +28,7 @@ import { SqlTool } from '@/components/bench/sql-tool';
 import { TextTool } from '@/components/bench/text-tool';
 import { BackRow } from '@/components/ui/back-button';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
 import { Loading } from '@/components/ui/loading';
 import { Panel } from '@/components/ui/panel';
 import { StatusPill } from '@/components/ui/pill';
@@ -80,6 +81,9 @@ export default function BenchToolScreen() {
   const Tool = TOOLS[tool.id];
   const opening = Boolean(snippetId) && seed.status === 'loading';
   const openingFailed = Boolean(snippetId) && seed.status === 'ready' && seed.data === null;
+  // A failed read is not "the snippet is gone": that verdict needs a *successful*
+  // read that came back empty, otherwise a hiccup looks like lost work.
+  const openingErrored = Boolean(snippetId) && seed.status === 'error' && !seed.data;
 
   return (
     <Screen
@@ -104,6 +108,10 @@ export default function BenchToolScreen() {
       {opening ? (
         <Panel>
           <Loading label="opening the snippet…" />
+        </Panel>
+      ) : openingErrored ? (
+        <Panel>
+          <ErrorState what="that snippet" onRetry={() => seed.refresh()} />
         </Panel>
       ) : (
         <>

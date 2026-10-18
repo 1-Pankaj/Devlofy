@@ -18,6 +18,7 @@ import { useState } from 'react';
 import { AppText } from '@/components/ui/app-text';
 import { BackRow } from '@/components/ui/back-button';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorState } from '@/components/ui/error-state';
 import { ListRow } from '@/components/ui/list-row';
 import { Panel } from '@/components/ui/panel';
 import { StatusPill } from '@/components/ui/pill';
@@ -44,9 +45,11 @@ export default function BenchSnippetsScreen() {
         eyebrow: 'Bench · kept',
         title: 'Snippets',
         subtitle:
-          rows.length === 0
-            ? 'Anything you keep from a tool lands here.'
-            : `${rows.length} kept on this device.`,
+          snippets.status === 'error'
+            ? 'Could not read what you kept.'
+            : rows.length === 0
+              ? 'Anything you keep from a tool lands here.'
+              : `${rows.length} kept on this device.`,
       }}>
       <FadeUp index={0}>
         <BackRow label="Bench" />
@@ -63,7 +66,13 @@ export default function BenchSnippetsScreen() {
         />
       </FadeUp>
 
-      {rows.length === 0 ? (
+      {snippets.status === 'error' && rows.length === 0 ? (
+        <FadeUp index={2}>
+          <Panel>
+            <ErrorState what="your kept snippets" onRetry={() => snippets.refresh()} />
+          </Panel>
+        </FadeUp>
+      ) : rows.length === 0 ? (
         <FadeUp index={2}>
           <EmptyState
             icon={BookmarkSimple}

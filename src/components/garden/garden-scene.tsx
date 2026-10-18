@@ -13,7 +13,7 @@ import { StyleSheet, View, type ViewStyle } from 'react-native';
 import type { Group, InstancedMesh, Mesh } from 'three';
 
 import { AppText } from '@/components/ui/app-text';
-import { makeTree, type Branch, type GrowthInput } from '@/lib/garden/model';
+import { bucketGrowth, makeTree, type Branch, type GrowthInput } from '@/lib/garden/model';
 import { loadVariant, variantForGrowth, type GardenVariant } from '@/lib/garden/models';
 import {
   dressingFor,
@@ -106,7 +106,13 @@ function CameraAim({ y }: { y: number }) {
 function Tree({ seed, growth }: { seed: number; growth: number }) {
   const sway = useRef<Group>(null);
   const model = useGardenModel(variantForGrowth(growth));
-  const tree = useMemo(() => makeTree(seed, growth), [seed, growth]);
+  // Growth moves with every focus minute, but the *geometry* only has to change
+  // when it crosses a 5% bucket — otherwise an hour of focus rebuilds the tree
+  // sixty times for a shape nobody can see the difference in. This is what
+  // `bucketGrowth` exists for; the camera aim below stays on the raw value so
+  // growth still reads as continuous.
+  const shaped = useMemo(() => bucketGrowth(growth), [growth]);
+  const tree = useMemo(() => makeTree(seed, shaped), [seed, shaped]);
   const segments = useMemo(() => tree.branches.map(toCylinder), [tree]);
   const leafMesh = useRef<InstancedMesh>(null);
 

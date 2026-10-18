@@ -10,6 +10,7 @@ import { Share, View } from 'react-native';
 import { AppButton } from '@/components/ui/app-button';
 import { AppText } from '@/components/ui/app-text';
 import { AnimatedNumber } from '@/components/ui/animated-number';
+import { ErrorState } from '@/components/ui/error-state';
 import { ListRow } from '@/components/ui/list-row';
 import { Panel } from '@/components/ui/panel';
 import { Eyebrow } from '@/components/ui/pill';
@@ -161,47 +162,53 @@ export default function MoreScreen() {
       <FadeUp index={2}>
         <View style={{ gap: spacing.lg }}>
           {/* Data: one hero figure, then the supporting counts */}
-          <View
-            style={{
-              backgroundColor: colors.accentSoft,
-              borderRadius: radius.xl,
-              borderCurve: 'continuous',
-              padding: spacing.lg,
-              gap: spacing.lg,
-            }}>
-            <View style={{ gap: spacing.xxs }}>
-              <Eyebrow tone="accent">On this device</Eyebrow>
-              <AnimatedNumber
-                value={stats.data?.notes ?? 0}
-                variant="numberXl"
-                color={colors.accent}
-              />
-              <AppText variant="caption" tone="accent" style={{ opacity: 0.75 }}>
-                notes, all local
-              </AppText>
-            </View>
+          {stats.status === 'error' && !stats.data ? (
+            <Panel>
+              <ErrorState what="your data counts" onRetry={() => stats.refresh()} />
+            </Panel>
+          ) : (
             <View
               style={{
-                flexDirection: 'row',
+                backgroundColor: colors.accentSoft,
+                borderRadius: radius.xl,
+                borderCurve: 'continuous',
+                padding: spacing.lg,
                 gap: spacing.lg,
-                paddingTop: spacing.lg,
-                borderTopWidth: 1,
-                borderTopColor: colors.accentBorder,
               }}>
-              {supporting.map((stat) => (
-                <View key={stat.label} style={{ flex: 1, gap: spacing.xxs }}>
-                  <AnimatedNumber
-                    value={stat.value}
-                    variant="headline"
-                    color={colors.accent}
-                  />
-                  <AppText variant="caption" tone="accent" style={{ opacity: 0.75 }}>
-                    {stat.label}
-                  </AppText>
-                </View>
-              ))}
+              <View style={{ gap: spacing.xxs }}>
+                <Eyebrow tone="accent">On this device</Eyebrow>
+                <AnimatedNumber
+                  value={stats.data?.notes ?? 0}
+                  variant="numberXl"
+                  color={colors.accent}
+                />
+                <AppText variant="caption" tone="accent" style={{ opacity: 0.75 }}>
+                  notes, all local
+                </AppText>
+              </View>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  gap: spacing.lg,
+                  paddingTop: spacing.lg,
+                  borderTopWidth: 1,
+                  borderTopColor: colors.accentBorder,
+                }}>
+                {supporting.map((stat) => (
+                  <View key={stat.label} style={{ flex: 1, gap: spacing.xxs }}>
+                    <AnimatedNumber
+                      value={stat.value}
+                      variant="headline"
+                      color={colors.accent}
+                    />
+                    <AppText variant="caption" tone="accent" style={{ opacity: 0.75 }}>
+                      {stat.label}
+                    </AppText>
+                  </View>
+                ))}
+              </View>
             </View>
-          </View>
+          )}
 
           <Panel coreStyle={{ gap: spacing.lg }}>
             <AppButton

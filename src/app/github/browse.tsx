@@ -142,24 +142,32 @@ export default function BrowseScreen() {
                     {repo.split('/').pop() ?? repo}
                   </AppText>
                 </PressableScale>
-                {crumbs.map((crumb, index) => (
-                  <View
-                    key={crumb.path}
-                    style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
-                    <AppText variant="caption" tone="tertiary">
-                      /
-                    </AppText>
-                    <PressableScale
-                      haptic="selection"
-                      onPress={() => (index === crumbs.length - 1 ? undefined : go(crumb.path, 'dir'))}>
-                      <AppText
-                        variant="captionMedium"
-                        tone={index === crumbs.length - 1 ? 'secondary' : 'accent'}>
-                        {crumb.name}
+                {crumbs.map((crumb, index) => {
+                  // The last crumb is where you already are: it is a label, not a
+                  // control. A pressable here would announce itself as a button,
+                  // depress under the finger and do nothing.
+                  const current = index === crumbs.length - 1;
+                  return (
+                    <View
+                      key={crumb.path}
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+                      <AppText variant="caption" tone="tertiary">
+                        /
                       </AppText>
-                    </PressableScale>
-                  </View>
-                ))}
+                      {current ? (
+                        <AppText variant="captionMedium" tone="secondary">
+                          {crumb.name}
+                        </AppText>
+                      ) : (
+                        <PressableScale haptic="selection" onPress={() => go(crumb.path, 'dir')}>
+                          <AppText variant="captionMedium" tone="accent">
+                            {crumb.name}
+                          </AppText>
+                        </PressableScale>
+                      )}
+                    </View>
+                  );
+                })}
               </View>
             </FadeUp>
 

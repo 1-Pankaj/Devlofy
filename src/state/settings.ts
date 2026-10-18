@@ -12,7 +12,6 @@ export type DesktopMode = 'auto' | 'always' | 'never';
 
 /** The day's focus target, in minutes. Drives the Today ring and "to go". */
 export const GOAL_OPTIONS = [60, 90, 120, 180] as const;
-export type DailyGoal = (typeof GOAL_OPTIONS)[number];
 
 /**
  * Money is shown with a symbol the user picks — the app has no idea what

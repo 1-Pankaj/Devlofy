@@ -158,14 +158,6 @@ export function triCount(geometry: BufferGeometry): number {
   return geometry.getAttribute('position').count / 3;
 }
 
-/**
- * Wrap a part's geometry around the origin, e.g. a box whose own centre is not
- * where it should sit. Returns a new geometry; the argument is left alone.
- */
-export function offset(geometry: BufferGeometry, by: [number, number, number]): BufferGeometry {
-  return geometry.clone().translate(by[0], by[1], by[2]);
-}
-
 /** Degrees, for hand-placed rotations that were easier to think about in them. */
 export function degrees(value: number): number {
   return (value * Math.PI) / 180;
