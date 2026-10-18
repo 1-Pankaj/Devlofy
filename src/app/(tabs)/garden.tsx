@@ -1,21 +1,22 @@
 /**
  * Focus Garden — the 3D home of focused time.
  *
- * The tree's stage reads total focus, streak and today's minutes. Sessions
- * run here: pick a block length, start it, and the block closes itself out
- * when the timer reaches zero.
+ * The tree's stage reads total focus, streak and today's minutes. Sessions run
+ * here: pick a block from the chip row, then the FAB starts it and the block
+ * closes itself out when the timer reaches zero.
  */
 import * as Haptics from 'expo-haptics';
 import { useSQLiteContext } from 'expo-sqlite';
-import { Play, Stop, Timer } from 'phosphor-react-native';
+import { Play, Timer, Stop } from 'phosphor-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View } from 'react-native';
 
 import { GardenScene } from '@/components/garden/garden-scene';
-import { AppButton } from '@/components/ui/app-button';
+import { AnimatedNumber } from '@/components/ui/animated-number';
 import { AppText } from '@/components/ui/app-text';
 import { emptyArt } from '@/components/ui/empty-art';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Fab } from '@/components/ui/fab';
 import { ListRow } from '@/components/ui/list-row';
 import { LiveDot } from '@/components/ui/live-dot';
 import { Loading } from '@/components/ui/loading';
@@ -43,11 +44,24 @@ import { radius, spacing, useTheme } from '@/theme';
 const BLOCKS = [25, 50, 90] as const;
 type Block = (typeof BLOCKS)[number];
 
-function Stat({ label, value }: { label: string; value: string }) {
+const formatDays = (days: number) => `${days}d`;
+
+/** A secondary figure inside the tonal momentum block. */
+function SubStat({
+  label,
+  value,
+  format,
+}: {
+  label: string;
+  value: number;
+  format: (value: number) => string;
+}) {
+  const { colors } = useTheme();
+
   return (
     <View style={{ flex: 1, gap: spacing.xxs }}>
-      <AppText variant="numberLg">{value}</AppText>
-      <AppText variant="eyebrow" tone="tertiary">
+      <AnimatedNumber value={value} variant="headline" format={format} color={colors.accent} />
+      <AppText variant="caption" tone="accent" style={{ opacity: 0.72 }}>
         {label}
       </AppText>
     </View>
@@ -150,10 +164,19 @@ export default function GardenScreen() {
           totals.status === 'ready'
             ? `${stage.label} · ${formatMinutes(totals.data?.total ?? 0)} grown in total`
             : undefined,
-      }}>
+      }}
+      fab={
+        <Fab
+          label={active ? 'End block' : `Focus for ${block}m`}
+          icon={active ? Stop : Play}
+          tone={active ? 'ember' : 'brand'}
+          onPress={active ? handleEnd : handleStart}
+          disabled={active ? ending : starting}
+        />
+      }>
       {/* The tree and the session controls */}
       <FadeUp index={0}>
-        <Panel glow coreStyle={{ padding: 0, overflow: 'hidden' }}>
+        <Panel rounding="xl" coreStyle={{ padding: 0, overflow: 'hidden' }}>
           <View style={{ height: 320 }}>
             <GardenScene
               seed={seed}
@@ -178,8 +201,6 @@ export default function GardenScreen() {
                 paddingVertical: 6,
                 borderRadius: radius.full,
                 backgroundColor: colors.scrim,
-                borderWidth: 1,
-                borderColor: colors.hairline,
               }}>
               <LiveDot color={active ? colors.ember : colors.accent} />
               <AppText variant="mono" tone={active ? 'ember' : 'secondary'}>
@@ -197,37 +218,22 @@ export default function GardenScreen() {
             }}>
             {active ? (
               <>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: spacing.md,
-                  }}>
-                  <View style={{ flex: 1, gap: spacing.xxs }}>
-                    <Eyebrow tone="ember">focus block · {block}m</Eyebrow>
-                    <AppText variant="numberXl">{formatTimer(remainingSeconds)}</AppText>
-                  </View>
-                  <AppButton
-                    label="End"
-                    icon={Stop}
-                    variant="soft"
-                    onPress={handleEnd}
-                    disabled={ending}
-                  />
+                <View style={{ flex: 1, gap: spacing.xxs }}>
+                  <Eyebrow tone="ember">focus block · {block}m</Eyebrow>
+                  <AppText variant="numberXl">{formatTimer(remainingSeconds)}</AppText>
                 </View>
                 <View
                   style={{
-                    height: 3,
-                    borderRadius: 2,
+                    height: 6,
+                    borderRadius: radius.full,
                     backgroundColor: colors.surfaceSunken,
                     overflow: 'hidden',
                   }}>
                   <View
                     style={{
-                      height: '100%',
                       width: `${Math.round(progress * 100)}%`,
-                      backgroundColor: colors.accent,
+                      height: '100%',
+                      backgroundColor: colors.ember,
                     }}
                   />
                 </View>
@@ -239,7 +245,7 @@ export default function GardenScreen() {
             ) : (
               <>
                 <View style={{ gap: spacing.xxs }}>
-                  <Eyebrow>session length</Eyebrow>
+                  <Eyebrow>Session length</Eyebrow>
                   <AppText variant="subhead" tone="secondary">
                     Pick a block, then go quiet. It ends itself.
                   </AppText>
@@ -261,8 +267,6 @@ export default function GardenScreen() {
                             justifyContent: 'center',
                             borderRadius: radius.full,
                             backgroundColor: selected ? colors.accentSoft : colors.surfaceElevated,
-                            borderWidth: 1,
-                            borderColor: selected ? colors.accentBorder : colors.hairline,
                           }}>
                           <AppText variant="mono" tone={selected ? 'accent' : 'secondary'}>
                             {minutes}m
@@ -272,27 +276,43 @@ export default function GardenScreen() {
                     );
                   })}
                 </View>
-                <AppButton
-                  label={`Focus for ${block} minutes`}
-                  icon={Play}
-                  onPress={handleStart}
-                  disabled={starting}
-                />
               </>
             )}
           </View>
         </Panel>
       </FadeUp>
 
-      {/* Momentum numbers */}
+      {/* Momentum: one tonal block, one hero figure, two supporting figures */}
       <FadeUp index={1}>
-        <Panel>
-          <View style={{ flexDirection: 'row', gap: spacing.lg }}>
-            <Stat label="total focus" value={formatMinutes(totals.data?.total ?? 0)} />
-            <Stat label="today" value={formatMinutes(totals.data?.today ?? 0)} />
-            <Stat label="streak" value={`${totals.data?.streak ?? 0}d`} />
+        <View
+          style={{
+            backgroundColor: colors.accentSoft,
+            borderRadius: radius.xl,
+            borderCurve: 'continuous',
+            padding: spacing.lg,
+            gap: spacing.lg,
+          }}>
+          <View style={{ gap: spacing.xxs }}>
+            <Eyebrow tone="accent">Total focus</Eyebrow>
+            <AnimatedNumber
+              value={totals.data?.total ?? 0}
+              variant="numberXl"
+              format={formatMinutes}
+              color={colors.accent}
+            />
           </View>
-        </Panel>
+          <View
+            style={{
+              flexDirection: 'row',
+              gap: spacing.lg,
+              paddingTop: spacing.lg,
+              borderTopWidth: 1,
+              borderTopColor: colors.accentBorder,
+            }}>
+            <SubStat label="today" value={totals.data?.today ?? 0} format={formatMinutes} />
+            <SubStat label="streak" value={totals.data?.streak ?? 0} format={formatDays} />
+          </View>
+        </View>
       </FadeUp>
 
       {/* Session log */}

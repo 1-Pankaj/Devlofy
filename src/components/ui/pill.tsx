@@ -4,7 +4,7 @@ import { View, type StyleProp, type TextStyle, type ViewStyle } from 'react-nati
 import { radius, spacing, useTheme } from '@/theme';
 import { AppText, type TextTone } from './app-text';
 
-/** Uppercase mono micro-label. The connective tissue of the layout. */
+/** Small uppercase section label. The connective tissue of the layout. */
 export function Eyebrow({
   children,
   tone = 'tertiary',
@@ -51,7 +51,7 @@ export function StatusPill({
           borderRadius: radius.full,
           backgroundColor: background,
           paddingHorizontal: spacing.sm + 2,
-          paddingVertical: 3,
+          paddingVertical: spacing.xs,
         },
         style,
       ]}>

@@ -23,19 +23,19 @@ export function EmptyState({
   const { colors } = useTheme();
 
   return (
-    <View style={{ alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.xxl }}>
+    <View style={{ alignItems: 'center', gap: spacing.sm, padding: spacing.xl }}>
       {image ? (
         <Image
           source={image}
-          style={{ width: 144, height: 144, marginBottom: spacing.xs }}
+          style={{ width: 104, height: 104, marginBottom: spacing.xs }}
           resizeMode="contain"
         />
       ) : Icon ? (
         <View
           style={{
-            width: 56,
-            height: 56,
-            borderRadius: radius.lg,
+            width: 52,
+            height: 52,
+            borderRadius: radius.full,
             backgroundColor: colors.surfaceElevated,
             borderWidth: 1,
             borderColor: colors.hairline,
@@ -43,7 +43,7 @@ export function EmptyState({
             justifyContent: 'center',
             marginBottom: spacing.xs,
           }}>
-          <Icon size={24} color={colors.textTertiary} weight="light" />
+          <Icon size={22} color={colors.textTertiary} weight="regular" />
         </View>
       ) : null}
       <AppText variant="headline">{title}</AppText>

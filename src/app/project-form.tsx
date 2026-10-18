@@ -154,7 +154,6 @@ export default function ProjectFormScreen() {
       style={{ flex: 1, backgroundColor: colors.background }}
       behavior={process.env.EXPO_OS === 'ios' ? 'padding' : undefined}>
       <Screen
-        ambient={false}
         header={{
           eyebrow: 'project',
           title: editing ? 'Edit project' : 'New project',

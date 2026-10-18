@@ -1,17 +1,28 @@
 /**
  * ListRow — grouped-list row (hairlines, not cards). Rows highlight rather
  * than scale; use PressableScale only for standalone buttons.
+ *
+ * Identity reads before text: pass `avatar` for a person or project (tinted
+ * initials) or `icon` for a glyph in a tinted well. `tone` tints that well —
+ * match the icon's colour to it.
  */
 import type { ReactNode } from 'react';
 import { Pressable, View } from 'react-native';
 
-import { spacing, useTheme } from '@/theme';
+import { radius, spacing, useTheme } from '@/theme';
 import { AppText } from './app-text';
+import { Avatar } from './avatar';
+
+export type RowTone = 'neutral' | 'accent' | 'ember' | 'info';
 
 export type ListRowProps = {
   title: string;
   subtitle?: string;
   icon?: ReactNode;
+  /** Name rendered as a tinted initials avatar. Takes precedence over `icon`. */
+  avatar?: string;
+  /** Tints the icon well (ignored when `avatar` is set). */
+  tone?: RowTone;
   trailing?: ReactNode;
   /** Extra content under the subtitle (tag chips, links). */
   footer?: ReactNode;
@@ -24,12 +35,23 @@ export function ListRow({
   title,
   subtitle,
   icon,
+  avatar,
+  tone = 'neutral',
   trailing,
   footer,
   onPress,
   showSeparator = false,
 }: ListRowProps) {
   const { colors } = useTheme();
+
+  const well = {
+    neutral: { background: colors.surfaceElevated },
+    accent: { background: colors.accentSoft },
+    ember: { background: colors.emberSoft },
+    info: { background: colors.infoSoft },
+  }[tone];
+
+  const leading = avatar ? 'avatar' : icon ? 'icon' : 'none';
 
   return (
     <Pressable
@@ -47,13 +69,15 @@ export function ListRow({
           paddingHorizontal: spacing.lg,
           paddingVertical: spacing.md,
         }}>
-        {icon ? (
+        {leading === 'avatar' ? <Avatar name={avatar!} /> : null}
+        {leading === 'icon' ? (
           <View
             style={{
               width: 36,
               height: 36,
-              borderRadius: 12,
-              backgroundColor: colors.surfaceElevated,
+              borderRadius: radius.md,
+              borderCurve: 'continuous',
+              backgroundColor: well.background,
               alignItems: 'center',
               justifyContent: 'center',
             }}>
@@ -77,7 +101,7 @@ export function ListRow({
         <View
           style={{
             height: 1,
-            marginLeft: icon ? spacing.lg + 36 + spacing.md : spacing.lg,
+            marginLeft: leading === 'none' ? spacing.lg : spacing.lg + 36 + spacing.md,
             backgroundColor: colors.hairline,
           }}
         />

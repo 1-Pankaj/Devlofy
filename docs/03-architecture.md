@@ -14,9 +14,9 @@ created: 2026-10-17
 | State | **zustand** + persist | Tiny, plays with SQLite/storage adapters |
 | Database | **expo-sqlite** everywhere | Native: real SQLite. Web: wasm + OPFS |
 | 3D | **three + @react-three/fiber** via expo-gl | One scene, two renderers (see below) |
-| UI system | **Custom "Ink & Sprout"** ([[04-design-language]]) | Non-generic, no Material clone, no web look |
+| UI system | **Material 3 Expressive** — tonal surfaces, one FAB per screen, owned primitives ([[04-design-language]]) | Non-generic, no component kit, no web look |
 | Icons | **phosphor-react-native** (light/regular) | Precise lines, brand-consistent |
-| Fonts | Geist + Space Grotesk + JetBrains Mono | UI / display / machine-truth |
+| Fonts | Geist + JetBrains Mono | UI and display / machine-truth |
 | Lists | **@shopify/flash-list** | Virtualized where it matters |
 | Motion | **reanimated 4** (`.get()`/`.set()`, compiler-safe) | UI-thread only |
 
@@ -45,7 +45,7 @@ Research findings baked into the implementation:
 
 - Android's desktop windowing (Android 14+ tablets, DeX, desktop-class Chromebooks) runs apps in **resizable freeform windows** — the app must never assume a fixed width or a bottom edge. Everything here uses `useWindowDimensions` and flex.
 - **Window size classes** (Material 3): the app maps them in `src/lib/layout/breakpoints.ts` → `compact` / `medium` / `expanded`.
-- `useDesktopMode()` = user setting (`auto` follows expanded) → the tab layout renders `DesktopShell` (side rail, `Slot`) instead of the floating tab bar. Rail + content, centered max-width 920.
+- `useDesktopMode()` = user setting (`auto` follows expanded) → the tab layout renders `DesktopShell` (side rail, `Slot`) instead of the bottom tab bar. Rail + content, centered max-width 920.
 - Keyboard/mouse: interactive elements are `Pressable`/`PressableScale` with accessibility roles; rows highlight (not scale) for pointer contexts. Hover polish is backlog.
 - Orientation is `"default"` (tablets rotate); the manifest keeps `resizeableActivity` default-on.
 
@@ -57,12 +57,13 @@ src/
     (tabs)/               # index (Today), garden, work, notes, more + _layout (adaptive)
     note/[id].tsx         # editor
     project/[id].tsx      # project detail
-    new-project.tsx       # modal
-    new-client.tsx        # modal
+    client/[id].tsx       # client detail
+    project-form.tsx      # modal
+    client-form.tsx       # modal
     _layout.tsx           # providers, fonts, splash, stack
   components/
     ui/                   # Panel, AppButton, AppText, ListRow, Segmented, Screen, …
-    nav/                  # nav-items, FloatingTabBar, DesktopShell
+    nav/                  # nav-items, BottomTabBar, DesktopShell
     garden/               # garden-scene.tsx (R3F)
   lib/
     db/                   # migrations, seed, repo, hooks, provider

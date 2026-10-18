@@ -45,6 +45,9 @@ example
 # regenerable knowledge-graph output (run: graphify update . && graphify export obsidian)
 graphify-out/
 
+# Obsidian vault state — workspace layout churns on every window move
+.obsidian/
+
 # @generated expo skills start
 .agents/skills/expo-sqlite
 .claude/skills/expo-sqlite

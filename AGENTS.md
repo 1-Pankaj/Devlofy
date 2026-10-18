@@ -50,7 +50,7 @@ Run **lint + typecheck before declaring any task done.** If a task touches UI, s
 - Icons: Phosphor (`weight="light"|"regular"|"fill"`), never emoji.
 - Every screen handles loading / error / empty / ready.
 - Every control does something; non-actionable rows are not pressable.
-- One accent (sprout green) action per screen; ember is for focus/time only.
+- One filled action per screen — the FAB. The accent (indigo) is the brand; ember (amber) is for focus/time only.
 
 ## Expo specifics (still apply)
 

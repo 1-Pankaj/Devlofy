@@ -40,7 +40,6 @@ export default function ClientDetailScreen() {
 
   return (
     <Screen
-      ambient={false}
       header={{
         eyebrow: data?.company ?? 'client',
         title: data?.name ?? 'Client',

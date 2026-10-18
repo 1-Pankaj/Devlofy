@@ -21,7 +21,7 @@ created: 2026-10-17
 - **Garden** — 3D tree grown from real focus data: Blender-authored GLBs over the procedural fallback; **focus blocks (25/50/90) with countdown, progress bar and auto-close at zero**; live overlay timer; recent sessions.
 - **Work** — projects list with progress rings, project detail (milestones + tasks), clients list, **client detail (delivery stats, details, portfolio)**, create project / create client.
 - **Notes** — search over titles + bodies, pinned notes, **rebuilt editor**: autosave with live save badge, **markdown preview**, **starter templates**, word/char footer, pin + inline delete confirm.
-- **More** — name, theme (System / Ink / Paper), desktop mode, data stats, JSON export, about.
+- **More** — name, theme (System / Dark / Light), desktop mode, data stats, JSON export, about.
 - **Desktop mode** — side rail + centered content; adaptive tab shell.
 - **System** — safe-area insets owned by `Screen` everywhere, animated `ProgressRing` / `LiveDot` / `Loading` primitives, root crash boundary, loading/error/empty handled on every list.
 - **Data layer** — full local schema ([[06-data-model]]), migrations, first-run seed, sync-ready (UUID ids, `updated_at`, tombstones).

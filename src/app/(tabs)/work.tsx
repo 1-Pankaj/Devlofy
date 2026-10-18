@@ -4,13 +4,14 @@
  * open their detail page.
  */
 import { useRouter } from 'expo-router';
-import { CaretRight, Folder, UsersThree } from 'phosphor-react-native';
+import { CaretRight, Folder, Plus, UsersThree } from 'phosphor-react-native';
 import { useState } from 'react';
 import { View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
 import { emptyArt } from '@/components/ui/empty-art';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Fab } from '@/components/ui/fab';
 import { ListRow } from '@/components/ui/list-row';
 import { Loading } from '@/components/ui/loading';
 import { Panel } from '@/components/ui/panel';
@@ -43,7 +44,17 @@ export default function WorkScreen() {
       : undefined;
 
   return (
-    <Screen header={{ eyebrow: 'studio', title: 'Work', subtitle }}>
+    <Screen
+      header={{ eyebrow: 'studio', title: 'Work', subtitle }}
+      fab={
+        <Fab
+          label={segment === 'projects' ? 'New project' : 'New client'}
+          icon={Plus}
+          onPress={() =>
+            router.push(segment === 'projects' ? '/project-form' : '/client-form')
+          }
+        />
+      }>
       <FadeUp index={0}>
         <Segmented<Segment>
           options={[
@@ -58,12 +69,7 @@ export default function WorkScreen() {
       {segment === 'projects' ? (
         <FadeUp index={1}>
           <View>
-            <SectionHeader
-              eyebrow="portfolio"
-              title="Projects"
-              actionLabel="New project"
-              onAction={() => router.push('/project-form')}
-            />
+            <SectionHeader eyebrow="portfolio" title="Projects" />
             <Panel coreStyle={{ padding: 0, overflow: 'hidden' }}>
               {projects.status === 'loading' && !projects.data ? (
                 <Loading label="reading the portfolio…" />
@@ -101,6 +107,7 @@ export default function WorkScreen() {
                       key={project.id}
                       title={project.name}
                       subtitle={meta}
+                      avatar={project.client_name ?? project.name}
                       showSeparator={index < projects.data!.length - 1}
                       onPress={() =>
                         router.push({ pathname: '/project/[id]', params: { id: project.id } })
@@ -124,12 +131,7 @@ export default function WorkScreen() {
       ) : (
         <FadeUp index={1}>
           <View>
-            <SectionHeader
-              eyebrow="relationships"
-              title="Clients"
-              actionLabel="New client"
-              onAction={() => router.push('/client-form')}
-            />
+            <SectionHeader eyebrow="relationships" title="Clients" />
             <Panel coreStyle={{ padding: 0, overflow: 'hidden' }}>
               {clients.status === 'loading' && !clients.data ? (
                 <Loading label="reading the roster…" />
@@ -155,7 +157,7 @@ export default function WorkScreen() {
                 clients.data!.map((client, index) => (
                   <ListRow
                     key={client.id}
-                    icon={<UsersThree size={17} color={colors.info} weight="light" />}
+                    avatar={client.name}
                     title={client.name}
                     subtitle={[client.company, `${client.project_count} projects`]
                       .filter(Boolean)

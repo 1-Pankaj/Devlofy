@@ -1,41 +1,54 @@
 /**
- * Devlofy palette — "Ink & Sprout".
+ * Devlofy palette — Material 3 tonal roles.
  *
- * Dark is the canonical surface: OLED-grade ink with a green undertone and a
- * single living accent (sprout) that carries the growth/garden metaphor. Ember
- * is reserved for focus/time moments. Light is the same system on paper.
+ * The scheme is built the way Material 3 builds one: a **primary** hue that
+ * tints the whole neutral ramp, plus a **tertiary** hue reserved for one
+ * meaning. Surfaces are tonal containers, not borders — a card reads as raised
+ * because it sits a step lighter (light theme) or lighter-and-warmer (dark
+ * theme) than the canvas, never because it has a 1px outline.
  *
- * Never hardcode these values outside `src/theme`. Components read them from
- * `useTheme()`.
+ *   primary    indigo   — the brand: navigation, primary action, progress
+ *   tertiary   amber    — time and focus: a running session, the timer
+ *   error      red      — destructive and failure only
+ *
+ * Every value is a token. Components read them from `useTheme()`; nothing
+ * hardcodes a colour.
  */
 
 export type ColorScheme = 'dark' | 'light';
 
 export type ThemeColors = {
-  /** App background — near-black with a green undertone. */
+  /** Canvas. The lowest tonal step. */
   background: string;
-  /** Default panel core. */
+  /** Cards and sheets — one step above the canvas. */
   surface: string;
-  /** Elevated surfaces (list rows, pills, inputs). */
+  /** Interactive fills and wells inside a card (chips, avatars, inputs). */
   surfaceElevated: string;
-  /** Recessed wells (bezel outer shells, insets). */
+  /** Recessed tracks: segmented rails, progress troughs, insets. */
   surfaceSunken: string;
-  /** Hairlines. */
+  /** Dividers between rows. */
   hairline: string;
+  /** Stronger separators and control outlines. */
   hairlineStrong: string;
 
   text: string;
   textSecondary: string;
   textTertiary: string;
 
-  /** The living accent. Used sparingly: active nav, key actions, growth. */
+  /** The brand: active navigation, the one primary action, progress. */
   accent: string;
+  /** Primary container — the soft brand fill (FAB, hero, icon wells). */
   accentSoft: string;
+  /** The brand at outline strength. */
   accentBorder: string;
+  /** Content sitting *on* `accent` (a solid brand fill). */
   accentContrast: string;
+  /** Brand-tinted shadow. Shadows carry the hue of what casts them. */
+  accentShadow: string;
 
-  /** Focus / time / warmth. */
+  /** Focus and time. Warm amber, the palette's second hue. */
   ember: string;
+  /** Tertiary container — the soft amber fill. */
   emberSoft: string;
 
   info: string;
@@ -43,81 +56,65 @@ export type ThemeColors = {
   danger: string;
   dangerSoft: string;
 
-  /** Ambient radial glows behind screen content. */
-  glowA: string;
-  glowB: string;
-
   scrim: string;
 };
 
-const dark: ThemeColors = {
-  /** App background — near-black with a green undertone. */
-  background: '#070A08',
-  /** Default panel core. */
-  surface: '#0D1210',
-  /** Elevated surfaces (list rows, pills, inputs). */
-  surfaceElevated: '#131A17',
-  /** Recessed wells (bezel outer shells, insets). */
-  surfaceSunken: '#050806',
-  /** Hairlines. */
-  hairline: 'rgba(233, 255, 244, 0.08)',
-  hairlineStrong: 'rgba(233, 255, 244, 0.16)',
+const light: ThemeColors = {
+  background: '#F5F2FB',
+  surface: '#FFFFFF',
+  surfaceElevated: '#EAE8F1',
+  surfaceSunken: '#E4E1EB',
+  hairline: '#E7E4EF',
+  hairlineStrong: '#C6C5D0',
 
-  text: '#EAF3EE',
-  textSecondary: '#A3B0A9',
-  textTertiary: '#6E7A73',
+  text: '#1B1B22',
+  textSecondary: '#46464F',
+  textTertiary: '#767680',
 
-  /** The living accent. Used sparingly: active nav, key actions, growth. */
-  accent: '#3EE08F',
-  accentSoft: 'rgba(62, 224, 143, 0.14)',
-  accentBorder: 'rgba(62, 224, 143, 0.32)',
-  accentContrast: '#052012',
+  accent: '#4B5AA0',
+  accentSoft: '#DFE0FF',
+  accentBorder: '#B3B7E8',
+  accentContrast: '#FFFFFF',
+  accentShadow: 'rgba(75, 90, 160, 0.26)',
 
-  /** Focus / time / warmth. */
-  ember: '#FFB25E',
-  emberSoft: 'rgba(255, 178, 94, 0.14)',
+  ember: '#A85A08',
+  emberSoft: '#FFDDB8',
 
-  info: '#7CC4FF',
-  infoSoft: 'rgba(124, 196, 255, 0.14)',
-  danger: '#FF6B6B',
-  dangerSoft: 'rgba(255, 107, 107, 0.12)',
+  info: '#31628F',
+  infoSoft: '#D6E4F7',
+  danger: '#BA1A1A',
+  dangerSoft: '#FFDAD6',
 
-  /** Ambient radial glows behind screen content. */
-  glowA: 'rgba(62, 224, 143, 0.22)',
-  glowB: 'rgba(124, 196, 255, 0.10)',
-
-  scrim: 'rgba(3, 5, 4, 0.72)',
+  scrim: 'rgba(27, 27, 34, 0.45)',
 };
 
-const light: ThemeColors = {
-  background: '#F3F5F1',
-  surface: '#FBFCFA',
-  surfaceElevated: '#FFFFFF',
-  surfaceSunken: '#E9EDE7',
-  hairline: 'rgba(12, 20, 15, 0.08)',
-  hairlineStrong: 'rgba(12, 20, 15, 0.16)',
+const dark: ThemeColors = {
+  background: '#131318',
+  surface: '#1F1F26',
+  surfaceElevated: '#2A2931',
+  surfaceSunken: '#35343D',
+  hairline: '#2E2D35',
+  hairlineStrong: '#46464F',
 
-  text: '#0E1410',
-  textSecondary: '#5A655E',
-  textTertiary: '#8A948D',
+  text: '#E5E1EA',
+  textSecondary: '#C6C5D0',
+  textTertiary: '#90909A',
 
-  accent: '#0EA86B',
-  accentSoft: 'rgba(14, 168, 107, 0.12)',
-  accentBorder: 'rgba(14, 168, 107, 0.30)',
-  accentContrast: '#FFFFFF',
+  accent: '#BCC2FF',
+  accentSoft: '#33418A',
+  accentBorder: '#5A66AE',
+  accentContrast: '#16267B',
+  accentShadow: 'rgba(0, 0, 0, 0.5)',
 
-  ember: '#D9822B',
-  emberSoft: 'rgba(217, 130, 43, 0.14)',
+  ember: '#FFB870',
+  emberSoft: '#6B3C00',
 
-  info: '#2F7FD1',
-  infoSoft: 'rgba(47, 127, 209, 0.12)',
-  danger: '#D64545',
-  dangerSoft: 'rgba(214, 69, 69, 0.10)',
+  info: '#A8CAF0',
+  infoSoft: '#2A4257',
+  danger: '#FFB4AB',
+  dangerSoft: '#6E2420',
 
-  glowA: 'rgba(14, 168, 107, 0.14)',
-  glowB: 'rgba(47, 127, 209, 0.08)',
-
-  scrim: 'rgba(15, 20, 16, 0.40)',
+  scrim: 'rgba(0, 0, 0, 0.6)',
 };
 
 export const palettes: Record<ColorScheme, ThemeColors> = { dark, light };

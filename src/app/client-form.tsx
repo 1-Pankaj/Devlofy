@@ -96,7 +96,6 @@ export default function ClientFormScreen() {
       style={{ flex: 1, backgroundColor: colors.background }}
       behavior={process.env.EXPO_OS === 'ios' ? 'padding' : undefined}>
       <Screen
-        ambient={false}
         header={{
           eyebrow: 'client',
           title: editing ? 'Edit client' : 'New client',

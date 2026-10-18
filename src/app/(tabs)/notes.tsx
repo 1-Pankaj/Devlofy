@@ -15,10 +15,10 @@ import {
 import { useDeferredValue, useState } from 'react';
 import { View } from 'react-native';
 
-import { AppButton } from '@/components/ui/app-button';
 import { AppText } from '@/components/ui/app-text';
 import { emptyArt } from '@/components/ui/empty-art';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Fab } from '@/components/ui/fab';
 import { ListRow } from '@/components/ui/list-row';
 import { Loading } from '@/components/ui/loading';
 import { Panel } from '@/components/ui/panel';
@@ -65,16 +65,10 @@ export default function NotesScreen() {
           notes.status === 'ready'
             ? `${rows.length} ${rows.length === 1 ? 'note' : 'notes'} on this device`
             : undefined,
-        trailing: (
-          <AppButton
-            label="New note"
-            icon={NotePencil}
-            variant="soft"
-            onPress={handleCreate}
-            disabled={creating}
-          />
-        ),
-      }}>
+      }}
+      fab={
+        <Fab label="New note" icon={NotePencil} onPress={handleCreate} disabled={creating} />
+      }>
       <FadeUp index={0} style={{ flexGrow: 1, gap: spacing.xxl }}>
         <View>
           <View style={{ position: 'absolute', left: 14, top: 15, zIndex: 1 }}>

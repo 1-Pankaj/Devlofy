@@ -7,18 +7,24 @@
  * back to the procedural generator in `lib/garden/model.ts` until it loads —
  * or forever, if loading fails.
  */
+import { Plant } from 'phosphor-react-native';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
 import type { Group, InstancedMesh, Mesh } from 'three';
 
+import { AppText } from '@/components/ui/app-text';
 import { makeTree, type Branch, type GrowthInput } from '@/lib/garden/model';
 import { loadVariant, variantForGrowth, type GardenVariant } from '@/lib/garden/models';
 import { dressingFor, loadProp, trophiesFor, type PropPlacement } from '@/lib/garden/props';
 import { Canvas, THREE, useFrame, useThree } from '@/lib/three';
+import { hasWebGL } from '@/lib/three/webgl';
+import { radius, spacing, useTheme } from '@/theme';
 
-const TRUNK_COLOR = '#6E5B4C';
-const GROUND_COLOR = '#0B100D';
-const RING_COLOR = '#3EE08F';
+/** Bark and soil, matched to the authored `DevlofyBark`/`DevlofySoil` materials. */
+const TRUNK_COLOR = '#3A2A1F';
+const GROUND_COLOR = '#080603';
+/** Leaves of the procedural tree, matched to `DevlofyLeafBright`. */
+const LEAF_COLOR = '#0CBE46';
 
 type CylinderTransform = {
   position: [number, number, number];
@@ -145,7 +151,7 @@ function Tree({ seed, growth }: { seed: number; growth: number }) {
         frustumCulled={false}
         castShadow>
         <icosahedronGeometry args={[1, 0]} />
-        <meshStandardMaterial color="#3EE08F" roughness={0.75} flatShading />
+        <meshStandardMaterial color={LEAF_COLOR} roughness={0.75} flatShading />
       </instancedMesh>
     </group>
   );
@@ -207,7 +213,9 @@ function Prop({ placement, focusing }: { placement: PropPlacement; focusing: boo
   );
 }
 
-function Ground() {
+/** Soil, growth rings and a contact shadow. The rings carry the brand colour,
+ *  which is the one place the interface and the 3D scene share an accent. */
+function Ground({ ringColor }: { ringColor: string }) {
   return (
     <group>
       {/* Soil disc */}
@@ -218,11 +226,11 @@ function Ground() {
       {/* Growth rings — quiet accent detail */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.002, 0]}>
         <ringGeometry args={[1.35, 1.4, 64]} />
-        <meshBasicMaterial color={RING_COLOR} transparent opacity={0.18} />
+        <meshBasicMaterial color={ringColor} transparent opacity={0.3} />
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.002, 0]}>
         <ringGeometry args={[2.05, 2.08, 64]} />
-        <meshBasicMaterial color={RING_COLOR} transparent opacity={0.1} />
+        <meshBasicMaterial color={ringColor} transparent opacity={0.16} />
       </mesh>
       {/* Soft contact shadow (ambient-occlusion helper under the real shadow) */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.004, 0]}>
@@ -230,6 +238,33 @@ function Ground() {
         <meshBasicMaterial color="#000000" transparent opacity={0.22} />
       </mesh>
     </group>
+  );
+}
+
+/**
+ * The still that stands in when the platform cannot give us a GPU context.
+ * Quiet on purpose: a soft well and the sprout, no apology copy.
+ */
+function GardenPreview({ style }: { style?: ViewStyle }) {
+  const { colors } = useTheme();
+
+  return (
+    <View
+      style={[
+        styles.frame,
+        styles.preview,
+        { backgroundColor: colors.surfaceElevated },
+        style,
+      ]}>
+      <View style={[styles.previewRing, { borderColor: colors.accentBorder }]}>
+        <View style={[styles.previewWell, { backgroundColor: colors.accentSoft }]}>
+          <Plant size={40} color={colors.accent} weight="fill" />
+        </View>
+      </View>
+      <AppText variant="caption" tone="tertiary">
+        3D is unavailable in this browser.
+      </AppText>
+    </View>
   );
 }
 
@@ -255,6 +290,8 @@ export function GardenScene({
   animated = true,
   style,
 }: GardenSceneProps) {
+  const { colors } = useTheme();
+  const [webgl] = useState(hasWebGL);
   const totalMinutes = stats?.totalMinutes ?? 0;
   const streakDays = stats?.streakDays ?? 0;
   const todayMinutes = stats?.todayMinutes ?? 0;
@@ -266,6 +303,11 @@ export function GardenScene({
         : [],
     [hasStats, growth, totalMinutes, streakDays, todayMinutes],
   );
+  // No GPU context — a locked-down browser, WebGL switched off, a headless
+  // render. Show a still instead of letting the renderer throw and take the
+  // whole app down with it.
+  if (!webgl) return <GardenPreview style={style} />;
+
   return (
     <View style={[styles.frame, style]}>
       <Canvas
@@ -276,7 +318,7 @@ export function GardenScene({
         camera={{ position: [3.5, 2.4, 4.6], fov: 38 }}
         gl={{ antialias: true, alpha: true }}>
         <CameraAim y={0.35 + 0.72 * growth} />
-        <ambientLight intensity={0.45} color="#CFE9DA" />
+        <ambientLight intensity={0.45} color="#EFE3D6" />
         <directionalLight
           position={[5, 7, 4]}
           intensity={1.35}
@@ -293,7 +335,7 @@ export function GardenScene({
           shadow-normalBias={0.03}
         />
         <directionalLight position={[-4, 2.5, -3]} intensity={0.4} color="#7CC4FF" />
-        <Ground />
+        <Ground ringColor={colors.accent} />
         <Tree seed={seed} growth={growth} />
         {placements.map((item) => (
           <Prop key={`${item.prop}-${item.slot}`} placement={item} focusing={focusing} />
@@ -310,5 +352,25 @@ const styles = StyleSheet.create({
   },
   canvas: {
     flex: 1,
+  },
+  preview: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.md,
+  },
+  previewWell: {
+    width: 88,
+    height: 88,
+    borderRadius: radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  previewRing: {
+    width: 156,
+    height: 156,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

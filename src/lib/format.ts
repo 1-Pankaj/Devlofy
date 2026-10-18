@@ -26,6 +26,15 @@ export function formatClock(startedAtIso: string): string {
   return format(new Date(startedAtIso), 'HH:mm');
 }
 
+/** "Today · 09:41", "Yesterday · 14:02", "Mon · 08:15" — session rows. */
+export function formatSessionWhen(startedAtIso: string): string {
+  const date = new Date(startedAtIso);
+  const time = format(date, 'HH:mm');
+  if (isToday(date)) return `Today · ${time}`;
+  if (isYesterday(date)) return `Yesterday · ${time}`;
+  return `${format(date, 'EEE')} · ${time}`;
+}
+
 export function formatDayLabel(iso: string): string {
   const date = new Date(iso);
   if (isToday(date)) return 'Today';

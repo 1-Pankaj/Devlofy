@@ -1,3 +1,9 @@
+/**
+ * ProgressRing — a determinate circular indicator.
+ *
+ * Solid, not a gradient: one accent arc with a rounded cap over a quiet trough.
+ * The stroke animates on the UI thread and snaps under reduced motion.
+ */
 import { useEffect, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
@@ -18,6 +24,8 @@ export type ProgressRingProps = {
   size?: number;
   stroke?: number;
   color?: string;
+  /** Track colour. Defaults to the step above the surface; override on a tonal block. */
+  trackColor?: string;
   children?: ReactNode;
 };
 
@@ -26,6 +34,7 @@ export function ProgressRing({
   size = 72,
   stroke = 6,
   color,
+  trackColor,
   children,
 }: ProgressRingProps) {
   const { colors } = useTheme();
@@ -58,21 +67,23 @@ export function ProgressRing({
           cx={center}
           cy={center}
           r={radiusValue}
-          stroke={colors.hairline}
+          stroke={trackColor ?? colors.surfaceElevated}
           strokeWidth={stroke}
           fill="none"
         />
-        <AnimatedCircle
-          cx={center}
-          cy={center}
-          r={radiusValue}
-          stroke={strokeColor}
-          strokeWidth={stroke}
-          strokeLinecap="round"
-          fill="none"
-          transform={`rotate(-90 ${center} ${center})`}
-          animatedProps={animatedProps}
-        />
+        {clamped > 0 ? (
+          <AnimatedCircle
+            cx={center}
+            cy={center}
+            r={radiusValue}
+            stroke={strokeColor}
+            strokeWidth={stroke}
+            strokeLinecap="round"
+            fill="none"
+            transform={`rotate(-90 ${center} ${center})`}
+            animatedProps={animatedProps}
+          />
+        ) : null}
       </Svg>
       {children}
     </View>

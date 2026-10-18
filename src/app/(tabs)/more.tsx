@@ -8,6 +8,7 @@ import { Share, View } from 'react-native';
 
 import { AppButton } from '@/components/ui/app-button';
 import { AppText } from '@/components/ui/app-text';
+import { AnimatedNumber } from '@/components/ui/animated-number';
 import { Panel } from '@/components/ui/panel';
 import { Eyebrow } from '@/components/ui/pill';
 import { Screen } from '@/components/ui/screen';
@@ -17,7 +18,7 @@ import { TextField } from '@/components/ui/text-field';
 import { useLiveQuery } from '@/lib/db/hooks';
 import { exportAll, getDataStats } from '@/lib/db/repo';
 import { useSettings, type DesktopMode, type ThemeMode } from '@/state/settings';
-import { spacing, useTheme } from '@/theme';
+import { radius, spacing, useTheme } from '@/theme';
 
 const APP_VERSION = '0.1.0';
 
@@ -76,20 +77,33 @@ export default function MoreScreen() {
     }
   };
 
+  const supporting = [
+    { value: stats.data?.projects ?? 0, label: 'projects' },
+    { value: stats.data?.clients ?? 0, label: 'clients' },
+    { value: stats.data?.sessions ?? 0, label: 'sessions' },
+  ];
+
   return (
-    <Screen header={{ eyebrow: 'settings', title: 'More', subtitle: 'Shape the app around how you work.' }}>
+    <Screen
+      header={{
+        eyebrow: 'settings',
+        title: 'More',
+        subtitle: 'Shape the app around how you work.',
+      }}>
       <FadeUp index={0}>
         <Panel coreStyle={{ padding: 0 }}>
           <SettingBlock title="Your name" caption="Used for the greeting. Everything else is yours too.">
             <TextField value={userName} onChangeText={setUserName} placeholder="Your name" />
           </SettingBlock>
           <View style={{ height: 1, backgroundColor: colors.hairline }} />
-          <SettingBlock title="Theme" caption="Ink is the canon. System follows your device.">
+          <SettingBlock
+            title="Theme"
+            caption="Material 3 Expressive. System follows your device.">
             <Segmented<ThemeMode>
               options={[
                 { value: 'system', label: 'System' },
-                { value: 'dark', label: 'Ink' },
-                { value: 'light', label: 'Paper' },
+                { value: 'dark', label: 'Dark' },
+                { value: 'light', label: 'Light' },
               ]}
               value={themeMode}
               onChange={setThemeMode}
@@ -113,39 +127,68 @@ export default function MoreScreen() {
       </FadeUp>
 
       <FadeUp index={1}>
-        <Panel coreStyle={{ gap: spacing.lg }}>
-          <View style={{ gap: spacing.sm }}>
-            <Eyebrow>your data</Eyebrow>
-            <View style={{ flexDirection: 'row' }}>
-              {[
-                { value: stats.data?.notes ?? 0, label: 'notes' },
-                { value: stats.data?.projects ?? 0, label: 'projects' },
-                { value: stats.data?.clients ?? 0, label: 'clients' },
-                { value: stats.data?.sessions ?? 0, label: 'sessions' },
-              ].map((stat, index) => (
-                <View key={stat.label} style={{ flex: 1, flexDirection: 'row' }}>
-                  {index > 0 ? (
-                    <View style={{ width: 1, backgroundColor: colors.hairline, marginVertical: 4 }} />
-                  ) : null}
-                  <View style={{ flex: 1, alignItems: 'center', gap: 2 }}>
-                    <AppText variant="numberLg">{String(stat.value)}</AppText>
-                    <Eyebrow>{stat.label}</Eyebrow>
-                  </View>
+        <View style={{ gap: spacing.lg }}>
+          {/* Data: one hero figure, then the supporting counts */}
+          <View
+            style={{
+              backgroundColor: colors.accentSoft,
+              borderRadius: radius.xl,
+              borderCurve: 'continuous',
+              padding: spacing.lg,
+              gap: spacing.lg,
+            }}>
+            <View style={{ gap: spacing.xxs }}>
+              <Eyebrow tone="accent">On this device</Eyebrow>
+              <AnimatedNumber
+                value={stats.data?.notes ?? 0}
+                variant="numberXl"
+                color={colors.accent}
+              />
+              <AppText variant="caption" tone="accent" style={{ opacity: 0.75 }}>
+                notes, all local
+              </AppText>
+            </View>
+            <View
+              style={{
+                flexDirection: 'row',
+                gap: spacing.lg,
+                paddingTop: spacing.lg,
+                borderTopWidth: 1,
+                borderTopColor: colors.accentBorder,
+              }}>
+              {supporting.map((stat) => (
+                <View key={stat.label} style={{ flex: 1, gap: spacing.xxs }}>
+                  <AnimatedNumber
+                    value={stat.value}
+                    variant="headline"
+                    color={colors.accent}
+                  />
+                  <AppText variant="caption" tone="accent" style={{ opacity: 0.75 }}>
+                    {stat.label}
+                  </AppText>
                 </View>
               ))}
             </View>
           </View>
-          <AppButton label="Export JSON" icon={DownloadSimple} variant="soft" onPress={handleExport} />
-          {exportNote ? (
-            <AppText variant="caption" tone="accent">
-              {exportNote}
-            </AppText>
-          ) : (
-            <AppText variant="caption" tone="tertiary">
-              A full dump of the local database. Yours to keep, any time.
-            </AppText>
-          )}
-        </Panel>
+
+          <Panel coreStyle={{ gap: spacing.lg }}>
+            <AppButton
+              label="Export JSON"
+              icon={DownloadSimple}
+              variant="tonal"
+              onPress={handleExport}
+            />
+            {exportNote ? (
+              <AppText variant="caption" tone="accent">
+                {exportNote}
+              </AppText>
+            ) : (
+              <AppText variant="caption" tone="tertiary">
+                A full dump of the local database. Yours to keep, any time.
+              </AppText>
+            )}
+          </Panel>
+        </View>
       </FadeUp>
 
       <FadeUp index={2}>

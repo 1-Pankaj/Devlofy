@@ -71,9 +71,9 @@ export function TextField({
         cursorColor={colors.accent}
         style={[
           {
-            backgroundColor: colors.surfaceElevated,
-            borderWidth: 1,
-            borderColor: focused ? colors.accentBorder : colors.hairline,
+            backgroundColor: colors.surfaceSunken,
+            borderWidth: 2,
+            borderColor: focused ? colors.accent : 'transparent',
             borderRadius: radius.md,
             borderCurve: 'continuous',
             paddingHorizontal: spacing.lg,

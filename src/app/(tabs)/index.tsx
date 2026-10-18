@@ -1,23 +1,44 @@
 /**
  * Today — the morning read.
  *
- * Hero panel: today's focus ring with the live session timer. Momentum panel:
- * the trailing seven days, streak and tasks done. Plan panel: quick-add plus
- * the open queue. Garden teaser closes the loop into the 3D home.
+ * Material 3 arrangement: one tonal hero block carrying the focus ring and the
+ * live timer, a two-up tally row, the week's bars, then a horizontal shelf of
+ * recent sessions and the day's queue. The single primary action is the FAB —
+ * nothing else on this screen is filled.
  */
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { ArrowUp, CaretRight, CheckCircle, Play, Plus, Stop } from 'phosphor-react-native';
+import {
+  ArrowUp,
+  CaretRight,
+  CheckCircle,
+  Flame,
+  Play,
+  Plus,
+  Stop,
+  Timer,
+} from 'phosphor-react-native';
+import type { ComponentType } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, TextInput, View } from 'react-native';
-import Animated, { FadeOut, LinearTransition, ReduceMotion } from 'react-native-reanimated';
+import { Pressable, ScrollView, TextInput, View } from 'react-native';
+import type { IconProps } from 'phosphor-react-native';
+import Animated, {
+  FadeOut,
+  LinearTransition,
+  ReduceMotion,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withTiming,
+} from 'react-native-reanimated';
 
 import { GardenScene } from '@/components/garden/garden-scene';
-import { AppButton } from '@/components/ui/app-button';
+import { AnimatedNumber } from '@/components/ui/animated-number';
 import { AppText } from '@/components/ui/app-text';
 import { emptyArt } from '@/components/ui/empty-art';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Fab } from '@/components/ui/fab';
 import { LiveDot } from '@/components/ui/live-dot';
 import { Loading } from '@/components/ui/loading';
 import { Panel } from '@/components/ui/panel';
@@ -35,6 +56,7 @@ import {
   focusMinutesByDay,
   getActiveSession,
   getFocusStreakDays,
+  listRecentSessions,
   listTodayTasks,
   setTaskDone,
   startFocusSession,
@@ -43,8 +65,15 @@ import {
 } from '@/lib/db/repo';
 import { hashString } from '@/lib/garden/model';
 import { stageFromStats } from '@/lib/garden/models';
-import { dateEyebrow, formatClock, formatMinutes, formatTimer, greeting } from '@/lib/format';
-import { duration, fonts, radius, spacing, useTheme } from '@/theme';
+import {
+  dateEyebrow,
+  formatClock,
+  formatMinutes,
+  formatSessionWhen,
+  formatTimer,
+  greeting,
+} from '@/lib/format';
+import { duration, easing, fonts, radius, spacing, useTheme } from '@/theme';
 
 const DAILY_GOAL_MINUTES = 120;
 const WEEKDAY_INITIAL = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
@@ -64,6 +93,94 @@ function dayInitial(dayKey: string): string {
   return WEEKDAY_INITIAL[new Date(y, m - 1, d).getDay()];
 }
 
+/**
+ * One bar of the trailing week. It grows from nothing on mount so the week
+ * reads as activity arriving rather than a static chart.
+ */
+function FocusBar({
+  height,
+  kind,
+  delay,
+}: {
+  height: number;
+  kind: 'today' | 'past' | 'empty';
+  delay: number;
+}) {
+  const { colors } = useTheme();
+  const grow = useSharedValue(0);
+
+  useEffect(() => {
+    grow.set(
+      withDelay(
+        delay,
+        withTiming(height, {
+          duration: duration.slow,
+          easing: easing.out,
+          reduceMotion: ReduceMotion.System,
+        }),
+      ),
+    );
+  }, [delay, grow, height]);
+
+  const growStyle = useAnimatedStyle(() => ({ height: grow.get() }));
+  const fill =
+    kind === 'today' ? colors.accent : kind === 'past' ? colors.accentBorder : colors.surfaceSunken;
+
+  return (
+    <Animated.View
+      style={[
+        {
+          width: '100%',
+          borderRadius: radius.sm,
+          backgroundColor: fill,
+        },
+        growStyle,
+      ]}
+    />
+  );
+}
+
+/** One of the two tally blocks — a tinted icon well over a big figure. */
+function Tally({
+  label,
+  value,
+  icon: Icon,
+  tone,
+}: {
+  label: string;
+  value: number;
+  icon: ComponentType<IconProps>;
+  tone: 'brand' | 'ember';
+}) {
+  const { colors } = useTheme();
+  const well = tone === 'brand' ? colors.accentSoft : colors.emberSoft;
+  const ink = tone === 'brand' ? colors.accent : colors.ember;
+
+  return (
+    <Panel style={{ flex: 1 }} pad="md">
+      <View style={{ gap: spacing.md }}>
+        <View
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: radius.md,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: well,
+          }}>
+          <Icon size={20} color={ink} weight="fill" />
+        </View>
+        <View style={{ gap: spacing.xxs }}>
+          <AnimatedNumber value={value} variant="numberLg" color={colors.text} />
+          <AppText variant="caption" tone="tertiary" numberOfLines={1}>
+            {label}
+          </AppText>
+        </View>
+      </View>
+    </Panel>
+  );
+}
+
 export default function TodayScreen() {
   const db = useSQLiteContext();
   const { colors } = useTheme();
@@ -76,6 +193,7 @@ export default function TodayScreen() {
   const streak = useLiveQuery(getFocusStreakDays);
   const week = useLiveQuery((d) => focusMinutesByDay(d, 7));
   const tasks = useLiveQuery((d) => listTodayTasks(d));
+  const recent = useLiveQuery((d) => listRecentSessions(d, 5));
 
   const active = session.data ?? null;
   const startedAt = active?.started_at ?? null;
@@ -98,6 +216,8 @@ export default function TodayScreen() {
 
   const focusMinutes = todayFocus.data ?? 0;
   const goalProgress = Math.min(1, focusMinutes / DAILY_GOAL_MINUTES);
+  const remainingMinutes = Math.max(0, DAILY_GOAL_MINUTES - focusMinutes);
+  const goalReached = remainingMinutes === 0;
 
   const weekDays = useMemo(() => week.data ?? [], [week.data]);
   const weekTotal = useMemo(() => weekDays.reduce((sum, day) => sum + day.minutes, 0), [weekDays]);
@@ -138,11 +258,12 @@ export default function TodayScreen() {
         streak.refresh(),
         week.refresh(),
         totalFocus.refresh(),
+        recent.refresh(),
       ]);
     } finally {
       setEnding(false);
     }
-  }, [active, db, ending, session, streak, todayFocus, totalFocus, week]);
+  }, [active, db, ending, recent, session, streak, todayFocus, totalFocus, week]);
 
   const handleAddTask = useCallback(async () => {
     const taskTitle = title.trim();
@@ -175,67 +296,96 @@ export default function TodayScreen() {
         eyebrow: dateEyebrow(),
         title: greeting(),
         subtitle:
-          week.status === 'ready' ? `${formatMinutes(weekTotal)} focused this week` : undefined,
-      }}>
-      {/* Hero: the timer */}
+          week.status === 'ready'
+            ? weekTotal > 0
+              ? `${formatMinutes(weekTotal)} focused this week`
+              : 'No focus logged this week yet'
+            : undefined,
+      }}
+      fab={
+        <Fab
+          label={active ? 'End session' : 'Start focus'}
+          icon={active ? Stop : Play}
+          tone={active ? 'ember' : 'brand'}
+          onPress={active ? handleEnd : handleStart}
+          disabled={active ? ending : starting}
+        />
+      }>
+      {/* Hero: the timer on a tonal block */}
       <FadeUp index={0}>
-        <Panel glow={active != null}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xl }}>
+        <View
+          style={{
+            backgroundColor: colors.accentSoft,
+            borderRadius: radius.xl,
+            borderCurve: 'continuous',
+            padding: spacing.lg,
+          }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.lg }}>
             <ProgressRing
               progress={goalProgress}
-              size={116}
+              size={108}
               stroke={9}
-              color={active ? colors.ember : colors.accent}>
+              color={colors.ember}
+              trackColor={colors.accentBorder}>
               <View style={{ alignItems: 'center' }}>
-                <AppText variant="numberLg">{focusMinutes}</AppText>
-                <AppText variant="eyebrow" tone="tertiary">
-                  min today
+                <AnimatedNumber value={focusMinutes} variant="title" color={colors.accent} />
+                <AppText variant="caption" tone="accent" style={{ opacity: 0.72 }}>
+                  min
                 </AppText>
               </View>
             </ProgressRing>
-            <View style={{ flex: 1, gap: spacing.sm }}>
+            <View style={{ flex: 1, gap: spacing.xs }}>
               {active ? (
                 <>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
                     <LiveDot color={colors.ember} />
-                    <Eyebrow tone="ember">focus running</Eyebrow>
+                    <Eyebrow tone="accent">Focus running</Eyebrow>
                   </View>
-                  <AppText variant="numberXl">{formatTimer(elapsedSeconds)}</AppText>
-                  <AppText variant="caption" tone="tertiary">
-                    started {formatClock(active.started_at)} · {DAILY_GOAL_MINUTES / 60}h goal
+                  <AppText variant="numberLg" tone="accent">
+                    {formatTimer(elapsedSeconds)}
                   </AppText>
-                  <AppButton
-                    label="End session"
-                    icon={Stop}
-                    variant="soft"
-                    onPress={handleEnd}
-                    disabled={ending}
-                  />
+                  <AppText variant="caption" tone="accent" style={{ opacity: 0.72 }}>
+                    started {formatClock(active.started_at)}
+                  </AppText>
                 </>
               ) : (
                 <>
-                  <Eyebrow>focus</Eyebrow>
-                  <AppText variant="title">Ready when you are.</AppText>
-                  <AppText variant="subhead" tone="secondary">
+                  <Eyebrow tone="accent">Today&apos;s focus</Eyebrow>
+                  <AppText variant="title" tone="accent">
+                    {goalReached ? 'Goal reached' : `${formatMinutes(remainingMinutes)} to go`}
+                  </AppText>
+                  <AppText variant="subhead" tone="accent" style={{ opacity: 0.78 }}>
                     {focusMinutes > 0
-                      ? `${formatMinutes(focusMinutes)} banked today. Keep the tree warm.`
+                      ? `${formatMinutes(focusMinutes)} banked today.`
                       : 'Every focused minute grows the tree in the garden.'}
                   </AppText>
-                  <AppButton
-                    label="Start focus"
-                    icon={Play}
-                    onPress={handleStart}
-                    disabled={starting}
-                  />
                 </>
               )}
             </View>
           </View>
-        </Panel>
+        </View>
       </FadeUp>
 
-      {/* Momentum: the week */}
+      {/* Two-up tally */}
       <FadeUp index={1}>
+        <View style={{ flexDirection: 'row', gap: spacing.md }}>
+          <Tally
+            label="day streak"
+            value={streak.data ?? 0}
+            icon={Flame}
+            tone="ember"
+          />
+          <Tally
+            label="tasks done today"
+            value={doneToday.data ?? 0}
+            icon={CheckCircle}
+            tone="brand"
+          />
+        </View>
+      </FadeUp>
+
+      {/* The week */}
+      <FadeUp index={2}>
         <Panel>
           <View
             style={{
@@ -244,13 +394,11 @@ export default function TodayScreen() {
               justifyContent: 'space-between',
             }}>
             <View style={{ gap: spacing.xxs }}>
-              <Eyebrow>momentum</Eyebrow>
+              <Eyebrow>Momentum</Eyebrow>
               <AppText variant="headline">Last seven days</AppText>
             </View>
             <View style={{ alignItems: 'flex-end', gap: spacing.xxs }}>
-              <AppText variant="mono" tone="secondary">
-                {formatMinutes(weekTotal)}
-              </AppText>
+              <AppText variant="subheadMedium">{formatMinutes(weekTotal)}</AppText>
               <AppText variant="caption" tone="tertiary">
                 focused
               </AppText>
@@ -264,22 +412,15 @@ export default function TodayScreen() {
               gap: spacing.sm,
               marginTop: spacing.xl,
             }}>
-            {weekDays.map((day) => {
+            {weekDays.map((day, index) => {
               const height =
-                day.minutes === 0 ? 5 : Math.max(12, Math.round((day.minutes / weekMax) * 72));
+                day.minutes === 0 ? 6 : Math.max(14, Math.round((day.minutes / weekMax) * 68));
               return (
                 <View key={day.day} style={{ flex: 1, alignItems: 'center', gap: spacing.sm }}>
-                  <View
-                    style={{
-                      width: '100%',
-                      height,
-                      borderRadius: 6,
-                      backgroundColor: day.isToday
-                        ? colors.accent
-                        : day.minutes > 0
-                          ? colors.accentSoft
-                          : colors.surfaceElevated,
-                    }}
+                  <FocusBar
+                    height={height}
+                    kind={day.minutes === 0 ? 'empty' : day.isToday ? 'today' : 'past'}
+                    delay={index * 55}
                   />
                   <AppText variant="caption" tone={day.isToday ? 'accent' : 'tertiary'}>
                     {dayInitial(day.day)}
@@ -288,36 +429,55 @@ export default function TodayScreen() {
               );
             })}
           </View>
-
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginTop: spacing.lg,
-              paddingTop: spacing.lg,
-              borderTopWidth: 1,
-              borderTopColor: colors.hairline,
-            }}>
-            <AppText variant="mono" tone="tertiary">
-              {doneToday.data ?? 0} tasks done today
-            </AppText>
-            <AppText variant="mono" tone="tertiary">
-              {streak.data ?? 0}-day streak
-            </AppText>
-          </View>
         </Panel>
       </FadeUp>
 
+      {/* Recent sessions: a shelf, not a list */}
+      {(recent.data?.length ?? 0) > 0 ? (
+        <FadeUp index={3}>
+          <View>
+            <SectionHeader eyebrow="History" title="Recent sessions" />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: spacing.md }}>
+              {recent.data!.map((entry) => (
+                <Panel key={entry.id} pad="md" style={{ width: 152 }}>
+                  <View style={{ gap: spacing.md }}>
+                    <View
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: radius.md,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: colors.emberSoft,
+                      }}>
+                      <Timer size={18} color={colors.ember} weight="fill" />
+                    </View>
+                    <View style={{ gap: spacing.xxs }}>
+                      <AppText variant="headline">{formatMinutes(entry.minutes ?? 0)}</AppText>
+                      <AppText variant="caption" tone="tertiary" numberOfLines={1}>
+                        {formatSessionWhen(entry.started_at)}
+                      </AppText>
+                    </View>
+                  </View>
+                </Panel>
+              ))}
+            </ScrollView>
+          </View>
+        </FadeUp>
+      ) : null}
+
       {/* Plan: quick-add + queue */}
-      <FadeUp index={2}>
+      <FadeUp index={4}>
         <View>
           <SectionHeader
-            eyebrow="plan"
+            eyebrow="Plan"
             title="Today"
             trailing={
               tasks.data && tasks.data.length > 0 ? (
-                <AppText variant="mono" tone="tertiary">
+                <AppText variant="caption" tone="secondary">
                   {tasks.data.length} open
                 </AppText>
               ) : undefined
@@ -348,14 +508,17 @@ export default function TodayScreen() {
                 accessibilityLabel="New task title"
                 style={{
                   flex: 1,
-                  paddingVertical: 15,
+                  paddingVertical: 13,
                   color: colors.text,
                   fontFamily: fonts.bodyRegular,
                   fontSize: 16,
                 }}
               />
               {title.trim().length > 0 ? (
-                <PressableScale haptic="selection" accessibilityLabel="Add task" onPress={handleAddTask}>
+                <PressableScale
+                  haptic="selection"
+                  accessibilityLabel="Add task"
+                  onPress={handleAddTask}>
                   <View
                     style={{
                       width: 32,
@@ -374,7 +537,7 @@ export default function TodayScreen() {
             {tasks.status === 'loading' && !tasks.data ? (
               <Loading label="reading today's queue…" />
             ) : tasks.status === 'error' && !tasks.data ? (
-              <View style={{ padding: spacing.xl, gap: spacing.sm }}>
+              <View style={{ padding: spacing.lg, gap: spacing.sm }}>
                 <AppText variant="subheadMedium" tone="danger">
                   Could not read the task queue.
                 </AppText>
@@ -419,8 +582,8 @@ export default function TodayScreen() {
                         }}>
                         <View
                           style={{
-                            width: 24,
-                            height: 24,
+                            width: 22,
+                            height: 22,
                             borderRadius: radius.full,
                             borderWidth: 1.5,
                             borderColor: colors.hairlineStrong,
@@ -443,7 +606,7 @@ export default function TodayScreen() {
                       <View
                         style={{
                           height: 1,
-                          marginLeft: 52,
+                          marginLeft: 50,
                           backgroundColor: colors.hairline,
                         }}
                       />
@@ -457,13 +620,13 @@ export default function TodayScreen() {
       </FadeUp>
 
       {/* Garden teaser */}
-      <FadeUp index={3}>
-        <Panel glow coreStyle={{ padding: 0, overflow: 'hidden' }}>
+      <FadeUp index={5}>
+        <Panel rounding="xl" coreStyle={{ padding: 0, overflow: 'hidden' }}>
           <PressableScale
             haptic="selection"
             accessibilityLabel="Open the focus garden"
             onPress={() => router.push('/garden')}>
-            <View style={{ height: 190 }}>
+            <View style={{ height: 200 }}>
               <GardenScene
                 seed={seed}
                 growth={stage.growth}
@@ -473,7 +636,6 @@ export default function TodayScreen() {
                   todayMinutes: focusMinutes,
                 }}
                 focusing={!!active}
-                animated={false}
               />
             </View>
             <View
@@ -486,11 +648,11 @@ export default function TodayScreen() {
                 borderTopColor: colors.hairline,
               }}>
               <View style={{ gap: spacing.xxs }}>
-                <Eyebrow>focus garden</Eyebrow>
+                <Eyebrow>Focus garden</Eyebrow>
                 <AppText variant="subheadMedium">{stage.label}</AppText>
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-                <AppText variant="mono" tone="tertiary">
+                <AppText variant="caption" tone="secondary">
                   {formatMinutes(totalFocus.data ?? 0)} logged
                 </AppText>
                 <CaretRight size={14} color={colors.textTertiary} weight="bold" />
@@ -500,16 +662,20 @@ export default function TodayScreen() {
         </Panel>
       </FadeUp>
 
-      {/* Craft tip */}
-      <FadeUp index={4}>
-        <Panel>
-          <View style={{ gap: spacing.sm }}>
-            <Eyebrow tone="ember">craft tip</Eyebrow>
-            <AppText variant="subhead" tone="secondary">
-              {tip}
-            </AppText>
-          </View>
-        </Panel>
+      {/* Craft tip — deliberately not a card */}
+      <FadeUp index={6}>
+        <View
+          style={{
+            gap: spacing.sm,
+            paddingLeft: spacing.md,
+            borderLeftWidth: 3,
+            borderLeftColor: colors.emberSoft,
+          }}>
+          <Eyebrow tone="ember">Craft tip</Eyebrow>
+          <AppText variant="subhead" tone="secondary">
+            {tip}
+          </AppText>
+        </View>
       </FadeUp>
     </Screen>
   );

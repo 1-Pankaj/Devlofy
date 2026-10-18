@@ -26,12 +26,11 @@ export function DesktopShell() {
     <View style={{ flex: 1, flexDirection: 'row', backgroundColor: colors.background }}>
       <View
         style={{
-          width: 264,
-          borderRightWidth: 1,
-          borderColor: colors.hairline,
+          width: 260,
+          backgroundColor: colors.surface,
           paddingTop: insets.top + spacing.lg,
           paddingBottom: spacing.lg,
-          paddingHorizontal: spacing.lg,
+          paddingHorizontal: spacing.md,
         }}>
         {/* Brand */}
         <View
@@ -44,20 +43,19 @@ export function DesktopShell() {
           }}>
           <View
             style={{
-              width: 38,
-              height: 38,
+              width: 36,
+              height: 36,
               borderRadius: radius.md,
+              borderCurve: 'continuous',
               backgroundColor: colors.accentSoft,
-              borderWidth: 1,
-              borderColor: colors.accentBorder,
               alignItems: 'center',
               justifyContent: 'center',
             }}>
-            <Leaf size={20} color={colors.accent} weight="fill" />
+            <Leaf size={19} color={colors.accent} weight="fill" />
           </View>
           <View style={{ gap: 1 }}>
             <AppText variant="headline">Devlofy</AppText>
-            <AppText variant="eyebrow" tone="tertiary">
+            <AppText variant="caption" tone="tertiary">
               local-first
             </AppText>
           </View>
@@ -79,16 +77,17 @@ export function DesktopShell() {
                   flexDirection: 'row',
                   alignItems: 'center',
                   gap: spacing.md,
-                  paddingHorizontal: spacing.md,
+                  paddingHorizontal: spacing.lg,
                   height: 44,
-                  borderRadius: radius.md,
+                  borderRadius: radius.full,
+                  borderCurve: 'continuous',
                   backgroundColor: active
                     ? colors.accentSoft
                     : pressed
                       ? colors.surfaceElevated
                       : 'transparent',
                 })}>
-                <Icon size={20} color={color} weight={active ? 'fill' : 'regular'} />
+                <Icon size={19} color={color} weight={active ? 'fill' : 'regular'} />
                 <AppText
                   variant="subheadMedium"
                   style={{ color: active ? colors.accent : colors.text }}>
@@ -103,7 +102,7 @@ export function DesktopShell() {
 
         {/* Footer */}
         <View style={{ gap: spacing.xs, paddingHorizontal: spacing.sm }}>
-          <AppText variant="mono" tone="tertiary">
+          <AppText variant="caption" tone="tertiary">
             v{APP_VERSION} · offline
           </AppText>
           <AppText variant="caption" tone="tertiary">

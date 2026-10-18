@@ -1,10 +1,11 @@
 /**
  * Typography for Devlofy.
  *
- * Three voices:
- *  - `geist`    — UI body & labels (precise, neutral grotesque)
- *  - `grotesk`  — display: titles, big numbers, the brand voice
- *  - `mono`     — machine truth: metadata, eyebrows, timers, counts
+ * One voice does the work: **Geist**. Hierarchy comes from weight and size, not
+ * from switching typefaces. The scale follows Material 3's shape: a confident
+ * display for screen titles, a clear title for statements inside a container,
+ * and one quiet label style. JetBrains Mono survives only where text really is
+ * machine output.
  *
  * Static font files are loaded per weight, so the family name carries the
  * weight and styles never set `fontWeight`.
@@ -17,10 +18,12 @@ export const fonts = {
   bodySemibold: 'Geist_600SemiBold',
   bodyBold: 'Geist_700Bold',
 
-  displayMedium: 'SpaceGrotesk_500Medium',
-  displaySemibold: 'SpaceGrotesk_600SemiBold',
-  displayBold: 'SpaceGrotesk_700Bold',
+  /** Display rides the same grotesque — only the weight changes. */
+  displayMedium: 'Geist_500Medium',
+  displaySemibold: 'Geist_600SemiBold',
+  displayBold: 'Geist_700Bold',
 
+  /** Machine truth only: code, timers, tabular figures. */
   monoRegular: 'JetBrainsMono_400Regular',
   monoMedium: 'JetBrainsMono_500Medium',
   monoSemibold: 'JetBrainsMono_600SemiBold',
@@ -29,22 +32,26 @@ export const fonts = {
 
 /** Named text styles — components never touch raw fontSize. */
 export const typeScale = {
+  /** Screen titles. Large, tight, and confident — this is the app's voice. */
   display: {
-    fontFamily: fonts.displaySemibold,
-    fontSize: 32,
-    lineHeight: 38,
-    letterSpacing: -0.6,
+    fontFamily: fonts.bodyBold,
+    fontSize: 34,
+    lineHeight: 40,
+    letterSpacing: -1,
   },
+  /** Large statements inside a container. */
   title: {
-    fontFamily: fonts.displaySemibold,
+    fontFamily: fonts.bodySemibold,
     fontSize: 24,
     lineHeight: 30,
-    letterSpacing: -0.4,
+    letterSpacing: -0.5,
   },
+  /** Card and section titles. */
   headline: {
     fontFamily: fonts.bodySemibold,
-    fontSize: 17,
-    lineHeight: 24,
+    fontSize: 19,
+    lineHeight: 25,
+    letterSpacing: -0.25,
   },
   body: {
     fontFamily: fonts.bodyRegular,
@@ -58,52 +65,52 @@ export const typeScale = {
   },
   subhead: {
     fontFamily: fonts.bodyRegular,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 15,
+    lineHeight: 21,
   },
   subheadMedium: {
     fontFamily: fonts.bodyMedium,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 15,
+    lineHeight: 21,
   },
   caption: {
     fontFamily: fonts.bodyRegular,
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 13,
+    lineHeight: 18,
   },
   captionMedium: {
     fontFamily: fonts.bodyMedium,
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 13,
+    lineHeight: 18,
   },
-  /** Machine metadata. */
+  /** Numeric metadata — tabular figures, no monospace voice. */
   mono: {
-    fontFamily: fonts.monoRegular,
-    fontSize: 12.5,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 13,
     lineHeight: 18,
     fontVariant: ['tabular-nums'],
   },
-  /** Uppercase micro-label ("FOCUS · 42M"). */
+  /** Small tracked section label. */
   eyebrow: {
-    fontFamily: fonts.monoMedium,
-    fontSize: 11,
-    lineHeight: 14,
-    letterSpacing: 1.6,
+    fontFamily: fonts.bodySemibold,
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
   /** Big stat numbers. */
   numberXl: {
-    fontFamily: fonts.displaySemibold,
-    fontSize: 40,
-    lineHeight: 44,
-    letterSpacing: -1,
+    fontFamily: fonts.bodyBold,
+    fontSize: 46,
+    lineHeight: 50,
+    letterSpacing: -1.8,
     fontVariant: ['tabular-nums'],
   },
   numberLg: {
-    fontFamily: fonts.displaySemibold,
-    fontSize: 28,
-    lineHeight: 32,
-    letterSpacing: -0.6,
+    fontFamily: fonts.bodyBold,
+    fontSize: 32,
+    lineHeight: 36,
+    letterSpacing: -1,
     fontVariant: ['tabular-nums'],
   },
 } as const satisfies Record<string, TextStyle>;

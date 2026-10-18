@@ -1,17 +1,19 @@
 /**
- * AppButton — pill button with the button-in-button trailing icon.
- * Primary is the only accent-colored action on a screen; everything else is
- * soft or ghost. Scale feedback comes from PressableScale.
+ * AppButton — Material 3 button.
+ *
+ * Fully rounded, label-led, with the icon in front of the text. Exactly one
+ * `filled` button belongs on a screen; everything else is tonal, outlined, or
+ * plain text so the interface stays quiet.
  */
 import type { ComponentType } from 'react';
 import { View, type StyleProp, type ViewStyle } from 'react-native';
 import type { IconProps } from 'phosphor-react-native';
 
-import { radius, spacing, useTheme } from '@/theme';
+import { makeShadows, radius, spacing, useTheme } from '@/theme';
 import { AppText } from './app-text';
 import { PressableScale } from './pressable-scale';
 
-export type ButtonVariant = 'primary' | 'soft' | 'ghost';
+export type ButtonVariant = 'filled' | 'tonal' | 'outlined' | 'text';
 export type ButtonSize = 'md' | 'lg';
 
 type IconComponent = ComponentType<IconProps>;
@@ -23,6 +25,8 @@ export type AppButtonProps = {
   variant?: ButtonVariant;
   size?: ButtonSize;
   disabled?: boolean;
+  /** Stretch to the container width and centre the content. */
+  full?: boolean;
   style?: StyleProp<ViewStyle>;
 };
 
@@ -30,27 +34,28 @@ export function AppButton({
   label,
   onPress,
   icon: Icon,
-  variant = 'primary',
+  variant = 'filled',
   size = 'md',
   disabled = false,
+  full = false,
   style,
 }: AppButtonProps) {
   const { colors } = useTheme();
+  const shadows = makeShadows(colors);
 
   const background =
-    variant === 'primary' ? colors.accent : variant === 'soft' ? colors.surfaceElevated : 'transparent';
-  const labelColor =
-    variant === 'primary' ? colors.accentContrast : variant === 'soft' ? colors.text : colors.text;
-  const borderColor = variant === 'primary' ? 'transparent' : colors.hairlineStrong;
-  const iconWellBackground =
-    variant === 'primary'
-      ? 'rgba(4, 32, 19, 0.18)'
-      : variant === 'soft'
-        ? colors.surfaceSunken
-        : colors.surfaceElevated;
-  const iconColor = variant === 'primary' ? colors.accentContrast : colors.accent;
-
-  const height = size === 'lg' ? 56 : 48;
+    variant === 'filled'
+      ? colors.accent
+      : variant === 'tonal'
+        ? colors.accentSoft
+        : 'transparent';
+  const foreground =
+    variant === 'filled'
+      ? colors.accentContrast
+      : variant === 'tonal'
+        ? colors.accent
+        : colors.accent;
+  const height = size === 'lg' ? 52 : 44;
 
   return (
     <PressableScale
@@ -58,36 +63,27 @@ export function AppButton({
       disabled={disabled}
       accessibilityLabel={label}
       haptic="light"
-      style={[{ opacity: disabled ? 0.45 : 1, alignSelf: 'flex-start' }, style]}>
+      style={[{ opacity: disabled ? 0.45 : 1, alignSelf: full ? 'stretch' : 'flex-start' }, style]}>
       <View
         style={{
           height,
           flexDirection: 'row',
           alignItems: 'center',
-          gap: spacing.md,
-          paddingLeft: size === 'lg' ? spacing.xxl : spacing.xl,
-          paddingRight: Icon ? spacing.sm : size === 'lg' ? spacing.xxl : spacing.xl,
+          justifyContent: full ? 'center' : 'flex-start',
+          gap: spacing.sm,
+          paddingHorizontal: size === 'lg' ? spacing.xl : spacing.lg,
           borderRadius: radius.full,
           backgroundColor: background,
-          borderWidth: variant === 'primary' ? 0 : 1,
-          borderColor,
+          boxShadow: variant === 'filled' ? shadows.brand : undefined,
+          borderWidth: variant === 'outlined' ? 1 : 0,
+          borderColor: colors.hairlineStrong,
         }}>
-        <AppText variant={size === 'lg' ? 'headline' : 'subheadMedium'} style={{ color: labelColor }}>
+        {Icon ? (
+          <Icon size={size === 'lg' ? 20 : 18} color={foreground} weight="fill" />
+        ) : null}
+        <AppText variant={size === 'lg' ? 'bodyMedium' : 'subheadMedium'} style={{ color: foreground }}>
           {label}
         </AppText>
-        {Icon ? (
-          <View
-            style={{
-              width: size === 'lg' ? 40 : 32,
-              height: size === 'lg' ? 40 : 32,
-              borderRadius: radius.full,
-              backgroundColor: iconWellBackground,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-            <Icon size={size === 'lg' ? 20 : 17} color={iconColor} weight="regular" />
-          </View>
-        ) : null}
       </View>
     </PressableScale>
   );
