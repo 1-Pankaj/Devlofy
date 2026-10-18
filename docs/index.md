@@ -17,7 +17,7 @@ This folder is an **Obsidian vault**. Open it directly in Obsidian (`Open folder
 - [[06-data-model]] — SQLite schema, migrations, sync-readiness.
 - [[07-decisions]] — the decision log (ADRs).
 - [[08-backlog]] — feature budget, next, later.
-- [[09-platform-ceiling]] — feasibility research: what the platforms allow (GitHub writes, SSH, terminals, and what is a hard no). No decisions taken.
+- [[09-platform-ceiling]] — feasibility research: what the platforms allow (GitHub writes, SSH, terminals, and what is a hard no). Its GitHub section is now a **decision taken** (ADR-020); the SSH/terminal tiers are still just research.
 
 ## The one-liner
 
@@ -29,5 +29,6 @@ This folder is an **Obsidian vault**. Open it directly in Obsidian (`Open folder
 - v0.2 "working day" is **built**: precise motion, project attribution for focus blocks, time tracked per project, a twelve-week rhythm heatmap, a daily focus goal, and a quick-add task grammar ([[02-scope]]).
 - v0.3 "the majors" is **built**: **the Engine** (Next up with its reasons, plus your rhythm and estimate drift learned from your own session log), **money-lite** (rates → billable blocks → an invoice draft you can copy), and **search** over everything (⌘K on web). Schema v2 ([[06-data-model]], [[07-decisions]] ADR-016 → 018).
 - v0.4 "GitHub" is **built**: a read-only dashboard of what is waiting on you (review requests, your PRs, assigned issues, the newest CI run per recently pushed repo), reachable from Work, with a pasted token or on-device device-flow sign-in and a dated snapshot so it degrades instead of emptying ([[07-decisions]] ADR-019). No schema change.
+- v0.5 "GitHub two-way" is **built**: the dashboard became the code host — browse and edit files with this app's own highlighter, commit to a branch and open the pull request (never the default branch, diff first, non-forced, `409`-aware), review and merge, file and triage issues, dispatch and re-run Actions, cut a release from GitHub's generated notes, and read the inbox. Reverses ADR-019's read-only rule under **ADR-020**; twelve screens under `/github`; still no schema change.
 - Targets: **Android (native) + web** now; iOS later. Tablets included — desktop mode ships with v0.1.
 - Blender: models are integrated day one via the MCP pipeline ([[05-blender-pipeline]]).

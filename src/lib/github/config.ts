@@ -30,5 +30,13 @@ export const GITHUB_DEVICE_FLOW_AVAILABLE =
 export const GITHUB_TOKEN_URL = 'https://github.com/settings/personal-access-tokens/new';
 export const GITHUB_DEVICE_URL = 'https://github.com/login/device';
 
-/** Scopes requested by the device flow — read-mostly, never write. */
+/**
+ * Scopes requested by the device flow.
+ *
+ * OAuth Apps have no fine-grained scopes, so this is all-or-nothing: `repo`
+ * grants **write** as well as read. That is why the device flow is the louder of
+ * the two doors — the connect screen says so — and why a pasted fine-grained
+ * token (Contents: Read for browsing only, `Contents: Read and write` to commit)
+ * is the smaller-footprint way in. See ADR-020.
+ */
 export const GITHUB_DEVICE_SCOPES = 'repo read:org';

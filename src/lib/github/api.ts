@@ -1,19 +1,24 @@
 /**
- * GitHub REST — read-mostly, and honest about what it could not read.
+ * GitHub REST — the transport, the failures, and the dashboard.
  *
- * The dashboard answers one question: *what on GitHub is waiting for me?* So
- * everything here is a read: the viewer, the repos pushed most recently, the
- * pull requests and issues assigned to them, and the newest CI run per repo.
- * Nothing is ever written back to GitHub.
+ * This module owns three things and delegates the rest to its neighbours:
  *
- * Two rules make this module trustworthy:
+ *  1. **The request layer.** One `githubRequest` speaks every verb, keeps the
+ *     pinned API version, meters the rate limit, and turns a refusal into a
+ *     `GithubError` that carries GitHub's *own* sentence — so a screen can say
+ *     "Required status check is expected" instead of "422".
+ *  2. **The dashboard.** One question: *what on GitHub is waiting for me?* Every
+ *     section is fetched independently, so a limited token loses a section and
+ *     not the screen, and what could not be read is stated in `notes`.
+ *  3. **The vocabulary.** The types the rest of `src/lib/github/` shares.
  *
- *  1. **The token decides what you see.** Permissions are per-token, so a
- *     section can legitimately fail while the rest succeeds. Each section is
- *     fetched independently and a failure becomes a sentence in `notes` — never
- *     a blank screen, and never a silent zero.
- *  2. **No response is trusted blindly.** Every field is narrowed with `??`, so
- *     a schema change on GitHub's side degrades a row, not the screen.
+ * Writes live next door (`repo.ts`, `pulls.ts`, `issues.ts`, `ci.ts`) and go
+ * through the same transport. They are allowed — and bounded — by ADR-020: the
+ * app never silently touches `main`, always shows the diff first, and never
+ * force-pushes or deletes a branch.
+ *
+ * No response is trusted blindly: every field is narrowed with `??`, so a schema
+ * change on GitHub's side degrades a row, not the screen.
  */
 const API_BASE = 'https://api.github.com';
 /** Pinned so a future default cannot change what these parsers mean. */
@@ -22,7 +27,20 @@ const REPO_LIMIT = 12;
 const ITEM_LIMIT = 8;
 const RUN_LIMIT = 5;
 
-export type GithubFailureKind = 'auth' | 'rate-limit' | 'forbidden' | 'network' | 'unknown';
+export type GithubFailureKind =
+  | 'auth'
+  | 'rate-limit'
+  | 'forbidden'
+  /** A write was refused: the token can read but not write. */
+  | 'read-only'
+  /** 404 — wrong name, or a token that cannot see it. */
+  | 'not-found'
+  /** 409 — someone else moved the branch while we were holding an old `sha`. */
+  | 'conflict'
+  /** 422 — GitHub understood the request and rejected its content. */
+  | 'validation'
+  | 'network'
+  | 'unknown';
 
 export class GithubError extends Error {
   readonly kind: GithubFailureKind;
@@ -67,6 +85,7 @@ type RawSearchItem = {
 };
 
 type RawRun = {
+  id?: number;
   name?: string;
   display_title?: string;
   status?: string;
@@ -111,6 +130,8 @@ export type GithubItem = {
 };
 
 export type GithubRun = {
+  /** The run's id, so the dashboard can open it in the app rather than a browser. */
+  id: number;
   repo: string;
   name: string;
   branch: string | null;
@@ -143,16 +164,80 @@ export type GithubSnapshot = {
 
 // ───────────────────────────── the request layer ─────────────────────────────
 
-function headers(token: string): Record<string, string> {
+export type HttpVerb = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
+
+export type GithubRequestInit = {
+  method?: HttpVerb;
+  /** Serialised here so a caller can never forget the content type. */
+  body?: unknown;
+  /** Overrides `Accept` — the Contents API needs `raw` to hand back bytes. */
+  accept?: string;
+  /** Bodies that are not JSON (nothing yet, but the shape is honest). */
+  parse?: 'json' | 'text';
+};
+
+export type GithubResponse<T> = {
+  value: T | null;
+  rate: GithubRate | null;
+  status: number;
+  /** True when GitHub said there is another page behind this one. */
+  hasMore: boolean;
+};
+
+function headers(token: string, accept = 'application/vnd.github+json'): Record<string, string> {
   return {
-    Accept: 'application/vnd.github+json',
+    Accept: accept,
     Authorization: `Bearer ${token}`,
     'X-GitHub-Api-Version': API_VERSION,
   };
 }
 
-async function failureFor(response: Response): Promise<GithubError> {
+/**
+ * GitHub's own explanation, when it sends one. A `422` on a pull request says
+ * *which* field was wrong; a `409` says the ref moved. That sentence is worth
+ * more than any wording we could invent, so it is folded into the error.
+ */
+async function bodyMessage(response: Response): Promise<string | null> {
+  try {
+    const text = await response.text();
+    if (!text) return null;
+    const parsed = JSON.parse(text) as { message?: unknown; errors?: unknown };
+    const message = typeof parsed.message === 'string' ? parsed.message : null;
+    const errors = Array.isArray(parsed.errors) ? parsed.errors : [];
+    const details = errors
+      .map((entry) => {
+        if (typeof entry === 'string') return entry;
+        if (entry && typeof entry === 'object') {
+          const record = entry as { message?: string; field?: string; code?: string };
+          return [record.field, record.message ?? record.code].filter(Boolean).join(' ');
+        }
+        return null;
+      })
+      .filter((line): line is string => Boolean(line));
+    if (message && details.length > 0) return `${message} (${details.join('; ')})`;
+    return message;
+  } catch {
+    return null;
+  }
+}
+
+function rateFrom(response: Response): GithubRate | null {
+  const limit = Number(response.headers.get('x-ratelimit-limit') ?? '');
+  const remaining = Number(response.headers.get('x-ratelimit-remaining') ?? '');
+  const reset = Number(response.headers.get('x-ratelimit-reset') ?? '');
+  if (!Number.isFinite(limit) || limit <= 0) return null;
+  return {
+    limit,
+    remaining: Number.isFinite(remaining) ? remaining : 0,
+    resetAt: Number.isFinite(reset) && reset > 0 ? new Date(reset * 1000).toISOString() : null,
+  };
+}
+
+async function failureFor(response: Response, writing: boolean): Promise<GithubError> {
+  const detail = await bodyMessage(response);
   const remaining = response.headers.get('x-ratelimit-remaining');
+  const spent = remaining === '0' || response.status === 429;
+
   if (response.status === 401) {
     return new GithubError(
       'auth',
@@ -160,53 +245,115 @@ async function failureFor(response: Response): Promise<GithubError> {
       401,
     );
   }
-  if (response.status === 403 && remaining === '0') {
+  if (spent) {
     const reset = Number(response.headers.get('x-ratelimit-reset') ?? '');
     const when = Number.isFinite(reset) && reset > 0 ? new Date(reset * 1000).toISOString() : null;
     return new GithubError(
       'rate-limit',
       when ? `GitHub's rate limit is spent; it refills at ${when}.` : "GitHub's rate limit is spent.",
-      403,
+      response.status,
     );
   }
   if (response.status === 403) {
+    if (writing) {
+      return new GithubError(
+        'read-only',
+        detail ??
+          'This token cannot write to that repository. A fine-grained token needs Contents: write; a classic one needs the repo scope.',
+        403,
+      );
+    }
     return new GithubError(
       'forbidden',
-      'This token is missing a permission — Actions and Issues need read access.',
+      detail ?? 'This token is missing a permission — Actions and Issues need read access.',
       403,
     );
   }
   if (response.status === 404) {
-    return new GithubError('forbidden', 'This token cannot see that repository.', 404);
+    return new GithubError(
+      'not-found',
+      detail ?? 'That repository, branch or file does not exist — or this token cannot see it.',
+      404,
+    );
   }
-  return new GithubError('unknown', `GitHub answered with ${response.status}.`, response.status);
+  if (response.status === 409) {
+    return new GithubError(
+      'conflict',
+      detail ?? 'Someone changed that branch while you were editing. Refresh and try again.',
+      409,
+    );
+  }
+  if (response.status === 422) {
+    return new GithubError(
+      'validation',
+      detail ?? 'GitHub rejected that request: it was valid JSON but not valid for this repository.',
+      422,
+    );
+  }
+  return new GithubError(
+    'unknown',
+    detail ?? `GitHub answered with ${response.status}.`,
+    response.status,
+  );
 }
 
+/**
+ * Every call to GitHub goes through here. Reads and writes differ only in the
+ * verb, which is what keeps the failure handling honest: the one place that
+ * knows whether a `403` means "read-only token" or "missing permission" is the
+ * one place that saw the request.
+ */
+export async function githubRequest<T>(
+  path: string,
+  token: string,
+  init: GithubRequestInit = {},
+): Promise<GithubResponse<T>> {
+  const method = init.method ?? 'GET';
+  const hasBody = init.body !== undefined;
+
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE}${path}`, {
+      method,
+      headers: {
+        ...headers(token, init.accept),
+        ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
+      },
+      ...(hasBody ? { body: JSON.stringify(init.body) } : {}),
+    });
+  } catch {
+    throw new GithubError('network', 'GitHub could not be reached.');
+  }
+
+  if (!response.ok) throw await failureFor(response, method !== 'GET');
+
+  const rate = rateFrom(response);
+  const link = response.headers.get('link') ?? '';
+  const hasMore = /rel="next"/.test(link);
+
+  if (response.status === 204) return { value: null, rate, status: 204, hasMore };
+
+  const text = await response.text();
+  if (!text) return { value: null, rate, status: response.status, hasMore };
+
+  if (init.parse === 'text') {
+    return { value: text as unknown as T, rate, status: response.status, hasMore };
+  }
+
+  try {
+    return { value: JSON.parse(text) as T, rate, status: response.status, hasMore };
+  } catch {
+    return { value: null, rate, status: response.status, hasMore };
+  }
+}
+
+/** The GET shorthand the dashboard below uses. */
 async function request<T>(
   path: string,
   token: string,
 ): Promise<{ value: T; rate: GithubRate | null }> {
-  let response: Response;
-  try {
-    response = await fetch(`${API_BASE}${path}`, { headers: headers(token) });
-  } catch {
-    throw new GithubError('network', 'GitHub could not be reached.');
-  }
-  if (!response.ok) throw await failureFor(response);
-
-  const limit = Number(response.headers.get('x-ratelimit-limit') ?? '');
-  const remaining = Number(response.headers.get('x-ratelimit-remaining') ?? '');
-  const reset = Number(response.headers.get('x-ratelimit-reset') ?? '');
-  const rate: GithubRate | null =
-    Number.isFinite(limit) && limit > 0
-      ? {
-          limit,
-          remaining: Number.isFinite(remaining) ? remaining : 0,
-          resetAt: Number.isFinite(reset) && reset > 0 ? new Date(reset * 1000).toISOString() : null,
-        }
-      : null;
-
-  return { value: (await response.json()) as T, rate };
+  const { value, rate } = await githubRequest<T>(path, token);
+  return { value: value as T, rate };
 }
 
 // ───────────────────────────── parsers ─────────────────────────────
@@ -250,6 +397,7 @@ function toItem(raw: RawSearchItem, kind: GithubItem['kind']): GithubItem {
 
 function toRun(raw: RawRun, repo: string): GithubRun {
   return {
+    id: raw.id ?? 0,
     repo,
     name: raw.display_title ?? raw.name ?? 'Workflow',
     branch: raw.head_branch ?? null,
@@ -401,9 +549,10 @@ export async function loadDashboard(token: string): Promise<GithubSnapshot> {
   };
 }
 
-/** Only used by the connect screen to prove a pasted token before keeping it. */
-export function isAuthFailure(error: unknown): boolean {
-  return error instanceof GithubError && error.kind === 'auth';
+/** `owner/name` → its halves, with a safe answer for anything odd. */
+export function splitRepo(fullName: string): { owner: string; name: string } {
+  const [owner, ...rest] = fullName.split('/');
+  return { owner: owner ?? '', name: rest.join('/') || fullName };
 }
 
 /** The sentence a screen shows when a refresh fails. */

@@ -1,28 +1,39 @@
 /**
- * GitHub — the one screen in this app that needs the network.
+ * GitHub — the hub, and the one screen in this app that needs a network.
  *
- * Everything else Devlofy does happens on the device; the code you are pushing
- * is the part that doesn't. So this screen is deliberately narrow: *what on
- * GitHub is waiting for me* — reviews someone wants, your own open pull
- * requests, issues assigned to you, and the newest check on the repos you
- * touched most recently. It reads; it never writes.
+ * Everything else Devlofy does happens on the device; the code you are shipping
+ * is the part that doesn't. This screen answers one question — *what on GitHub
+ * is waiting for me?* — and it is now the front door to the whole two-way
+ * surface: repositories you can browse and edit, pull requests you can review
+ * and merge, issues you can triage, runs you can re-run, and an inbox.
+ *
+ * Two rules from v0.4 still hold, and one is new:
+ *
+ *  1. **The token decides.** Sections are fetched independently (see `api.ts`),
+ *     so a limited token loses a section and never the screen.
+ *  2. **What we could not read is said out loud,** in `notes`, rather than
+ *     becoming a silent zero.
+ *  3. **Writes are bounded** (ADR-020): never `main` by default, always the diff
+ *     first, never a force-push, never a branch deletion.
  *
  * Two ways in, because the platform decides:
  *
- *  - **Pasted token** — works everywhere, needs nothing from GitHub's app
- *    registry, and is the only option on web (`github.com`'s OAuth endpoints
- *    send no CORS headers, so the device flow cannot complete in a browser).
+ *  - **Pasted token** — works everywhere, and is the only option on web
+ *    (`github.com`'s OAuth endpoints send no CORS headers, so the device flow
+ *    cannot complete in a browser). A fine-grained token can be given read-only
+ *    or write access per repository; both work here.
  *  - **Device flow** — Android only, and only once a client ID is configured in
- *    `app.json`. The user approves a code in any browser they have open.
- *
- * See docs/07-decisions.md (ADR-019) for why, and why the token lives in local
- * storage rather than the OS keychain.
+ *    `app.json`. The user approves a code in any browser they have open. That
+ *    token is necessarily a classic `repo` token, which can write.
  */
+import { useRouter } from 'expo-router';
 import {
   ArrowClockwise,
   ArrowSquareOut,
+  Bell,
   CheckCircle,
   CircleIcon,
+  FolderOpen,
   GitPullRequest,
   GithubLogo,
   Key,
@@ -48,7 +59,9 @@ import { TextField } from '@/components/ui/text-field';
 import { formatAgo } from '@/lib/format';
 import type { GithubItem, GithubRun } from '@/lib/github/api';
 import { GITHUB_DEVICE_FLOW_AVAILABLE, GITHUB_TOKEN_URL } from '@/lib/github/config';
+import { listNotifications } from '@/lib/github/issues';
 import { useGithub } from '@/lib/github/use-github';
+import { useAsyncData } from '@/lib/use-async-data';
 import { radius, spacing, useTheme } from '@/theme';
 
 /** CI wording: a check either passed, failed, or is still going. */
@@ -101,47 +114,9 @@ function Stat({ value, label }: { value: number; label: string }) {
   );
 }
 
-function ItemRows({
-  items,
-  prefix,
-  icon,
-  tone,
-  onOpen,
-}: {
-  items: GithubItem[];
-  prefix: string;
-  icon: 'pr' | 'issue';
-  tone: 'accent' | 'neutral';
-  onOpen: (url: string) => void;
-}) {
-  const { colors } = useTheme();
-
-  return items.map((item, index) => (
-    <ListRow
-      key={`${item.kind}-${item.repo}-${item.number}`}
-      icon={
-        icon === 'pr' ? (
-          <GitPullRequest
-            size={17}
-            color={tone === 'accent' ? colors.accent : colors.textSecondary}
-            weight="light"
-          />
-        ) : (
-          <CircleIcon size={17} color={colors.info} weight="bold" />
-        )
-      }
-      tone={icon === 'pr' ? tone : 'info'}
-      title={item.title}
-      subtitle={itemSubtitle(item, prefix)}
-      showSeparator={index < items.length - 1}
-      onPress={() => onOpen(item.htmlUrl)}
-      trailing={<ArrowSquareOut size={14} color={colors.textTertiary} weight="regular" />}
-    />
-  ));
-}
-
 export default function GithubScreen() {
   const { colors } = useTheme();
+  const router = useRouter();
   const github = useGithub();
 
   const [tokenDraft, setTokenDraft] = useState('');
@@ -150,11 +125,54 @@ export default function GithubScreen() {
   const canSignIn = GITHUB_DEVICE_FLOW_AVAILABLE;
   const snapshot = github.snapshot;
   const connected = github.ready && github.auth !== null;
+  const token = github.auth?.token ?? null;
+
+  /** The inbox is one request, and it is the only *pushed* thing GitHub has. */
+  const inbox = useAsyncData(() => listNotifications(token ?? ''), [token ?? ''], {
+    enabled: Boolean(token),
+  });
+  const unread = (inbox.data ?? []).filter((entry) => entry.unread).length;
 
   const openExternal = useCallback((url: string | null) => {
     if (!url) return;
     void Linking.openURL(url).catch(() => {});
   }, []);
+
+  const openRepo = useCallback(
+    (fullName: string) => router.push({ pathname: '/github/repo', params: { repo: fullName } }),
+    [router],
+  );
+
+  const openItem = useCallback(
+    (item: GithubItem) => {
+      if (item.kind === 'pr' && item.repo && item.number > 0) {
+        router.push({
+          pathname: '/github/pr',
+          params: { repo: item.repo, number: String(item.number) },
+        });
+        return;
+      }
+      if (item.kind === 'issue' && item.repo && item.number > 0) {
+        router.push({
+          pathname: '/github/issue',
+          params: { repo: item.repo, number: String(item.number) },
+        });
+        return;
+      }
+      openExternal(item.htmlUrl);
+    },
+    [openExternal, router],
+  );
+
+  const openRun = useCallback(
+    (run: GithubRun) => {
+      router.push({
+        pathname: '/github/actions',
+        params: { repo: run.repo, run: String(run.id) },
+      });
+    },
+    [router],
+  );
 
   const handleConnect = async () => {
     setNote(null);
@@ -168,7 +186,10 @@ export default function GithubScreen() {
       haptic="light"
       disabled={github.refreshing}
       accessibilityLabel="Refresh from GitHub"
-      onPress={() => void github.refresh()}
+      onPress={() => {
+        void github.refresh();
+        inbox.reload();
+      }}
       style={{ opacity: github.refreshing ? 0.45 : 1 }}>
       <View
         style={{
@@ -195,7 +216,7 @@ export default function GithubScreen() {
         eyebrow: 'code',
         title: 'GitHub',
         subtitle: connected
-          ? `read-only · @${snapshot?.viewer.login ?? '…'}`
+          ? `@${snapshot?.viewer.login ?? '…'} · ${waiting} waiting on you`
           : 'Your repos, without leaving the app',
         trailing: refreshAction,
       }}>
@@ -218,9 +239,11 @@ export default function GithubScreen() {
                 <Eyebrow tone="accent">Not connected</Eyebrow>
               </View>
               <AppText variant="subhead" tone="secondary">
-                Read-only: the pull requests waiting on a review from you, your own open pull
-                requests, the issues assigned to you, and the newest check on the repos you pushed
-                to most recently. Nothing is ever written back to GitHub.
+                Read the pull requests waiting on a review, your own open pull requests, the issues
+                assigned to you, and the newest check per repo — then act on them here: edit a file
+                and open a pull request, review and merge, triage issues, re-run a workflow. Nothing
+                is ever pushed straight to a default branch, and nothing is committed without
+                showing you the diff first.
               </AppText>
             </Panel>
           </FadeUp>
@@ -242,9 +265,13 @@ export default function GithubScreen() {
                   onSubmitEditing={handleConnect}
                 />
                 <AppText variant="caption" tone="tertiary">
-                  A fine-grained token with read-only Contents, Issues, Actions and Metadata is
-                  enough; a classic token with just the repo scope also works. It is kept in this
-                  device&apos;s local storage — the app has no server to hold it, and it never
+                  A fine-grained token with Contents, Issues and Actions access is enough; add
+                  <AppText variant="captionMedium" tone="secondary">
+                    {' '}
+                    Contents: read and write{' '}
+                  </AppText>
+                  to commit from here. A classic token with the repo scope also works. It is kept in
+                  this device&apos;s local storage — the app has no server to hold it, and it never
                   leaves the device except to talk to GitHub.
                 </AppText>
                 <AppButton
@@ -259,7 +286,7 @@ export default function GithubScreen() {
                   </AppText>
                 ) : null}
                 <AppButton
-                  label="Create a read-only token on GitHub"
+                  label="Create a token on GitHub"
                   icon={ArrowSquareOut}
                   variant="text"
                   onPress={() => openExternal(GITHUB_TOKEN_URL)}
@@ -414,35 +441,64 @@ export default function GithubScreen() {
                   />
                 ) : (
                   <>
-                    <ItemRows
-                      items={snapshot.reviewRequests}
-                      prefix="review requested"
-                      icon="pr"
-                      tone="accent"
-                      onOpen={openExternal}
-                    />
-                    <ItemRows
-                      items={snapshot.authoredPrs}
-                      prefix="your pull request"
-                      icon="pr"
-                      tone="neutral"
-                      onOpen={openExternal}
-                    />
-                    <ItemRows
-                      items={snapshot.assignedIssues}
-                      prefix="assigned to you"
-                      icon="issue"
-                      tone="neutral"
-                      onOpen={openExternal}
-                    />
+                    {[
+                      ...snapshot.reviewRequests.map((item) => ({ item, prefix: 'review requested', tone: 'accent' as const })),
+                      ...snapshot.authoredPrs.map((item) => ({ item, prefix: 'your pull request', tone: 'neutral' as const })),
+                      ...snapshot.assignedIssues.map((item) => ({ item, prefix: 'assigned to you', tone: 'neutral' as const })),
+                    ].map(({ item, prefix, tone }, index, all) => (
+                      <ListRow
+                        key={`${item.kind}-${item.repo}-${item.number}`}
+                        icon={
+                          item.kind === 'pr' ? (
+                            <GitPullRequest
+                              size={17}
+                              color={tone === 'accent' ? colors.accent : colors.textSecondary}
+                              weight="light"
+                            />
+                          ) : (
+                            <CircleIcon size={17} color={colors.info} weight="bold" />
+                          )
+                        }
+                        tone={item.kind === 'pr' ? tone : 'info'}
+                        title={item.title}
+                        subtitle={itemSubtitle(item, prefix)}
+                        showSeparator={index < all.length - 1}
+                        onPress={() => openItem(item)}
+                        trailing={<StatusPill label="open in app" tone="neutral" />}
+                      />
+                    ))}
                   </>
                 )}
               </Panel>
             </View>
           </FadeUp>
 
+          <FadeUp index={3}>
+            <View>
+              <SectionHeader eyebrow="inbox" title="Notifications" />
+              <Panel coreStyle={{ padding: 0, overflow: 'hidden' }}>
+                <ListRow
+                  icon={<Bell size={17} color={colors.accent} weight="regular" />}
+                  tone="accent"
+                  title="What changed while you were away"
+                  subtitle={
+                    inbox.error
+                      ? 'this token cannot read the inbox'
+                      : inbox.loading
+                        ? 'reading…'
+                        : unread === 0
+                          ? 'nothing unread'
+                          : `${unread} unread`
+                  }
+                  trailing={<ArrowSquareOut size={14} color={colors.textTertiary} weight="regular" />}
+                  onPress={() => router.push('/github/notifications')}
+                />
+              </Panel>
+            </View>
+          </FadeUp>
+
           {snapshot.runs.length > 0 ? (
-            <FadeUp index={3}>
+            <FadeUp index={4}>
               <View>
                 <SectionHeader
                   eyebrow="checks"
@@ -467,7 +523,7 @@ export default function GithubScreen() {
                           .filter(Boolean)
                           .join(' · ')}
                         showSeparator={index < snapshot.runs.length - 1}
-                        onPress={() => openExternal(run.htmlUrl)}
+                        onPress={() => openRun(run)}
                         trailing={<StatusPill label={pill.label} tone={pill.tone} />}
                       />
                     );
@@ -477,7 +533,7 @@ export default function GithubScreen() {
             </FadeUp>
           ) : null}
 
-          <FadeUp index={4}>
+          <FadeUp index={5}>
             <View>
               <SectionHeader
                 eyebrow="recently pushed"
@@ -499,7 +555,8 @@ export default function GithubScreen() {
                   snapshot.repos.map((repo, index) => (
                     <ListRow
                       key={repo.fullName}
-                      icon={<GithubLogo size={17} color={colors.textSecondary} weight="light" />}
+                      icon={<FolderOpen size={17} color={colors.accent} weight="light" />}
+                      tone="accent"
                       title={repo.name}
                       subtitle={[
                         repo.language,
@@ -510,16 +567,13 @@ export default function GithubScreen() {
                         .filter(Boolean)
                         .join(' · ')}
                       showSeparator={index < snapshot.repos.length - 1}
-                      onPress={() => openExternal(repo.htmlUrl)}
+                      onPress={() => openRepo(repo.fullName)}
                       trailing={
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-                          {repo.isPrivate ? <StatusPill label="private" tone="neutral" /> : null}
-                          <ArrowSquareOut
-                            size={14}
-                            color={colors.textTertiary}
-                            weight="regular"
-                          />
-                        </View>
+                        // One action per row: this opens the repository here. The
+                        // outbound link lives on the repository screen, because a
+                        // second button inside this one would nest two controls in
+                        // the same tap target.
+                        repo.isPrivate ? <StatusPill label="private" tone="neutral" /> : null
                       }
                     />
                   ))
@@ -529,7 +583,7 @@ export default function GithubScreen() {
           </FadeUp>
 
           {snapshot.notes.length > 0 ? (
-            <FadeUp index={5}>
+            <FadeUp index={6}>
               <Panel variant="outlined" style={{ gap: spacing.md }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
                   <WarningCircle size={15} color={colors.textTertiary} weight="fill" />
@@ -544,15 +598,19 @@ export default function GithubScreen() {
             </FadeUp>
           ) : null}
 
-          <FadeUp index={6}>
+          <FadeUp index={7}>
             <View style={{ gap: spacing.sm }}>
               <Eyebrow>Connection</Eyebrow>
               <AppText variant="caption" tone="tertiary">
-                Connected as @{snapshot.viewer.login}. The app only reads
+                Connected as @{snapshot.viewer.login}. The app can read and write; whether it may
+                write to a repository is GitHub&apos;s decision, per repository, and each repo screen
+                says which.
                 {snapshot.rate
-                  ? ` · ${snapshot.rate.remaining} of ${snapshot.rate.limit} GitHub requests left this hour`
+                  ? ` ${snapshot.rate.remaining} of ${snapshot.rate.limit} requests left this hour.`
                   : ''}
-                . The token is stored on this device only.
+                {github.auth && github.auth.scopes.length > 0
+                  ? ` Scopes: ${github.auth.scopes.join(', ')}.`
+                  : ''}
               </AppText>
               <AppButton
                 label="Disconnect GitHub"

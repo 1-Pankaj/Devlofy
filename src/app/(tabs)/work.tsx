@@ -235,7 +235,8 @@ export default function WorkScreen() {
       </FadeUp>
 
       {/* The one surface that reads the outside world — it belongs here because
-          this is where the work lives, and it is read-only. */}
+          this is where the work lives. It reads *and* writes: edits commit to a
+          branch and open a pull request (ADR-020). */}
       <FadeUp index={3}>
         <View>
           <SectionHeader eyebrow="code" title="GitHub" />
@@ -246,8 +247,8 @@ export default function WorkScreen() {
               title="GitHub"
               subtitle={
                 githubConnected === true
-                  ? 'Connected · reviews, PRs and checks'
-                  : 'Reviews, PRs, issues and checks — read-only'
+                  ? 'Connected · repos, edits, reviews and checks'
+                  : 'Browse code, edit a file, review and merge, triage issues'
               }
               onPress={() => router.push('/github')}
               trailing={

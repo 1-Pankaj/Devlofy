@@ -262,3 +262,51 @@ export function useGithubConnected(): boolean | null {
 
   return connected;
 }
+
+export type GithubTokenState = {
+  token: string | null;
+  /** False until the stored token has been read. */
+  ready: boolean;
+  scopes: string[];
+  /** Forget the token — the same thing the dashboard's sign-out does. */
+  forget: () => Promise<void>;
+};
+
+/**
+ * The token, for the screens that *do* things (a repo, a pull request, a run).
+ *
+ * It re-reads on focus rather than holding a copy in a module singleton: signing
+ * out on the dashboard and walking into a repo screen must not leave a dead
+ * token behind a live-looking button.
+ */
+export function useGithubToken(): GithubTokenState {
+  const [state, setState] = useState<{ token: string | null; scopes: string[]; ready: boolean }>({
+    token: null,
+    scopes: [],
+    ready: false,
+  });
+
+  useFocusEffect(
+    useCallback(() => {
+      let alive = true;
+      getAuth()
+        .then((auth) => {
+          if (!alive) return;
+          setState({ token: auth?.token ?? null, scopes: auth?.scopes ?? [], ready: true });
+        })
+        .catch(() => {
+          if (alive) setState({ token: null, scopes: [], ready: true });
+        });
+      return () => {
+        alive = false;
+      };
+    }, []),
+  );
+
+  const forget = useCallback(async () => {
+    await clearAuth();
+    setState({ token: null, scopes: [], ready: true });
+  }, []);
+
+  return { ...state, forget };
+}

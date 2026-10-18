@@ -7,8 +7,11 @@
  * is honest for a single-user app with no backend. It is *not* the OS keychain,
  * so the UI says plainly where the token is and offers to forget it.
  *
- * The scope the flow requests is read-mostly (`repo read:org`); a pasted token
- * should be read-only too. The app never writes to GitHub.
+ * The device flow asks for classic `repo read:org`, which writes as well as
+ * reads; a pasted fine-grained token can be narrower (Contents: Read for
+ * browsing, and only add write if you want to commit). Whatever the token can
+ * do, the app's own rule is stricter: a commit only ever lands on a branch, and
+ * never on the default branch. See ADR-020.
  */
 import { kv } from '@/lib/storage';
 

@@ -48,14 +48,15 @@ All of it is HTTPS + JSON against `api.github.com`, which **does** send CORS hea
 
 **The limits that would bite a mobile client** (and the reasons to design around them): 5 000 requests/hour authenticated, **30/min on search and 10/min on code search** (so never poll search for "what needs me" — use `/notifications`, or conditional `GET`s, where a `304` costs no quota), 1 MB for JSON file contents (larger files need the Git Data blobs path), `409` when a commit is based on a stale `sha`, and `mergeable: null` on a fresh PR (re-`GET` before offering a Merge button).
 
-**One principle has to be overturned, deliberately.** [[07-decisions]] ADR-019 says GitHub is *read-only*, on the grounds that "a dashboard should not be able to break the thing it reports on." Writing reverses that. It is worth reversing — but only with a design that keeps the original promise intact:
+**One principle was overturned, deliberately — and it is now decided.** [[07-decisions]] ADR-019 said GitHub is *read-only*, on the grounds that "a dashboard should not be able to break the thing it reports on." Writing reverses that. It was worth reversing, and **v0.5 shipped it under a stricter contract than the one sketched here** ([[07-decisions]] ADR-020). What shipped, and what the design turned out to be:
 
-- the default action is **never to `main`**: edit → new branch → PR, and pushing straight to the default branch becomes an explicit, confirmed choice;
-- **every write shows its diff first**, and every write has a plain-language confirmation ("Commit to `fix/login-copy` — 1 file, +2 −3");
-- **no force-push, no branch deletion, no merge conflict resolution** — if GitHub says `409` or `405`, the app shows the reason and stops;
-- the app's own write scope is bounded: it can write **file contents and commits**, never settings, secrets, workflows-without-scope, or repository configuration.
+- the default branch is **unreachable**, not merely un-defaulted: there is no code path that commits to it, so "pushing straight to `main`" is not an explicit-but-confirmed choice (as this note first proposed) but an impossibility. An edit appends to an existing non-default branch or creates one;
+- **every write shows its diff first**, and the button carries the consequence in its label ("Commit and open a pull request"), never "Save";
+- **no force-push and no branch deletion** — the app has no such call at all, and the ref update is non-forced, so a branch that moved is refused (`422`) rather than overwritten;
+- writes are bounded to **nine endpoints**: file contents, branches, commits, pull requests, reviews, issues, workflow dispatch/re-run/cancel, releases, and notification reads — never repository settings, secrets, or configuration;
+- the platform's own refusals are surfaced as sentences: a stale `sha` is `409`, an already-merged pull request is `405`, approving your own pull request is `422` *in words* (all four verified against the live API, along with the happy paths).
 
-That is a new ADR (020) whenever it is built.
+Still not built, and still the right call: **gists** ([[08-backlog]]), **Actions log download** (a 302 to a ~60 s ZIP), and any **check-run** write (GitHub-App-only; a user token posts commit statuses instead).
 
 ## Tier A · notifications and background work (both verified)
 
