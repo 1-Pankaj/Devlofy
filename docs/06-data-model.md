@@ -23,8 +23,8 @@ If sync ever happens (it's a "maybe"), the schema is already shaped for last-wri
 | `clients` | people/companies you build for | `status` (lead/active/archived), contact fields |
 | `projects` | the builds | `client_id` (nullable = personal), `status`, `repo_url`, `stack_tags` (JSON array), `start_date`, `due_date` |
 | `milestones` | project timeline | `project_id`, `due_date`, `status` (pending/hit), `order_index` |
-| `tasks` | the day's work | `project_id` (nullable = inbox), `status`, `priority` (0–2), `energy` (deep/shallow), `est_minutes`, `due_at`, `completed_at`, `tags` |
-| `sessions` | time log / focus | `kind` (focus/meeting/break), `started_at`, `ended_at`, `minutes`, `billable`, `note` |
+| `tasks` | the day's work | `project_id` (nullable = inbox), `status`, `priority` (0–2, **2 = high** — the task grammar's `!3` maps to it), `energy` (deep/shallow), `est_minutes`, `due_at` (nullable, 09:00 local on the due day), `completed_at`, `tags` |
+| `sessions` | time log / focus | `kind` (focus/meeting/break), `started_at`, `ended_at`, `minutes`, `project_id` (nullable — what the block was *for*), `billable`, `note` |
 | `notes` | knowledge | `title`, `body` (markdown-ish), `pinned`, `tags` (comma-separated lowercase slugs — see `src/lib/tags.ts`), optional `project_id`/`client_id` (link chips in the editor) |
 
 Indexes: `tasks(status)`, `tasks(project_id)`, `sessions(started_at)`, `notes(updated_at DESC)`, `projects(client_id)` — all partial on `deleted_at IS NULL`.
@@ -34,6 +34,8 @@ Indexes: `tasks(status)`, `tasks(project_id)`, `sessions(started_at)`, `notes(up
 - **Garden growth** = weighted: total focus minutes (55%) + streak (30%) + today (15%), see `src/lib/garden/model.ts`.
 - **Streak** = distinct session days walked backwards from today/yesterday (`getFocusStreakDays`).
 - **Project progress** = `done_count / task_count` per project (subquery in `listProjects`).
+- **Time tracked per project** = `SUM(minutes)` / `COUNT(*)` / `MAX(started_at)` over that project's finished focus sessions (same subquery block in `listProjects` / `getProject`) — a query, never a denormalised counter, so editing or deleting a session can't desync it.
+- **Rhythm bands** = today's minutes bucketed per day (< 30, < 75, ≥ 75) for the twelve-week heatmap.
 
 ## Search
 

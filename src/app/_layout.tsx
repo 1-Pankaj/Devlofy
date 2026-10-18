@@ -33,7 +33,10 @@ import { Pressable, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { DatabaseProvider } from '@/lib/db/provider';
+import { applyWebReset } from '@/lib/web-reset';
 import { AppThemeProvider, palettes, useTheme } from '@/theme';
+
+applyWebReset();
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 

@@ -9,7 +9,7 @@ import { View } from 'react-native';
 import { BackRow } from '@/components/ui/back-button';
 import { AppText } from '@/components/ui/app-text';
 import { Panel } from '@/components/ui/panel';
-import { Eyebrow, StatusPill } from '@/components/ui/pill';
+import { Eyebrow, StatusPill, type StatusTone } from '@/components/ui/pill';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { ProgressRing } from '@/components/ui/progress-ring';
 import { Screen } from '@/components/ui/screen';
@@ -17,7 +17,7 @@ import { SectionHeader } from '@/components/ui/section';
 import { FadeUp } from '@/components/ui/stagger';
 import { useLiveQuery } from '@/lib/db/hooks';
 import { getProject, listMilestones, listProjectTasks, setTaskDone } from '@/lib/db/repo';
-import { formatShortDate } from '@/lib/format';
+import { formatMinutes, formatShortDate } from '@/lib/format';
 import { radius, spacing, useTheme } from '@/theme';
 
 export default function ProjectDetailScreen() {
@@ -51,48 +51,44 @@ export default function ProjectDetailScreen() {
     project.refresh();
   };
 
+  // Project facts are content, not chrome: they live under the title so the
+  // header's trailing slot stays an action slot.
+  const facts: { label: string; tone: StatusTone }[] = [];
+  if (data) {
+    facts.push({
+      label: data.status,
+      tone: data.status === 'active' ? 'accent' : 'neutral',
+    });
+    if (data.due_date) {
+      facts.push({ label: `due ${formatShortDate(data.due_date)}`, tone: 'ember' });
+    }
+    stackTags.forEach((tag) => facts.push({ label: tag, tone: 'info' }));
+  }
+
   return (
     <Screen
       header={{
-        eyebrow: data?.client_name ?? 'Personal',
+        eyebrow: data?.client_name ?? 'Personal project',
         title: data?.name ?? 'Project',
         subtitle: data?.description ?? undefined,
-        trailing: (
-          <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: spacing.sm }}>
-            {data ? (
-              <StatusPill
-                label={data.status}
-                tone={data.status === 'active' ? 'accent' : 'neutral'}
-              />
-            ) : null}
-            {data?.due_date ? (
-              <StatusPill label={`due ${formatShortDate(data.due_date)}`} tone="ember" />
-            ) : null}
-            {stackTags.map((tag) => (
-              <StatusPill key={tag} label={tag} tone="info" />
-            ))}
-            {data ? (
-              <PressableScale
-                haptic="light"
-                accessibilityLabel="Edit project"
-                onPress={() => router.push({ pathname: '/project-form', params: { id } })}>
-                <View
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: radius.full,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: colors.surfaceElevated,
-                    borderWidth: 1,
-                    borderColor: colors.hairline,
-                  }}>
-                  <PencilSimple size={15} color={colors.textSecondary} weight="regular" />
-                </View>
-              </PressableScale>
-            ) : null}
-          </View>
-        ),
+        trailing: data ? (
+          <PressableScale
+            haptic="light"
+            accessibilityLabel="Edit project"
+            onPress={() => router.push({ pathname: '/project-form', params: { id } })}>
+            <View
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: radius.full,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: colors.surfaceElevated,
+              }}>
+              <PencilSimple size={15} color={colors.textSecondary} weight="regular" />
+            </View>
+          </PressableScale>
+        ) : null,
       }}>
       <FadeUp index={0}>
         <View style={{ marginBottom: spacing.xs }}>
@@ -100,13 +96,23 @@ export default function ProjectDetailScreen() {
         </View>
       </FadeUp>
 
+      {facts.length > 0 ? (
+        <FadeUp index={0}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+            {facts.map((fact) => (
+              <StatusPill key={fact.label} label={fact.label} tone={fact.tone} />
+            ))}
+          </View>
+        </FadeUp>
+      ) : null}
+
       <FadeUp index={1}>
         <Panel coreStyle={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xl }}>
           <ProgressRing progress={progress} size={92} stroke={7}>
             <AppText variant="headline">{Math.round(progress * 100)}%</AppText>
           </ProgressRing>
           <View style={{ flex: 1, gap: spacing.xs }}>
-            <Eyebrow>progress</Eyebrow>
+            <Eyebrow>Progress</Eyebrow>
             <AppText variant="subhead">
               {data ? `${data.done_count} of ${data.task_count} tasks done` : 'Loading…'}
             </AppText>
@@ -114,6 +120,13 @@ export default function ProjectDetailScreen() {
               {milestones.data && milestones.data.length > 0
                 ? `${milestones.data.filter((m) => m.status === 'hit').length}/${milestones.data.length} milestones hit`
                 : 'No milestones set'}
+            </AppText>
+            <AppText variant="caption" tone={data && data.focus_minutes > 0 ? 'ember' : 'tertiary'}>
+              {data && data.focus_minutes > 0
+                ? `${formatMinutes(data.focus_minutes)} focused · ${data.focus_sessions} ${
+                    data.focus_sessions === 1 ? 'session' : 'sessions'
+                  }`
+                : 'No focus time logged yet'}
             </AppText>
           </View>
         </Panel>

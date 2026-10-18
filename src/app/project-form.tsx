@@ -181,7 +181,7 @@ export default function ProjectFormScreen() {
             </AppText>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
               <FormChip
-                label="Personal"
+                label="None"
                 active={clientId === null}
                 onPress={() => setClientId(null)}
               />

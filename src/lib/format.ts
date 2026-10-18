@@ -1,4 +1,4 @@
-import { format, isToday, isTomorrow, isYesterday } from 'date-fns';
+import { differenceInCalendarDays, format, isToday, isTomorrow, isYesterday } from 'date-fns';
 
 export function greeting(date = new Date()): string {
   const hour = date.getHours();
@@ -46,6 +46,20 @@ export function formatDayLabel(iso: string): string {
 export function formatShortDate(iso: string | null): string {
   if (!iso) return 'No date';
   return format(new Date(iso), 'MMM d');
+}
+
+/**
+ * Due-date label for a task row — relative while it still means something,
+ * absolute once it doesn't: "2d overdue" / "today" / "tomorrow" / "in 4d" / "Oct 24".
+ */
+export function formatDueLabel(iso: string): { label: string; overdue: boolean } {
+  const date = new Date(iso);
+  const days = differenceInCalendarDays(date, new Date());
+  if (days < 0) return { label: `${-days}d overdue`, overdue: true };
+  if (days === 0) return { label: 'today', overdue: false };
+  if (days === 1) return { label: 'tomorrow', overdue: false };
+  if (days < 7) return { label: `in ${days}d`, overdue: false };
+  return { label: format(date, 'MMM d'), overdue: false };
 }
 
 export function clamp01(value: number): number {

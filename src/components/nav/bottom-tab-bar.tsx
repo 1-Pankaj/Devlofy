@@ -10,10 +10,10 @@
  */
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { radius, spacing, spring, useTheme } from '@/theme';
+import { duration, easing, radius, spacing, useTheme } from '@/theme';
 import { AppText } from '@/components/ui/app-text';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { navItemForRoute } from './nav-items';
@@ -52,7 +52,12 @@ export function BottomTabBar({ state, emitter, navigateToTab }: BottomTabBarProp
   const shift = useSharedValue(0);
 
   useEffect(() => {
-    shift.set(withSpring(focusedPosition * itemWidth, spring.snappy));
+    shift.set(
+      withTiming(focusedPosition * itemWidth, {
+        duration: duration.base,
+        easing: easing.emphasized,
+      }),
+    );
   }, [focusedPosition, itemWidth, shift]);
 
   const indicatorStyle = useAnimatedStyle(() => ({

@@ -44,7 +44,33 @@ export default function ClientDetailScreen() {
         eyebrow: data?.company ?? 'client',
         title: data?.name ?? 'Client',
         trailing: data ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+          <PressableScale
+            haptic="light"
+            accessibilityLabel="Edit client"
+            onPress={() => router.push({ pathname: '/client-form', params: { id } })}>
+            <View
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: radius.full,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: colors.surfaceElevated,
+              }}>
+              <PencilSimple size={15} color={colors.textSecondary} weight="regular" />
+            </View>
+          </PressableScale>
+        ) : undefined,
+      }}>
+      <FadeUp index={0}>
+        <View style={{ marginBottom: spacing.xs }}>
+          <BackRow label="Work" />
+        </View>
+      </FadeUp>
+
+      {data ? (
+        <FadeUp index={0}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
             <StatusPill
               label={data.status}
               tone={data.status === 'active' ? 'accent' : 'neutral'}
@@ -53,32 +79,9 @@ export default function ClientDetailScreen() {
               label={`${projectCount} ${projectCount === 1 ? 'project' : 'projects'}`}
               tone="info"
             />
-            <PressableScale
-              haptic="light"
-              accessibilityLabel="Edit client"
-              onPress={() => router.push({ pathname: '/client-form', params: { id } })}>
-              <View
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: radius.full,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: colors.surfaceElevated,
-                  borderWidth: 1,
-                  borderColor: colors.hairline,
-                }}>
-                <PencilSimple size={15} color={colors.textSecondary} weight="regular" />
-              </View>
-            </PressableScale>
           </View>
-        ) : undefined,
-      }}>
-      <FadeUp index={0}>
-        <View style={{ marginBottom: spacing.xs }}>
-          <BackRow label="Work" />
-        </View>
-      </FadeUp>
+        </FadeUp>
+      ) : null}
 
       {client.status === 'loading' && !data ? (
         <Panel>

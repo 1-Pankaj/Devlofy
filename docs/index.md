@@ -22,8 +22,9 @@ This folder is an **Obsidian vault**. Open it directly in Obsidian (`Open folder
 
 > Devlofy is the offline-first command center for solo developers — plan your day, run your clients, ship your projects, get paid, and level up. All data on your device. A game-like focus garden in 3D.
 
-## Status (2026-10-17)
+## Status (2026-10-18)
 
 - v0.1 foundation is **built**: Today, Garden (3D), Work, Notes, More + desktop mode.
+- v0.2 "working day" is **built**: precise motion, project attribution for focus blocks, time tracked per project, a twelve-week rhythm heatmap, a daily focus goal, and a quick-add task grammar ([[02-scope]]).
 - Targets: **Android (native) + web** now; iOS later. Tablets included — desktop mode ships with v0.1.
 - Blender: models are integrated day one via the MCP pipeline ([[05-blender-pipeline]]).

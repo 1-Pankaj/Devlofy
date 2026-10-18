@@ -24,7 +24,7 @@ import { Segmented } from '@/components/ui/segmented';
 import { FadeUp } from '@/components/ui/stagger';
 import { useLiveQuery } from '@/lib/db/hooks';
 import { listClients, listProjects } from '@/lib/db/repo';
-import { formatShortDate } from '@/lib/format';
+import { formatMinutes, formatShortDate } from '@/lib/format';
 import { spacing, useTheme } from '@/theme';
 
 type Segment = 'projects' | 'clients';
@@ -96,9 +96,10 @@ export default function WorkScreen() {
                   const progress =
                     project.task_count > 0 ? project.done_count / project.task_count : 0;
                   const meta = [
-                    project.client_name ?? 'Personal',
+                    project.client_name ?? 'No client',
                     project.status !== 'active' ? project.status : null,
                     project.due_date ? `due ${formatShortDate(project.due_date)}` : null,
+                    project.focus_minutes > 0 ? `${formatMinutes(project.focus_minutes)} tracked` : null,
                   ]
                     .filter(Boolean)
                     .join(' · ');

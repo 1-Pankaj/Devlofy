@@ -35,8 +35,11 @@ Run **lint + typecheck before declaring any task done.** If a task touches UI, s
 - **Tokens only**: colors/spacing/type/motion come from `src/theme` — no hardcoded values in components.
 - **Data**: all SQL lives in `src/lib/db/repo.ts`; screens use `useLiveQuery`. Migrations are append-only in `src/lib/db/migrations.ts` (update `docs/06-data-model.md` in the same change).
 - **Reanimated 4 (compiler-safe)**: shared values use `.get()`/`.set()`; no `runOnJS` (use `scheduleOnRN`); press feedback via `PressableScale`; entrances via `FadeUp`; tokens from `theme/motion`.
+- **Motion never overshoots**: springs are critically damped only (`dampingRatio: 1`) — a bouncy spring or `springify()` is a bug. Everything else is a timing curve from `theme/motion`.
+- **Task quick-add grammar** is pure and lives in `src/lib/parse-task.ts` (`!3`, `45m`, `tomorrow`, `#Project`). The preview chips on Today must always state exactly what will be created; an unmatched `#tag` stays in the title.
+- **Focus attribution**: the next block's project is a persisted setting (`focusProjectId`), read by both Today and Garden, written to `sessions.project_id`. Per-project time is a query, not a counter.
 - **Web SQLite**: wasm in `metro.config.js` assetExts + COOP/COEP headers (dev: metro middleware; deploy: `app.json` headers / host config). FTS5 is native-only — guard capability.
-- Motion manners: haptics for selection/commits (never web), tab switches don't animate, respect reduced motion.
+- Motion manners: haptics for selection/commits (never web), tab switches don't animate, respect reduced motion, and **nothing bounces**.
 
 ## Skills & tooling installed
 

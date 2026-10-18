@@ -86,7 +86,20 @@ export function Screen({
               </AppText>
             ) : null}
           </View>
-          {header.trailing ? <View style={{ paddingTop: spacing.xs }}>{header.trailing}</View> : null}
+          {header.trailing ? (
+            <View
+              style={{
+                paddingTop: spacing.xs,
+                // The trailing slot is for actions, but a caller can put anything
+                // in it — so it may never take more than half the row, or the
+                // title would be crushed to a column of single characters.
+                flexShrink: 1,
+                maxWidth: '55%',
+                alignItems: 'flex-end',
+              }}>
+              {header.trailing}
+            </View>
+          ) : null}
         </View>
       ) : null}
       {children}

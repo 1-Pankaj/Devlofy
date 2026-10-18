@@ -1,35 +1,49 @@
 /**
- * Motion tokens. Curves and spring configs come from the expo-animation skill
- * tables — never `linear`, never `ease-in`, never a raw default spring.
+ * Motion tokens.
+ *
+ * The system is **precise**: motion states a change, then stops. Nothing
+ * overshoots and nothing wobbles, so there is no spring with a damping ratio
+ * below 1 anywhere in this app and no `springify()`. Where a value has to
+ * settle we use a critically damped spring; where a duration is enough, a
+ * strong ease-out curve.
+ *
+ * Curves come from the expo-animation skill tables — never `linear`, never a
+ * bare default.
  */
 import { Easing } from 'react-native-reanimated';
 
 export const duration = {
   /** Press feedback. */
-  press: 120,
+  press: 110,
   /** Small state change: toggle, chip, indicator. */
-  fast: 180,
+  fast: 160,
   /** Standard enter/exit of in-flow elements. */
-  base: 240,
-  /** Large surfaces: sheets, big entrances. */
-  slow: 420,
+  base: 220,
+  /** Values that travel: rings, counters, growing bars. */
+  slow: 320,
+  /** Page-level choreography: the first paint of a screen. */
+  page: 460,
 } as const;
 
 export const easing = {
-  /** Entering/exiting — strong ease-out. */
-  out: Easing.bezier(0.23, 1, 0.32, 1),
-  /** On-screen movement — ease-in-out. */
-  inOut: Easing.bezier(0.77, 0, 0.175, 1),
+  /** Entering/exiting — strong ease-out (quint). */
+  out: Easing.bezier(0.22, 1, 0.36, 1),
+  /** On-screen movement — symmetric ease-in-out. */
+  inOut: Easing.bezier(0.65, 0, 0.35, 1),
+  /** Material 3 emphasised — slow to leave, slower to arrive. */
+  emphasized: Easing.bezier(0.2, 0, 0, 1),
   /** iOS sheet curve. */
   sheet: Easing.bezier(0.32, 0.72, 0, 1),
 } as const;
 
-/** Apple-style spring params (duration + dampingRatio), Reanimated 4 form. */
+/**
+ * Springs are used only where a physical settle reads better than a curve, and
+ * they are **critically damped** (`dampingRatio: 1`) — the fastest arrival with
+ * no overshoot.
+ */
 export const spring = {
-  /** Default settle, no overshoot. */
-  settle: { duration: 400, dampingRatio: 1 },
-  /** Reposition / snap back after touch. */
-  snappy: { duration: 300, dampingRatio: 0.85 },
-  /** Momentum was carried — allowed to overshoot slightly. */
-  bouncy: { duration: 380, dampingRatio: 0.7 },
+  /** Default settle: no overshoot ever. */
+  settle: { duration: 300, dampingRatio: 1 },
+  /** Quick settle for position changes under the finger. */
+  precise: { duration: 220, dampingRatio: 1 },
 } as const;

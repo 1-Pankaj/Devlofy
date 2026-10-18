@@ -34,6 +34,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { GardenScene } from '@/components/garden/garden-scene';
+import { ProjectChips } from '@/components/focus/project-chips';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import { AppText } from '@/components/ui/app-text';
 import { emptyArt } from '@/components/ui/empty-art';
@@ -56,6 +57,7 @@ import {
   focusMinutesByDay,
   getActiveSession,
   getFocusStreakDays,
+  listProjects,
   listRecentSessions,
   listTodayTasks,
   setTaskDone,
@@ -65,9 +67,12 @@ import {
 } from '@/lib/db/repo';
 import { hashString } from '@/lib/garden/model';
 import { stageFromStats } from '@/lib/garden/models';
+import { parseTaskInput } from '@/lib/parse-task';
+import { useSettings } from '@/state/settings';
 import {
   dateEyebrow,
   formatClock,
+  formatDueLabel,
   formatMinutes,
   formatSessionWhen,
   formatTimer,
@@ -75,7 +80,6 @@ import {
 } from '@/lib/format';
 import { duration, easing, fonts, radius, spacing, useTheme } from '@/theme';
 
-const DAILY_GOAL_MINUTES = 120;
 const WEEKDAY_INITIAL = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 const TIPS = [
@@ -194,6 +198,10 @@ export default function TodayScreen() {
   const week = useLiveQuery((d) => focusMinutesByDay(d, 7));
   const tasks = useLiveQuery((d) => listTodayTasks(d));
   const recent = useLiveQuery((d) => listRecentSessions(d, 5));
+  const projects = useLiveQuery((d) => listProjects(d));
+
+  const dailyGoalMinutes = useSettings((s) => s.dailyGoalMinutes);
+  const focusProjectId = useSettings((s) => s.focusProjectId);
 
   const active = session.data ?? null;
   const startedAt = active?.started_at ?? null;
@@ -203,6 +211,7 @@ export default function TodayScreen() {
   const [ending, setEnding] = useState(false);
   const [title, setTitle] = useState('');
   const [adding, setAdding] = useState(false);
+  const [taskFocused, setTaskFocused] = useState(false);
 
   useEffect(() => {
     if (!startedAt) return;
@@ -215,8 +224,8 @@ export default function TodayScreen() {
     : 0;
 
   const focusMinutes = todayFocus.data ?? 0;
-  const goalProgress = Math.min(1, focusMinutes / DAILY_GOAL_MINUTES);
-  const remainingMinutes = Math.max(0, DAILY_GOAL_MINUTES - focusMinutes);
+  const goalProgress = Math.min(1, focusMinutes / dailyGoalMinutes);
+  const remainingMinutes = Math.max(0, dailyGoalMinutes - focusMinutes);
   const goalReached = remainingMinutes === 0;
 
   const weekDays = useMemo(() => week.data ?? [], [week.data]);
@@ -238,13 +247,13 @@ export default function TodayScreen() {
     if (starting || active) return;
     setStarting(true);
     try {
-      await startFocusSession(db);
+      await startFocusSession(db, focusProjectId);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
       await session.refresh();
     } finally {
       setStarting(false);
     }
-  }, [active, db, session, starting]);
+  }, [active, db, focusProjectId, session, starting]);
 
   const handleEnd = useCallback(async () => {
     if (!active || ending) return;
@@ -265,19 +274,29 @@ export default function TodayScreen() {
     }
   }, [active, db, ending, recent, session, streak, todayFocus, totalFocus, week]);
 
+  const parsed = useMemo(
+    () => parseTaskInput(title, (projects.data ?? []).map((p) => ({ id: p.id, name: p.name }))),
+    [projects.data, title],
+  );
+
   const handleAddTask = useCallback(async () => {
-    const taskTitle = title.trim();
-    if (!taskTitle || adding) return;
+    if (!parsed.title || adding) return;
     setAdding(true);
     try {
-      await createTask(db, { title: taskTitle, priority: 2 });
+      await createTask(db, {
+        title: parsed.title,
+        priority: parsed.priority,
+        estMinutes: parsed.estMinutes,
+        projectId: parsed.projectId,
+        dueAt: parsed.dueAt,
+      });
       setTitle('');
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
       await tasks.refresh();
     } finally {
       setAdding(false);
     }
-  }, [adding, db, tasks, title]);
+  }, [adding, db, parsed, tasks]);
 
   const handleComplete = useCallback(
     async (taskId: string) => {
@@ -346,6 +365,7 @@ export default function TodayScreen() {
                   </AppText>
                   <AppText variant="caption" tone="accent" style={{ opacity: 0.72 }}>
                     started {formatClock(active.started_at)}
+                    {active.project_name ? ` · ${active.project_name}` : ''}
                   </AppText>
                 </>
               ) : (
@@ -365,6 +385,13 @@ export default function TodayScreen() {
           </View>
         </View>
       </FadeUp>
+
+      {/* Attribution for the next block — hidden while one is already running */}
+      {!active ? (
+        <FadeUp index={1}>
+          <ProjectChips />
+        </FadeUp>
+      ) : null}
 
       {/* Two-up tally */}
       <FadeUp index={1}>
@@ -458,6 +485,7 @@ export default function TodayScreen() {
                     <View style={{ gap: spacing.xxs }}>
                       <AppText variant="headline">{formatMinutes(entry.minutes ?? 0)}</AppText>
                       <AppText variant="caption" tone="tertiary" numberOfLines={1}>
+                        {entry.project_name ? `${entry.project_name} · ` : ''}
                         {formatSessionWhen(entry.started_at)}
                       </AppText>
                     </View>
@@ -486,51 +514,83 @@ export default function TodayScreen() {
           <Panel coreStyle={{ padding: 0, overflow: 'hidden' }}>
             <View
               style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: spacing.md,
-                paddingLeft: spacing.lg,
-                paddingRight: spacing.md,
-                borderBottomWidth: 1,
-                borderBottomColor: colors.hairline,
+                borderBottomWidth: taskFocused ? 2 : 1,
+                borderBottomColor: taskFocused ? colors.accent : colors.hairline,
               }}>
-              <Plus size={16} color={colors.textTertiary} weight="bold" />
-              <TextInput
-                value={title}
-                onChangeText={setTitle}
-                placeholder="Add a task for today…"
-                placeholderTextColor={colors.textTertiary}
-                selectionColor={colors.accent}
-                cursorColor={colors.accent}
-                returnKeyType="done"
-                submitBehavior="submit"
-                onSubmitEditing={handleAddTask}
-                accessibilityLabel="New task title"
+              <View
                 style={{
-                  flex: 1,
-                  paddingVertical: 13,
-                  color: colors.text,
-                  fontFamily: fonts.bodyRegular,
-                  fontSize: 16,
-                }}
-              />
-              {title.trim().length > 0 ? (
-                <PressableScale
-                  haptic="selection"
-                  accessibilityLabel="Add task"
-                  onPress={handleAddTask}>
-                  <View
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: radius.full,
-                      backgroundColor: colors.accent,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}>
-                    <ArrowUp size={15} color={colors.accentContrast} weight="bold" />
-                  </View>
-                </PressableScale>
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: spacing.md,
+                  paddingLeft: spacing.lg,
+                  paddingRight: spacing.md,
+                }}>
+                <Plus size={16} color={colors.textTertiary} weight="bold" />
+                <TextInput
+                  value={title}
+                  onChangeText={setTitle}
+                  onFocus={() => setTaskFocused(true)}
+                  onBlur={() => setTaskFocused(false)}
+                  placeholder="Add a task — try “Ship the invoice !3 45m #Northwind”"
+                  placeholderTextColor={colors.textTertiary}
+                  selectionColor={colors.accent}
+                  cursorColor={colors.accent}
+                  returnKeyType="done"
+                  submitBehavior="submit"
+                  onSubmitEditing={handleAddTask}
+                  accessibilityLabel="New task title"
+                  style={{
+                    flex: 1,
+                    paddingVertical: 13,
+                    color: colors.text,
+                    fontFamily: fonts.bodyRegular,
+                    fontSize: 16,
+                  }}
+                />
+                {parsed.title.length > 0 ? (
+                  <PressableScale
+                    haptic="selection"
+                    accessibilityLabel={`Add task ${parsed.title}`}
+                    onPress={handleAddTask}>
+                    <View
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: radius.full,
+                        backgroundColor: colors.accent,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                      <ArrowUp size={15} color={colors.accentContrast} weight="bold" />
+                    </View>
+                  </PressableScale>
+                ) : null}
+              </View>
+
+              {parsed.tokens.length > 0 || parsed.unknownProject ? (
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: spacing.xs,
+                    paddingHorizontal: spacing.lg,
+                    paddingBottom: spacing.md,
+                  }}>
+                  <AppText variant="caption" tone="tertiary">
+                    files as
+                  </AppText>
+                  {parsed.tokens.map((token, index) => (
+                    <StatusPill
+                      key={`${token.kind}-${index}`}
+                      label={token.label}
+                      tone={token.tone}
+                    />
+                  ))}
+                  {parsed.unknownProject ? (
+                    <StatusPill label={`no project “${parsed.unknownProject}”`} tone="danger" />
+                  ) : null}
+                </View>
               ) : null}
             </View>
 
@@ -556,6 +616,7 @@ export default function TodayScreen() {
               />
             ) : (
               tasks.data!.map((task, index) => {
+                const due = task.due_at ? formatDueLabel(task.due_at) : null;
                 const meta = [task.project_name, task.est_minutes ? `${task.est_minutes}m` : null]
                   .filter(Boolean)
                   .join(' · ');
@@ -599,7 +660,13 @@ export default function TodayScreen() {
                             </AppText>
                           ) : null}
                         </View>
-                        {task.priority >= 3 ? <StatusPill label="high" tone="ember" /> : null}
+                        {due ? (
+                          <StatusPill
+                            label={due.label}
+                            tone={due.overdue ? 'danger' : 'neutral'}
+                          />
+                        ) : null}
+                        {task.priority >= 2 ? <StatusPill label="high" tone="ember" /> : null}
                       </View>
                     </Pressable>
                     {index < tasks.data!.length - 1 ? (

@@ -17,10 +17,10 @@ import { FadeUp } from '@/components/ui/stagger';
 import { TextField } from '@/components/ui/text-field';
 import { useLiveQuery } from '@/lib/db/hooks';
 import { exportAll, getDataStats } from '@/lib/db/repo';
-import { useSettings, type DesktopMode, type ThemeMode } from '@/state/settings';
+import { GOAL_OPTIONS, useSettings, type DesktopMode, type ThemeMode } from '@/state/settings';
 import { radius, spacing, useTheme } from '@/theme';
 
-const APP_VERSION = '0.1.0';
+const APP_VERSION = '0.2.0';
 
 function SettingBlock({
   title,
@@ -56,6 +56,8 @@ export default function MoreScreen() {
   const setDesktopMode = useSettings((s) => s.setDesktopMode);
   const userName = useSettings((s) => s.userName);
   const setUserName = useSettings((s) => s.setUserName);
+  const dailyGoalMinutes = useSettings((s) => s.dailyGoalMinutes);
+  const setDailyGoalMinutes = useSettings((s) => s.setDailyGoalMinutes);
 
   const stats = useLiveQuery((d) => getDataStats(d));
   const [exportNote, setExportNote] = useState<string | null>(null);
@@ -107,6 +109,19 @@ export default function MoreScreen() {
               ]}
               value={themeMode}
               onChange={setThemeMode}
+            />
+          </SettingBlock>
+          <View style={{ height: 1, backgroundColor: colors.hairline }} />
+          <SettingBlock
+            title="Daily focus goal"
+            caption="The target behind the ring on Today, and what “to go” counts down from.">
+            <Segmented<string>
+              options={GOAL_OPTIONS.map((minutes) => ({
+                value: String(minutes),
+                label: minutes >= 60 ? `${minutes / 60}h` : `${minutes}m`,
+              }))}
+              value={String(dailyGoalMinutes)}
+              onChange={(value) => setDailyGoalMinutes(Number(value))}
             />
           </SettingBlock>
           <View style={{ height: 1, backgroundColor: colors.hairline }} />

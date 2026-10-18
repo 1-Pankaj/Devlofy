@@ -1,6 +1,6 @@
 /**
- * FormChip — a selectable pill for form choice rows (status, due window,
- * client). One accent at a time: the active chip only.
+ * FormChip — a selectable pill for choice rows (status, block length, project).
+ * Tone carries the selection; there is no outline.
  */
 import { View } from 'react-native';
 
@@ -23,11 +23,10 @@ export function FormChip({
       <View
         style={{
           paddingHorizontal: spacing.lg,
-          paddingVertical: spacing.sm,
+          height: 40,
+          justifyContent: 'center',
           borderRadius: radius.full,
           backgroundColor: active ? colors.accentSoft : colors.surfaceElevated,
-          borderWidth: 1,
-          borderColor: active ? colors.accentBorder : colors.hairline,
         }}>
         <AppText
           variant="captionMedium"

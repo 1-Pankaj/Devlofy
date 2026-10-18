@@ -17,19 +17,30 @@ created: 2026-10-17
 
 ## v0.1 — foundation (built 2026-10-17)
 
-- **Today** — greeting, focus hero with live timer + animated ring, 7-day momentum chart (streak, tasks done), **quick-add tasks** with animated completion, garden teaser, craft tip.
-- **Garden** — 3D tree grown from real focus data: Blender-authored GLBs over the procedural fallback; **focus blocks (25/50/90) with countdown, progress bar and auto-close at zero**; live overlay timer; recent sessions.
-- **Work** — projects list with progress rings, project detail (milestones + tasks), clients list, **client detail (delivery stats, details, portfolio)**, create project / create client.
+- **Today** — greeting, focus hero with live timer + animated ring and a **daily focus goal** (set in More), project attribution for the next block, 7-day momentum chart (streak, tasks done), **quick-add tasks with a grammar** (`Ship the invoice !3 45m tomorrow #Northwind`) and a live parse preview, garden teaser, craft tip.
+- **Garden** — 3D tree grown from real focus data: Blender-authored GLBs over the procedural fallback; **focus blocks (25/50/90) with countdown, progress bar and auto-close at zero**; project attribution; live overlay timer; **12-week rhythm heatmap**; recent sessions.
+- **Work** — projects list with progress rings **and time tracked per project**, project detail (progress, milestones, tasks, focus time), clients list, **client detail (delivery stats, details, portfolio)**, create project / create client.
 - **Notes** — search over titles + bodies, pinned notes, **rebuilt editor**: autosave with live save badge, **markdown preview**, **starter templates**, word/char footer, pin + inline delete confirm.
-- **More** — name, theme (System / Dark / Light), desktop mode, data stats, JSON export, about.
+- **More** — name, theme (System / Dark / Light), desktop mode, **daily focus goal**, data stats, JSON export, about.
 - **Desktop mode** — side rail + centered content; adaptive tab shell.
 - **System** — safe-area insets owned by `Screen` everywhere, animated `ProgressRing` / `LiveDot` / `Loading` primitives, root crash boundary, loading/error/empty handled on every list.
 - **Data layer** — full local schema ([[06-data-model]]), migrations, first-run seed, sync-ready (UUID ids, `updated_at`, tombstones).
 
+## v0.2 — the working day (built 2026-10-18)
+
+- **Task grammar** — `!3` priority, `45m` / `1.5h` estimate, `today` / `tomorrow` / `fri` / `+3d` due date, `#Project` attribution; parsed by `src/lib/parse-task.ts`, previewed as chips before it is committed, and nothing typed is silently dropped (an unmatched `#tag` stays in the title).
+- **The queue is a day view** — dated work first (overdue on top), then the undated backlog by priority; rows carry a due pill (`2d overdue`, `today`, `tomorrow`, `in 4d`, `Oct 24`).
+- **Focus attribution** — the project the next block belongs to is chosen once and persisted, so Today and Garden agree; sessions store `project_id`, which is what makes per-project time real.
+- **Time tracked per project** — Work rows and the project page state focused minutes and session count.
+- **Rhythm heatmap** — twelve weeks of focus as a 4-step tonal grid on Garden, with the best day and the number of days focused.
+- **Daily focus goal** — 1h / 1.5h / 2h / 3h in More, driving the Today ring, "to go", and the heatmap's intensity bands.
+- **Precise motion** — every overshoot removed: critically damped springs only, timing curves for everything else ([[04-design-language]]).
+
 ## v1 — the spine *(next)*
 
-- Task scheduling: due dates, estimates, energy pairing; quick attach to projects.
+- Task scheduling follow-ons: energy pairing, manual reordering, due-date editing after creation.
 - Time log editing, manual entries, billable flags.
+- Command palette / keyboard-first navigation on desktop mode.
 - Git dashboard (GitHub device flow, read-mostly: PRs, commits, issues, CI) — needs online, degrades to last-synced.
 - Notifications/alarms (mobile-only; **expo-notifications does not support web**).
 - Money-lite: rates per client, manual invoice drafts (manual-confirm only).

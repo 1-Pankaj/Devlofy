@@ -12,23 +12,26 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View } from 'react-native';
 
 import { GardenScene } from '@/components/garden/garden-scene';
+import { FocusHeatmap } from '@/components/focus/focus-heatmap';
+import { ProjectChips } from '@/components/focus/project-chips';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import { AppText } from '@/components/ui/app-text';
 import { emptyArt } from '@/components/ui/empty-art';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Fab } from '@/components/ui/fab';
+import { FormChip } from '@/components/ui/form-chip';
 import { ListRow } from '@/components/ui/list-row';
 import { LiveDot } from '@/components/ui/live-dot';
 import { Loading } from '@/components/ui/loading';
 import { Panel } from '@/components/ui/panel';
 import { Eyebrow } from '@/components/ui/pill';
-import { PressableScale } from '@/components/ui/pressable-scale';
 import { Screen } from '@/components/ui/screen';
 import { SectionHeader } from '@/components/ui/section';
 import { FadeUp } from '@/components/ui/stagger';
 import { useLiveQuery } from '@/lib/db/hooks';
 import {
   endFocusSession,
+  focusMinutesByDay,
   getActiveSession,
   getFocusStreakDays,
   listRecentSessions,
@@ -39,6 +42,7 @@ import {
 import { hashString } from '@/lib/garden/model';
 import { stageFromStats } from '@/lib/garden/models';
 import { formatClock, formatDayLabel, formatMinutes, formatTimer } from '@/lib/format';
+import { useSettings } from '@/state/settings';
 import { radius, spacing, useTheme } from '@/theme';
 
 const BLOCKS = [25, 50, 90] as const;
@@ -79,6 +83,8 @@ export default function GardenScreen() {
     streak: await getFocusStreakDays(d),
   }));
   const history = useLiveQuery((d) => listRecentSessions(d, 6));
+  const rhythm = useLiveQuery((d) => focusMinutesByDay(d, 84));
+  const focusProjectId = useSettings((s) => s.focusProjectId);
 
   const [block, setBlock] = useState<Block>(25);
   const [nowTick, setNowTick] = useState(() => Date.now());
@@ -120,13 +126,13 @@ export default function GardenScreen() {
     if (starting || active) return;
     setStarting(true);
     try {
-      await startFocusSession(db);
+      await startFocusSession(db, focusProjectId);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
       await refreshAll();
     } finally {
       setStarting(false);
     }
-  }, [active, db, refreshAll, starting]);
+  }, [active, db, focusProjectId, refreshAll, starting]);
 
   const handleEnd = useCallback(async () => {
     if (!active || ending) return;
@@ -240,6 +246,7 @@ export default function GardenScreen() {
                 <AppText variant="caption" tone="tertiary">
                   {Math.round(progress * 100)}% of {block}m · started{' '}
                   {formatClock(active.started_at)}
+                  {active.project_name ? ` · ${active.project_name}` : ''}
                 </AppText>
               </>
             ) : (
@@ -251,31 +258,16 @@ export default function GardenScreen() {
                   </AppText>
                 </View>
                 <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-                  {BLOCKS.map((minutes) => {
-                    const selected = minutes === block;
-                    return (
-                      <PressableScale
-                        key={minutes}
-                        haptic="selection"
-                        accessibilityLabel={`${minutes} minute block`}
-                        onPress={() => setBlock(minutes)}>
-                        <View
-                          style={{
-                            paddingHorizontal: spacing.xl,
-                            height: 44,
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            borderRadius: radius.full,
-                            backgroundColor: selected ? colors.accentSoft : colors.surfaceElevated,
-                          }}>
-                          <AppText variant="mono" tone={selected ? 'accent' : 'secondary'}>
-                            {minutes}m
-                          </AppText>
-                        </View>
-                      </PressableScale>
-                    );
-                  })}
+                  {BLOCKS.map((minutes) => (
+                    <FormChip
+                      key={minutes}
+                      label={`${minutes}m`}
+                      active={minutes === block}
+                      onPress={() => setBlock(minutes)}
+                    />
+                  ))}
                 </View>
+                <ProjectChips />
               </>
             )}
           </View>
@@ -315,8 +307,13 @@ export default function GardenScreen() {
         </View>
       </FadeUp>
 
-      {/* Session log */}
+      {/* Twelve weeks of rhythm */}
       <FadeUp index={2}>
+        <FocusHeatmap data={rhythm.data ?? []} />
+      </FadeUp>
+
+      {/* Session log */}
+      <FadeUp index={3}>
         <View>
           <SectionHeader eyebrow="records" title="Recent sessions" />
           <Panel coreStyle={{ padding: 0, overflow: 'hidden' }}>

@@ -7,10 +7,10 @@ updated: 2026-10-18
 # Design language — Material 3 Expressive
 
 Devlofy is built on **Material 3** and leans into its *Expressive* register: bold tonal
-blocks, generous shape, confident type, springy motion. The reference set (studied, not
+blocks, generous shape, confident type, precise motion. The reference set (studied, not
 copied): **Material 3 / Material You** (colour roles, tonal surfaces, FAB, shape scale),
 **Instagram / WhatsApp / LinkedIn** (mainstream clarity, real density), **Linear** (spacing
-discipline), **Things 3** (craft), **Forest** (growth warmth).
+discipline, keyboard-first density), **Things 3** (craft), **Forest** (growth warmth).
 
 The test that keeps this system honest: **tonal surfaces, one primary action, real
 information.** If a screen needs a border to explain itself, the tone is wrong. If it reads
@@ -134,6 +134,11 @@ prose.
 - `Screen` owns the **top inset**, the large top app bar (label, display title, subtitle,
   trailing action on the same line), the centered max-width (≈920) and the FAB slot; the
   bottom bar owns its own bottom inset; the note editor owns both.
+- The header's **trailing slot is an action slot, not a metadata slot** — one control (edit,
+  add, filter), never a list of pills. Facts about the record (status, due date, stack tags)
+  belong in the content, in a wrapping pill row directly under the header. The slot is capped
+  at 55% of the row so a long trailing can never crush the title into a column of single
+  characters.
 - The bottom bar sits **in the layout**, not floating over content, so nothing is ever hidden
   behind it.
 - Android edge-to-edge is the baseline: the window resizes for the keyboard (`adjustResize`),
@@ -142,18 +147,31 @@ prose.
 
 ## Motion
 
+The rule that governs every animation here: **motion states a change, then stops.** Nothing
+overshoots, nothing wobbles, nothing bounces. A spring with a damping ratio below 1 is a bug in
+this codebase, and so is `springify()`.
+
 - Tokens in `src/theme/motion.ts` — never an ad-hoc curve.
-- Press: scale 0.97, `duration.press` (120 ms), strong ease-out in; snappy spring out — all on
-  the UI thread via shared values (`.set()`), never `runOnJS`.
-- Boring transitions are *fast* (180 ms); entrances can take 420 ms.
-- Entrances are springy: `FadeUp` (`spring.expressive`) staggers 70 ms apart, max 6 items. No
-  entrance animation on virtualized rows.
-- The nav bar's active pill slides with `spring.snappy` between destinations — one shared
+- Springs are used only where a physical settle reads better than a curve, and they are
+  **critically damped** (`dampingRatio: 1`): `spring.settle` (300) and `spring.precise` (220).
+- Where a duration is enough, a curve is: `easing.out` (ease-out quint) for anything
+  entering or travelling, `easing.emphasized` (Material's `0.2, 0, 0, 1`) for on-screen
+  movement, `easing.inOut` for symmetric changes, `easing.sheet` for sheets. Never `linear`,
+  never a bare default.
+- Durations: `press` 110 · `fast` 160 · `base` 220 · `slow` 320 (values that travel) · `page`
+  460 (the first paint of a screen).
+- **Press** is symmetric and small: in to 0.975 on `duration.press`, back to 1 on
+  `duration.fast`, both on the UI thread via shared values (`.set()`), never `runOnJS`.
+- **Entrances** are `FadeUp`: a short rise (8 px) plus a fade over `duration.page`, staggered
+  45 ms by index, max 6 items. No entrance animation on virtualized rows.
+- **The nav bar's active pill** slides with `withTiming` on `easing.emphasized` — one shared
   value, UI thread, no re-render.
+- **Values** count and travel rather than snap: `AnimatedNumber` and `ProgressRing` both run
+  `duration.slow` on `easing.out` and land exactly on the value.
 - Haptics: selection on tabs/toggles, light on buttons, medium on the FAB, success on completed
   sessions/tasks. Nothing on web.
-- `ReduceMotion.System` respected on entrance choreography; `ProgressRing` animates its stroke
-  on the UI thread and snaps under reduced motion; `LiveDot` pulses only for live sessions.
+- `ReduceMotion.System` is respected everywhere: entrances collapse, `ProgressRing` snaps,
+  `LiveDot` rests as a steady dot.
 - No spinners on text: save state is a calm dot + label (`saved / saving`).
 
 ## Anti-slop rules

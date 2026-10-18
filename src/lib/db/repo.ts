@@ -320,6 +320,10 @@ export type ProjectRow = {
   due_date: string | null;
   task_count: number;
   done_count: number;
+  /** Minutes of finished focus sessions logged against this project. */
+  focus_minutes: number;
+  focus_sessions: number;
+  last_session_at: string | null;
 };
 
 export type MilestoneRow = {
@@ -337,7 +341,16 @@ export async function listProjects(db: SQLiteDatabase): Promise<ProjectRow[]> {
             (SELECT COUNT(*) FROM tasks t
               WHERE t.project_id = p.id AND t.deleted_at IS NULL) AS task_count,
             (SELECT COUNT(*) FROM tasks t
-              WHERE t.project_id = p.id AND t.status = 'done' AND t.deleted_at IS NULL) AS done_count
+              WHERE t.project_id = p.id AND t.status = 'done' AND t.deleted_at IS NULL) AS done_count,
+            (SELECT COALESCE(SUM(s.minutes), 0) FROM sessions s
+              WHERE s.project_id = p.id AND s.minutes IS NOT NULL
+                AND s.deleted_at IS NULL) AS focus_minutes,
+            (SELECT COUNT(*) FROM sessions s
+              WHERE s.project_id = p.id AND s.minutes IS NOT NULL
+                AND s.deleted_at IS NULL) AS focus_sessions,
+            (SELECT MAX(s.started_at) FROM sessions s
+              WHERE s.project_id = p.id AND s.minutes IS NOT NULL
+                AND s.deleted_at IS NULL) AS last_session_at
      FROM projects p
      LEFT JOIN clients c ON c.id = p.client_id
      WHERE p.deleted_at IS NULL
@@ -358,7 +371,16 @@ export async function getProject(db: SQLiteDatabase, id: string): Promise<Projec
             (SELECT COUNT(*) FROM tasks t
               WHERE t.project_id = p.id AND t.deleted_at IS NULL) AS task_count,
             (SELECT COUNT(*) FROM tasks t
-              WHERE t.project_id = p.id AND t.status = 'done' AND t.deleted_at IS NULL) AS done_count
+              WHERE t.project_id = p.id AND t.status = 'done' AND t.deleted_at IS NULL) AS done_count,
+            (SELECT COALESCE(SUM(s.minutes), 0) FROM sessions s
+              WHERE s.project_id = p.id AND s.minutes IS NOT NULL
+                AND s.deleted_at IS NULL) AS focus_minutes,
+            (SELECT COUNT(*) FROM sessions s
+              WHERE s.project_id = p.id AND s.minutes IS NOT NULL
+                AND s.deleted_at IS NULL) AS focus_sessions,
+            (SELECT MAX(s.started_at) FROM sessions s
+              WHERE s.project_id = p.id AND s.minutes IS NOT NULL
+                AND s.deleted_at IS NULL) AS last_session_at
      FROM projects p
      LEFT JOIN clients c ON c.id = p.client_id
      WHERE p.id = ? AND p.deleted_at IS NULL`,
@@ -477,16 +499,23 @@ export type TaskRow = {
   priority: number;
   energy: string;
   est_minutes: number | null;
+  due_at: string | null;
   project_name?: string | null;
 };
 
 export async function listTodayTasks(db: SQLiteDatabase, limit = 8): Promise<TaskRow[]> {
+  // The queue is a day view: dated work first, soonest first (overdue on top),
+  // then the undated backlog by priority.
   return db.getAllAsync<TaskRow>(
     `SELECT t.*, p.name AS project_name
      FROM tasks t
      LEFT JOIN projects p ON p.id = t.project_id
      WHERE t.deleted_at IS NULL AND t.status != 'done'
-     ORDER BY t.priority DESC, t.created_at ASC
+     ORDER BY
+       CASE WHEN t.due_at IS NULL THEN 1 ELSE 0 END,
+       t.due_at ASC,
+       t.priority DESC,
+       t.created_at ASC
      LIMIT ?`,
     [limit],
   );
@@ -494,14 +523,29 @@ export async function listTodayTasks(db: SQLiteDatabase, limit = 8): Promise<Tas
 
 export async function createTask(
   db: SQLiteDatabase,
-  input: { title: string; projectId?: string | null; priority?: number },
+  input: {
+    title: string;
+    projectId?: string | null;
+    priority?: number;
+    estMinutes?: number | null;
+    dueAt?: string | null;
+  },
 ): Promise<string> {
   const id = createId();
   const now = nowIso();
   await db.runAsync(
-    `INSERT INTO tasks (id, project_id, title, status, priority, created_at, updated_at)
-     VALUES (?, ?, ?, 'todo', ?, ?, ?)`,
-    [id, input.projectId ?? null, input.title.trim(), input.priority ?? 2, now, now],
+    `INSERT INTO tasks (id, project_id, title, status, priority, est_minutes, due_at, created_at, updated_at)
+     VALUES (?, ?, ?, 'todo', ?, ?, ?, ?, ?)`,
+    [
+      id,
+      input.projectId ?? null,
+      input.title.trim(),
+      input.priority ?? 1,
+      input.estMinutes ?? null,
+      input.dueAt ?? null,
+      now,
+      now,
+    ],
   );
   return id;
 }
@@ -532,15 +576,24 @@ export type SessionRow = {
   ended_at: string | null;
   minutes: number | null;
   note: string | null;
+  project_id: string | null;
+  project_name: string | null;
 };
 
-export async function startFocusSession(db: SQLiteDatabase): Promise<string> {
+/**
+ * Start a focus session, optionally attributed to a project. Attribution is what
+ * makes the project page able to answer "how much time did this actually take?".
+ */
+export async function startFocusSession(
+  db: SQLiteDatabase,
+  projectId?: string | null,
+): Promise<string> {
   const id = createId();
   const now = nowIso();
   await db.runAsync(
-    `INSERT INTO sessions (id, kind, started_at, created_at, updated_at)
-     VALUES (?, 'focus', ?, ?, ?)`,
-    [id, now, now, now],
+    `INSERT INTO sessions (id, project_id, kind, started_at, created_at, updated_at)
+     VALUES (?, ?, 'focus', ?, ?, ?)`,
+    [id, projectId ?? null, now, now, now],
   );
   return id;
 }
@@ -562,9 +615,10 @@ export async function endFocusSession(db: SQLiteDatabase, id: string): Promise<n
 
 export async function getActiveSession(db: SQLiteDatabase): Promise<SessionRow | null> {
   return db.getFirstAsync<SessionRow>(
-    `SELECT * FROM sessions
-     WHERE kind = 'focus' AND ended_at IS NULL AND deleted_at IS NULL
-     ORDER BY started_at DESC LIMIT 1`,
+    `SELECT s.*, p.name AS project_name FROM sessions s
+     LEFT JOIN projects p ON p.id = s.project_id
+     WHERE s.kind = 'focus' AND s.ended_at IS NULL AND s.deleted_at IS NULL
+     ORDER BY s.started_at DESC LIMIT 1`,
   );
 }
 
@@ -586,9 +640,10 @@ export async function totalFocusMinutes(db: SQLiteDatabase): Promise<number> {
 
 export async function listRecentSessions(db: SQLiteDatabase, limit = 6): Promise<SessionRow[]> {
   return db.getAllAsync<SessionRow>(
-    `SELECT * FROM sessions
-     WHERE kind = 'focus' AND deleted_at IS NULL AND minutes IS NOT NULL
-     ORDER BY started_at DESC LIMIT ?`,
+    `SELECT s.*, p.name AS project_name FROM sessions s
+     LEFT JOIN projects p ON p.id = s.project_id
+     WHERE s.kind = 'focus' AND s.deleted_at IS NULL AND s.minutes IS NOT NULL
+     ORDER BY s.started_at DESC LIMIT ?`,
     [limit],
   );
 }

@@ -10,11 +10,10 @@ import { Pressable, type PressableProps, type StyleProp, type ViewStyle } from '
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 
-import { duration, easing, spring } from '@/theme';
+import { duration, easing } from '@/theme';
 
 export type PressableScaleProps = PropsWithChildren<
   Pick<PressableProps, 'onPress' | 'onLongPress' | 'disabled' | 'hitSlop' | 'accessibilityLabel'> & {
@@ -63,10 +62,10 @@ export function PressableScale({
       accessibilityLabel={accessibilityLabel}
       onPressIn={() => {
         fireHaptic(haptic);
-        scaleValue.set(withTiming(0.97, { duration: duration.press, easing: easing.out }));
+        scaleValue.set(withTiming(0.975, { duration: duration.press, easing: easing.out }));
       }}
       onPressOut={() => {
-        scaleValue.set(withSpring(1, spring.snappy));
+        scaleValue.set(withTiming(1, { duration: duration.fast, easing: easing.out }));
       }}
       style={style}>
       <Animated.View style={[animatedStyle, contentStyle]}>{children}</Animated.View>

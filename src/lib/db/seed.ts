@@ -199,16 +199,19 @@ export async function seedIfEmpty(db: SQLiteDatabase) {
     ],
   });
 
-  // A week of focus sessions so the garden starts grown, not dead.
+  // A week of focus sessions so the garden starts grown, not dead — and so the
+  // per-project time on Work has something to show.
   const sessionMinutes = [45, 0, 70, 25, 90, 55, 42];
+  const sessionProjects = [devlofyId, null, portalId, devlofyId, portalId, starlightId, devlofyId];
   sessionMinutes.forEach((minutes, index) => {
     if (minutes <= 0) return;
     const startedAt = iso(6 - index, 4);
     statements.push({
-      sql: `INSERT INTO sessions (id, kind, started_at, ended_at, minutes, created_at, updated_at)
-            VALUES (?, 'focus', ?, ?, ?, ?, ?)`,
+      sql: `INSERT INTO sessions (id, project_id, kind, started_at, ended_at, minutes, created_at, updated_at)
+            VALUES (?, ?, 'focus', ?, ?, ?, ?, ?)`,
       params: [
         createId(),
+        sessionProjects[index],
         startedAt,
         new Date(new Date(startedAt).getTime() + minutes * 60 * 1000).toISOString(),
         minutes,
