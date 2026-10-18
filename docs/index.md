@@ -18,6 +18,7 @@ This folder is an **Obsidian vault**. Open it directly in Obsidian (`Open folder
 - [[07-decisions]] — the decision log (ADRs).
 - [[08-backlog]] — feature budget, next, later.
 - [[09-platform-ceiling]] — feasibility research: what the platforms allow (GitHub writes, SSH, terminals, and what is a hard no). Its GitHub section is now a **decision taken** (ADR-020); the SSH/terminal tiers are still just research.
+- [[10-categories]] — the six candidate categories for what comes after v0.5 (Bench, Sentinel, Ledger, Atelier, Chronicle, Flow) with their screens, data, tiers and effort, plus the ruling on each. **Bench is next.**
 
 ## The one-liner
 

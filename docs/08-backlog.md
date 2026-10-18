@@ -9,6 +9,11 @@ created: 2026-10-17
 
 ## Next (v1 candidates — pick by real friction)
 
+> **Category candidates are now written down**: [[10-categories]] holds the six big
+> ones (Bench, Sentinel, Ledger, Atelier, Chronicle, Flow) with screens, data, tier
+> and effort — and **Bench** (the offline dev toolbox, which subsumes the Tier A
+> "offline dev toolbox" line below) is the chosen next build.
+
 - [ ] Task scheduling follow-ons: energy pairing, manual reorder, editing due date/estimate after creation. ("Focus on this task" **shipped** in v0.3 — the Next up card starts a block attributed to the task.)
 - [ ] Time log editing: manual entries, edit/delete a session, move a block to another project. (Billable flags and per-project totals **shipped** in v0.3.)
 - [ ] Git dashboard follow-ons: **pinned repos** (choose the five that matter instead of "most recently pushed") and a commits/contributions feed. (Review *actions* — approve / request changes / comment / merge — and the rest of the two-way surface **shipped** in v0.5.)
@@ -28,7 +33,7 @@ All of these run on Android **and web**, inside Expo Go. Ranked by value ÷ risk
 - [ ] **Repo ⇄ project binding**: a project page shows *its* repo's open PRs and its CI; that is what no standalone GitHub client can do.
 - [ ] **The closed loop**: a failed check becomes a task in Today (with a block and an estimate), a merged PR becomes an invoice line, commit activity feeds the rhythm heatmap, a merged PR grows the Garden.
 - [ ] **Watching your back while closed**: `expo-background-task` (verified **in Expo Go**) polls CI/reviews and posts a **local** notification (local notifications work in Expo Go; remote push needs a dev build; no web at all).
-- [ ] **Offline dev toolbox**: HTTP/API client with saved requests + environments (reuses the credential store), JSON/YAML tools, JWT decoder, regex tester, cron parser, diff viewer, hash/UUID/base64, timestamp, colour/contrast, TLS cert expiry, snippet vault. All pure JS, all offline.
+- [~] **Offline dev toolbox — promoted to the next build as `Bench`** ([[10-categories]], full tool list there). v1 is offline-only: JSON/YAML/XML/SQL formatting, a regex tester, JWT decode, diff/patch view, JSON → TypeScript, hash + UUID/ULID, base64/URL/entity, epoch conversion, cron, colour/contrast, text stats. The **HTTP/API client** with saved requests + environments (a mini-Insomnia, reusing the credential store) stays on this list as Bench's *second* release, because it needs the network path and an honest CORS story on web.
 - [ ] Token hardening, corrected: `expo-secure-store` (Android Keystore) **is in Expo Go**, so the earlier "needs a dev-build check" caveat on this line was wrong — it can ship in Tier A.
 
 ### Tier B candidates — need a development build, Android only ([[09-platform-ceiling]])
