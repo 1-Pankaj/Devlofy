@@ -240,8 +240,49 @@ export async function updateClient(
     params.push(patch.hourlyRate);
   }
   if (sets.length === 0) return;
+
+  // Setting a rate for the first time is the moment the client's past time
+  // becomes billable ("typing a rate once prices the work you already did"),
+  // but only blocks that were never deliberately taken off the bill — an
+  // exclusion is a decision, and a later edit must not quietly reverse it.
+  const wasUnrated =
+    patch.hourlyRate != null
+      ? (
+          await db.getFirstAsync<{ hourly_rate: number | null }>(
+            'SELECT hourly_rate FROM clients WHERE id = ?',
+            [id],
+          )
+        )?.hourly_rate == null
+      : false;
+
   params.push(nowIso(), id);
   await db.runAsync(`UPDATE clients SET ${sets.join(', ')}, updated_at = ? WHERE id = ?`, params);
+
+  if (wasUnrated) {
+    await backfillBillableSessionsForClient(db, id);
+  }
+}
+
+/**
+ * Mark a client's existing blocks billable, for projects that do not carry a
+ * rate of their own (those inherit the client's) — the retrofit case.
+ */
+async function backfillBillableSessionsForClient(db: SQLiteDatabase, clientId: string) {
+  await db.runAsync(
+    `UPDATE sessions SET billable = 1, updated_at = ?
+     WHERE billable = 0 AND deleted_at IS NULL
+       AND project_id IN (SELECT id FROM projects WHERE client_id = ? AND hourly_rate IS NULL)`,
+    [nowIso(), clientId],
+  );
+}
+
+/** The same retrofit for a single project. */
+async function backfillBillableSessionsForProject(db: SQLiteDatabase, projectId: string) {
+  await db.runAsync(
+    `UPDATE sessions SET billable = 1, updated_at = ?
+     WHERE billable = 0 AND deleted_at IS NULL AND project_id = ?`,
+    [nowIso(), projectId],
+  );
 }
 
 export type ClientDetail = {
@@ -528,8 +569,26 @@ export async function updateProject(
     params.push(patch.hourly_rate);
   }
   if (sets.length === 0) return;
+
+  // Same retrofit as a client's: a rate typed for the first time makes the
+  // project's existing blocks billable, without resurrecting any the user
+  // deliberately excluded.
+  const wasUnrated =
+    patch.hourly_rate != null
+      ? (
+          await db.getFirstAsync<{ hourly_rate: number | null }>(
+            'SELECT hourly_rate FROM projects WHERE id = ?',
+            [id],
+          )
+        )?.hourly_rate == null
+      : false;
+
   params.push(nowIso(), id);
   await db.runAsync(`UPDATE projects SET ${sets.join(', ')}, updated_at = ? WHERE id = ?`, params);
+
+  if (wasUnrated) {
+    await backfillBillableSessionsForProject(db, id);
+  }
 }
 
 // ─────────────────────────── Tasks ───────────────────────────
