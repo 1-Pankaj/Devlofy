@@ -149,7 +149,12 @@ export function diffLines(beforeText: string, afterText: string): LineDiff {
 
   const pushContext = (count: number) => {
     for (let k = 0; k < count; k += 1) {
-      const index = prefix + k;
+      // The line number we are about to hand out *is* the index: this works for
+      // the prefix (beforeNo is 1) and for the suffix (beforeNo has been walked
+      // to the first shared line at the end) without a second formula. The old
+      // `prefix + k` was wrong for both, and printed the wrong text on every
+      // diff whose two sides start with a shared line — which is most of them.
+      const index = beforeNo - 1 + k;
       all.push({
         kind: 'context',
         text: beforeLines[index] ?? '',
@@ -224,6 +229,22 @@ function toHunks(lines: DiffLine[]): DiffHunk[] {
       lines: slice,
     };
   });
+}
+
+/**
+ * `@@ -1,3 +1,4 @@` — the hunk header, in its real spelling.
+ *
+ * The abbreviated form (`@@ -1 +1 @@`) is only correct when a side contributes
+ * exactly one line, so the counts are omitted per side rather than always. Both
+ * the rendered diff and the patch text go through here, so a hunk can never be
+ * labelled two different ways in the same app.
+ */
+export function hunkHeader(hunk: DiffHunk): string {
+  const beforeCount = hunk.lines.filter((line) => line.kind !== 'add').length;
+  const afterCount = hunk.lines.filter((line) => line.kind !== 'remove').length;
+  const before = beforeCount === 1 ? `${hunk.beforeStart}` : `${hunk.beforeStart},${beforeCount}`;
+  const after = afterCount === 1 ? `${hunk.afterStart}` : `${hunk.afterStart},${afterCount}`;
+  return `@@ -${before} +${after} @@`;
 }
 
 /** "+2 −3" — the arithmetic a confirmation can state without a screenshot. */

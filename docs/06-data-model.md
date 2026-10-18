@@ -26,8 +26,9 @@ If sync ever happens (it's a "maybe"), the schema is already shaped for last-wri
 | `tasks` | the day's work | `project_id` (nullable = inbox), `status`, `priority` (0–2, **2 = high** — the task grammar's `!3` maps to it), `energy` (deep/shallow), `est_minutes`, `due_at` (nullable, 09:00 local on the due day), `completed_at`, `tags` |
 | `sessions` | time log / focus | `kind` (focus/meeting/break), `started_at`, `ended_at`, `minutes`, `project_id` (nullable — what the block was *for*), `task_id` (nullable — what the block was *spent on*, which is what makes estimate drift possible), `billable` (set at start from the resolved rate), `note` |
 | `notes` | knowledge | `title`, `body` (markdown-ish), `pinned`, `tags` (comma-separated lowercase slugs — see `src/lib/tags.ts`), optional `project_id`/`client_id` (link chips in the editor) |
+| `bench_snippets` | what you kept from a Bench tool (v3) | `tool` (the tool id — it decides which screen re-opens it), `title`, `body` (the tool's own artifact: formatted JSON, a unified patch, a regex, a digest…), `language` (nullable, for the shared code renderer) |
 
-Indexes: `tasks(status)`, `tasks(project_id)`, `sessions(started_at)`, `notes(updated_at DESC)`, `projects(client_id)`, **`sessions(project_id)`** (v2) — all partial on `deleted_at IS NULL`.
+Indexes: `tasks(status)`, `tasks(project_id)`, `sessions(started_at)`, `notes(updated_at DESC)`, `projects(client_id)`, **`sessions(project_id)`** (v2), **`bench_snippets(updated_at DESC)`** and **`bench_snippets(tool)`** (v3) — all partial on `deleted_at IS NULL`.
 
 ## Migrations
 
@@ -35,6 +36,7 @@ Indexes: `tasks(status)`, `tasks(project_id)`, `sessions(started_at)`, `notes(up
 |---|---|---|
 | 1 | the six tables above + five partial indexes | the foundation ([[03-architecture]]) |
 | 2 | `clients.hourly_rate`, `projects.hourly_rate`, `idx_sessions_project` | money-lite: a block's price resolves from its project, so pricing needs no new join table and no per-block input ([[07-decisions]] ADR-017) |
+| 3 | `bench_snippets` + `idx_bench_snippets_updated` / `idx_bench_snippets_tool` | Bench: a kept snippet is user content — it has a title, a tool it belongs to, and must ride along in the app's own export — so it is a table, not a KV value ([[07-decisions]] ADR-021) |
 
 ## Derived data (computed, never stored)
 
@@ -53,6 +55,7 @@ Indexes: `tasks(status)`, `tasks(project_id)`, `sessions(started_at)`, `notes(up
 
 - **Global** (v0.3): `searchEverything()` runs four bounded `LIKE` queries over projects (name/description/stack), clients (name/company/email/notes), notes (title/body) and tasks (title/project name), and returns one grouped result set (six per kind, `perKind`). Reached from Today's header or ⌘/Ctrl-K on web ([[07-decisions]] ADR-018).
 - **Notes**: `LIKE` over `title` + `body` + `tags`, narrowable by linked client/project chips.
+- **Bench snippets** are searched on their own screen (`/bench/snippets`, `listSnippets(db, query)` over `title` + `body`) rather than through `searchEverything()`. A snippet is a value you go and use in a tool, not a record you navigate to; it has its own list, its own search field, and the shelf row that opens it ([[07-decisions]] ADR-021).
 - **v1.5**: **FTS5** on native behind a capability check; web keeps LIKE (the wasm build has no FTS5 — see [[03-architecture]]). Any FTS result must keep the v0.3 shape.
 
 ## Not in the database (KV)
@@ -68,7 +71,7 @@ First run seeds a living demo (idempotent, guarded on `clients` being empty): Co
 
 ## Export & backup
 
-`exportAll()` dumps every table as JSON; the More screen shares it (native share sheet) or copies it (web clipboard). **Export exists from v0.1 because data ownership is the product promise.** A full backup/restore file flow lands in v2 ([[02-scope]]).
+`exportAll()` dumps every table as JSON (`{ app, version, exported_at, data }`); the More screen shares it (native share sheet) or copies it (web clipboard). The dump's `version` went to **2** in v0.6 when `bench_snippets` joined it, so a reader can tell whether it will find a table it knows. **Export exists from v0.1 because data ownership is the product promise**, and "every table" is literal: a new table is added to the `tables` list in the same change that creates it. A full backup/restore file flow lands in v2 ([[02-scope]]).
 
 ## Migration policy
 

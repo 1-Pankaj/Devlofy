@@ -13,7 +13,7 @@
 import { View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
-import type { DiffHunk } from '@/lib/github/diff';
+import { hunkHeader, type DiffHunk } from '@/lib/diff';
 import { fonts, radius, spacing, useTheme } from '@/theme';
 
 export function DiffView({
@@ -62,7 +62,7 @@ export function DiffView({
               borderTopColor: colors.hairline,
             }}>
             <AppText variant="mono" tone="tertiary" style={{ fontSize: 12 }}>
-              {`@@ −${hunk.beforeStart} +${hunk.afterStart} @@`}
+              {hunkHeader(hunk)}
             </AppText>
           </View>
 

@@ -44,7 +44,7 @@ import { FadeUp } from '@/components/ui/stagger';
 import { TextField } from '@/components/ui/text-field';
 import { GithubGate } from '@/components/github/gate';
 import { CheckRow, ChipPicker, MultiChipPicker, Notice, StateDot } from '@/components/github/rows';
-import { DiffStat, DiffView } from '@/components/github/diff-view';
+import { DiffStat, DiffView } from '@/components/ui/diff-view';
 import { formatAgo } from '@/lib/format';
 import { listAssignableUsers } from '@/lib/github/issues';
 import { parsePatch } from '@/lib/github/patch';

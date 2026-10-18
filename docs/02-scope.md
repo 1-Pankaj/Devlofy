@@ -78,6 +78,19 @@ Not built, deliberately: **gists** (the endpoint is one call, but a second snipp
 
 Surfaces touched: `/github` becomes a hub of twelve screens (`repo`, `browse`, `blob`, `edit`, `pulls`, `pr`, `issues`, `issue`, `new-issue`, `actions`, `notifications`, `release`) with its own nested navigator; Work's GitHub row says what it now does; **no schema change** — GitHub's data stays in KV ([[06-data-model]]).
 
+## v0.6 — Bench, the offline toolbox *(built 2026-10-19)*
+
+The first new **category** since v0.1 ([[10-categories]]), and the first release with nothing networked in it at all — every tool runs on the device, on both platforms, in Expo Go ([[07-decisions]] ADR-021):
+
+- **A shelf in More, not a sixth tab** — the tab bar keeps its five destinations; Bench opens from an `offline` section on More. Route `/bench` is a stack: the shelf, one host route per tool, and the kept-snippets list. Filtering the shelf matches tool names and their one-line promise.
+- **Eleven tools, grouped by kind** — *data*: JSON (format / minify / sort keys / types + stats), SQL (dialect-aware formatting with keyword casing), Diff (two texts or a paste-able unified patch, built on GitHub's own engine); *text*: Regex (highlighted hits, groups, a replacement preview, recipes), Text (word/character/reading stats and nine case conversions), Encode (base64, URL, HTML entities, hex, with byte previews); *time*: JWT (decode and *not* verify — said out loud, with iat/exp in human words), Hash (SHA-1/SHA-256, compared against an expected digest), Epoch (parse and format, plus a live "now"), Cron (a full parser that says the schedule in words and the next five runs); *colour*: Colour (hex/rgb/hsl, WCAG contrast grades against AA and AAA, and a tonal ramp that shows each step's ratio).
+- **Every tool computes as you type** — no Run button, no stale result.
+- **What you keep is the tool's own artifact** — the formatted document, the unified patch, the pattern, the digest, the ISO timestamp, the cron expression, the hex — saved to `bench_snippets` (**schema v3**) with a title, and re-opened **in the tool that made it** (`?snippet=<id>`, updating the same row).
+- **Honest by subtraction** — YAML and XML were cut from the plan rather than shipping a half-parser, and the HTTP/API client is Bench's *second* release ([[08-backlog]]).
+- **Pure logic, verified** — all eleven tools live in `src/lib/bench/*` and are covered by **eighty known-answer checks** (`self-check.ts`), which caught four bugs in this release and one pre-existing bug in the shared diff engine that had been printing the wrong context line in GitHub's editor since v0.5.
+
+Surfaces touched: More gains its **Bench** section; new route `/bench` (shelf, `[tool]`, `snippets`); `src/lib/bench/*` + `src/components/bench/*`; the shared `src/lib/diff.ts`, `base64.ts` and `src/components/ui/code-block|diff-view` are now used by two features; **schema v3** ([[06-data-model]]).
+
 ## v1 — the spine *(next)*
 
 - Task scheduling follow-ons: energy pairing, manual reordering, due-date editing after creation.

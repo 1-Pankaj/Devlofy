@@ -11,7 +11,7 @@
  * there and stops at the first line it does not understand, which is exactly the
  * behaviour a diff view wants.
  */
-import type { DiffHunk, DiffLine } from './diff';
+import type { DiffHunk, DiffLine } from '@/lib/diff';
 
 const HUNK_HEADER = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/;
 

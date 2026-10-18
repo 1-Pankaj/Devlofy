@@ -29,7 +29,7 @@ an ADR before it ships (house rule).
 
 | # | Category | Axis it fills | Effort | Ships in |
 |---|---|---|---|---|
-| 1 | **Bench** — the offline dev toolbox | tools | M | Expo Go + web |
+| 1 | **Bench** — the offline dev toolbox — **shipped v0.6** | tools | M | Expo Go + web |
 | 2 | **Sentinel** — is production up? | the outside world | M | Expo Go (+ web caveat) |
 | 3 | **Ledger** — the getting-paid loop | the business | M–L | Expo Go + web, offline |
 | 4 | **Atelier** — your 3D asset library | the craft | M–L | Expo Go; web degrades |
@@ -44,7 +44,7 @@ transport spike in [[08-backlog]] first).
 
 ---
 
-## 1 · Bench — the offline dev toolbox *(chosen next)*
+## 1 · Bench — the offline dev toolbox *(built · v0.6)*
 
 **What it is.** A shelf of small, sharp, instant tools, each one a real screen.
 The premium promise is the one a web tool cannot make: **the payload never leaves
@@ -55,45 +55,56 @@ thrown away unless you save them.
 day*, and it is the honest answer to "Termux-like utility belt" without shipping
 a terminal ([[09-platform-ceiling]]). It is also the cheapest big thing on this
 list, because Phase A left us the hard parts: `src/lib/highlight.ts` (our own
-tokenizer, already colour-driven from `src/theme`), `src/lib/github/diff.ts` and
-`patch.ts` (both diff engines), and `base64.ts`.
+tokenizer, already colour-driven from `src/theme`), `src/lib/diff.ts` (the diff
+engine, plus `src/lib/bench/patch.ts` to write a patch back out), and
+`src/lib/base64.ts`.
 
-**The v1 tool set** (offline, no network, no new dependency):
+**What shipped** (v0.6, offline, no new dependency) — eleven tools, grouped
+*data · text · time · colour*, each computing as you type:
 
 | Tool | Reuses |
 |---|---|
-| JSON format / minify / validate, with a path navigator | `highlight.ts` |
-| YAML / TOML / XML pretty-print (best-effort, honest about failures) | — |
-| Regex tester: live match highlighting, groups, replace preview | `highlight.ts` |
-| JWT decoder: header / payload / claims, expiry stated in words | `base64.ts` |
-| Diff & patch viewer — paste two texts, get one diff | `diff.ts`, `diff-view.tsx` |
-| JSON → TypeScript types | — |
-| SQL formatter | — |
-| Hash + UUID/ULID generator | `base64.ts` (bytes), `expo-crypto` (in Expo Go) |
-| Base64 / URL / HTML-entity encode-decode | `base64.ts` |
-| Epoch ↔ ISO converter, with "3 days ago" | `format.ts` |
-| Cron parser: what a cron string means in plain words, next 5 runs | — |
-| Colour picker + contrast checker (WCAG AA/AAA pass-fail) | `src/theme` |
-| Text stats: lines, words, chars, bytes, reading time | — |
-| Timestamp / ID / slug scratchpad with copy | — |
+| JSON: format / minify / sort keys / types + stats, with the app's own error locator | `highlight.ts` |
+| SQL formatter (dialect-aware, keyword casing) | — |
+| Diff: two texts or a paste-able unified patch | `diff.ts`, `bench/patch.ts`, `diff-view.tsx` |
+| Regex tester: live match highlighting, groups, replace preview, recipes | `highlight.ts` |
+| Text stats (words, characters, bytes, reading time) + nine case conversions | — |
+| Base64 / URL / HTML-entity / hex encode-decode, with byte previews | `base64.ts` |
+| JWT decoder: header / claims, expiry in words, **and never verified — said out loud** | `base64.ts`, `bench/jwt.ts` |
+| Hash: SHA-1 / SHA-256 against an expected digest · Epoch: parse + format + now | `bench/hash.ts` |
+| Cron: a full parser that says the schedule in words and the next five runs | — |
+| Colour: hex/rgb/hsl, WCAG contrast grades, a tonal ramp with per-step ratios | `src/theme` |
+
+**Cut on purpose, not shipped:** **YAML / TOML / XML** pretty-printing (a
+half-parser that is wrong on real documents is worse than no tool, and the app
+ships no parser dependency) and a **timestamp/ID/slug scratchpad** (the parts
+worth having are covered by Epoch, Hash and Encode). The original estimate of
+"~14 tools" was trimmed to eleven that each do one thing correctly: **realism,
+not padding** ([[07-decisions]] ADR-021).
 
 **Shape.** `src/app/bench/index.tsx` is the shelf (grouped by kind: *data*,
-*text*, *time*, *colour*); `src/app/bench/[tool].tsx` is one host that renders
-the chosen tool, so adding a tool is one entry plus one component in
-`src/components/bench/`. Pure logic lives in `src/lib/bench/*` so it can be
-unit-tested without a screen.
+*text*, *time*, *colour*, plus a filtered search and the kept-snippets row);
+`src/app/bench/[tool].tsx` is one host that renders the chosen tool, so adding a
+tool is one entry in `src/lib/bench/tools.ts` plus one component in
+`src/components/bench/`. Pure logic lives in `src/lib/bench/*`, covered by
+**eighty known-answer checks** in `src/lib/bench/self-check.ts` — run under Node
+against emitted JS, no test runner ([[03-architecture]]).
 
-**Data.** Snippets are *your content*, so they belong in SQLite, not KV: a
-`bench_snippets` table (id, tool, title, body, created_at, updated_at) — a
-migration v3 with [[06-data-model]] updated in the same change. Recent-input
-history stays in memory, or KV if it turns out to be wanted.
+**Data.** Snippets are *your content*, so they belong in SQLite, not KV:
+**migration v3** adds `bench_snippets` (id, tool, title, body, language,
+created_at, updated_at, deleted_at) — [[06-data-model]] carries it, `exportAll()`
+carries it, and opening a snippet **re-opens it in the tool that made it**. There
+is no recent-input history stored anywhere: the tools are stateless by design.
 
 **Explicitly not in v1:** the HTTP/API client (saved requests + environments),
 because it needs the credential store, a network path, and an honest story about
-CORS on web — that is Bench's *second* release, not its first.
+CORS on web — that is Bench's *second* release, not its first ([[08-backlog]]).
 
-**Open question.** Where it lives: a sixth tab, or a shelf inside More. Decide
-before the first line of code, because it changes `nav-items` and the shell.
+**Open question — answered: a shelf inside More, not a sixth tab.** A tab is a
+place the app's day runs through; Bench is a place you visit with an errand, and
+sixth-tab real estate would have demoted one of the five that already work. The
+tab bar is unchanged; More gains an `offline` section whose row says exactly what
+Bench is ("11 tools that run on this device — nothing is uploaded").
 
 ---
 

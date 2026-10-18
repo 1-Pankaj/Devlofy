@@ -63,19 +63,28 @@ src/
     client-form.tsx       # modal
     invoice.tsx           # invoice draft (period/client scoped, a view over sessions)
     search.tsx            # global search modal (four kinds)
+    bench/                # the offline toolbox: index (shelf), [tool] (one host route), snippets
     _layout.tsx           # providers, fonts, splash, stack
   components/
-    ui/                   # Panel, AppButton, AppText, ListRow, Segmented, Screen, …
+    ui/                   # Panel, AppButton, AppText, ListRow, Segmented, Screen, CodeBlock, DiffView, …
     nav/                  # nav-items, BottomTabBar, DesktopShell
     garden/               # garden-scene.tsx (R3F)
     focus/                # heatmap, project chips, Next up (the Engine's card), rhythm card
+    bench/                # eleven tool screens + the "keep this" panel + shared tool chrome
   lib/
     db/                   # migrations, seed, repo, hooks, provider
     engine/               # the Engine: rhythm.ts, next-up.ts, estimate.ts, use-engine.ts
+    bench/                # pure tool logic: hash, json, sql, regex, jwt, encode, time, colour,
+                          #   textstats, patch (LineDiff → unified patch), tools (the registry),
+                          #   self-check.ts (known-answer checks — run it under Node)
     garden/model.ts       # pure tree math (deterministic PRNG)
-    github/               # the one networked feature: api.ts, repo.ts, pulls.ts, issues.ts, ci.ts, patch.ts, base64.ts, device.ts, token.ts, cache.ts, config.ts
+    github/               # the one networked feature: api.ts, repo.ts, pulls.ts, issues.ts, ci.ts,
+                          #   patch.ts (parses GitHub's patch *into* DiffHunks), device.ts, token.ts,
+                          #   cache.ts, config.ts
     layout/breakpoints.ts # window size classes + desktop mode
     three/                # platform shim
+    base64.ts, diff.ts    # transport-free primitives shared by GitHub and Bench
+    highlight.ts          # the app's own syntax tokenizer (no dependency)
     money.ts              # rates → line items → invoice text (pure)
     parse-task.ts         # the quick-add grammar (pure)
     format.ts, share.ts, storage*.ts, search-shortcut*.ts, version.ts
@@ -95,6 +104,18 @@ npx expo-doctor                # dependency health
 ```
 
 Press `Shift+M` in the Expo CLI to browse the SQLite database with the dev tool.
+
+## Checking the pure modules without a test runner
+
+`src/lib/bench/self-check.ts` holds known-answer checks over every pure module Bench owns (hashes against published vectors, RFC semantics for base64/URL/JWT, cron against real timestamps, WCAG contrast, diff/patch round-trips). It is plain TypeScript returning a result list, so it runs anywhere TypeScript does — and Node 22 is not always built with TS support, so the route is an explicit emit:
+
+```bash
+npx tsc src/lib/bench/self-check.ts --ignoreConfig --outDir /tmp/bv \
+  --module commonjs --target es2020 --moduleResolution node --skipLibCheck
+node -e "require('/tmp/bv/bench/self-check.js').runSelfCheck()"
+```
+
+It prints `total / passed / failed` and the detail of anything that failed. When a pure module changes, add the case that would have caught the change: this file is the reason a hand-written SHA-1 can be trusted next to `git` ([[07-decisions]] ADR-021). The intent in [[08-backlog]] is to extend this habit to the Engine and the GitHub parsers rather than introduce vitest.
 
 ## Boot order
 

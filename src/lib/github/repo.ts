@@ -22,7 +22,7 @@ import {
   splitRepo,
   GithubError,
 } from './api';
-import { base64ToBytes, bytesToBase64, bytesToUtf8, looksBinary, utf8ToBytes } from './base64';
+import { base64ToBytes, bytesToBase64, bytesToUtf8, looksBinary, utf8ToBytes } from '@/lib/base64';
 
 /** A file this app will not pull into memory as text (≈8 MB of base64 + copy). */
 const MAX_EDITABLE_BYTES = 400_000;

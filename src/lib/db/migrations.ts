@@ -121,6 +121,26 @@ const MIGRATIONS: Migration[] = [
       `CREATE INDEX idx_sessions_project ON sessions (project_id) WHERE deleted_at IS NULL;`,
     ],
   },
+  {
+    // Bench. Snippets are the user's *own* content, so unlike GitHub's cache —
+    // someone else's data, which lives in KV — they get a table: searchable,
+    // exportable, tombstoned like everything else (ADR-021).
+    version: 3,
+    statements: [
+      `CREATE TABLE bench_snippets (
+        id TEXT PRIMARY KEY NOT NULL,
+        tool TEXT NOT NULL,
+        title TEXT NOT NULL,
+        body TEXT NOT NULL DEFAULT '',
+        language TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        deleted_at TEXT
+      );`,
+      `CREATE INDEX idx_bench_snippets_tool ON bench_snippets (tool) WHERE deleted_at IS NULL;`,
+      `CREATE INDEX idx_bench_snippets_updated ON bench_snippets (updated_at DESC) WHERE deleted_at IS NULL;`,
+    ],
+  },
 ];
 
 /**

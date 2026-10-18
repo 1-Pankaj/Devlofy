@@ -858,14 +858,26 @@ export async function getDataStats(db: SQLiteDatabase): Promise<DataStats> {
 }
 
 export async function exportAll(db: SQLiteDatabase) {
-  const tables = ['clients', 'projects', 'milestones', 'tasks', 'sessions', 'notes'] as const;
+  // Every table the user owns. A new table must be added here in the same change
+  // that creates it — the export promise is only as good as this list.
+  const tables = [
+    'clients',
+    'projects',
+    'milestones',
+    'tasks',
+    'sessions',
+    'notes',
+    'bench_snippets',
+  ] as const;
   const dump: Record<string, unknown[]> = {};
   for (const table of tables) {
     dump[table] = await db.getAllAsync(`SELECT * FROM ${table}`);
   }
   return {
     app: 'devlofy',
-    version: 1,
+    // Bumped to 2 when `bench_snippets` joined the dump: a newer export carries a
+    // table an older reader has never seen, and a format number is how it says so.
+    version: 2,
     exported_at: nowIso(),
     data: dump,
   };
@@ -1087,4 +1099,86 @@ export async function searchEverything(
       done: row.status === 'done' ? 1 : 0,
     })),
   ];
+}
+
+// ─────────────────────────── Bench ───────────────────────────
+
+export type SnippetRow = {
+  id: string;
+  tool: string;
+  title: string;
+  body: string;
+  language: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+/**
+ * Saved snippets, newest first. `search` is a plain LIKE over title and body —
+ * the same bargain search makes everywhere else in this app ([[07-decisions]]
+ * ADR-018), and enough at personal scale.
+ */
+export async function listSnippets(db: SQLiteDatabase, search?: string): Promise<SnippetRow[]> {
+  const query = search?.trim();
+  if (query) {
+    const like = `%${query}%`;
+    return db.getAllAsync<SnippetRow>(
+      `SELECT id, tool, title, body, language, created_at, updated_at
+       FROM bench_snippets
+       WHERE deleted_at IS NULL AND (title LIKE ? OR body LIKE ?)
+       ORDER BY updated_at DESC`,
+      [like, like],
+    );
+  }
+  return db.getAllAsync<SnippetRow>(
+    `SELECT id, tool, title, body, language, created_at, updated_at
+     FROM bench_snippets
+     WHERE deleted_at IS NULL
+     ORDER BY updated_at DESC`,
+  );
+}
+
+export async function getSnippet(db: SQLiteDatabase, id: string): Promise<SnippetRow | null> {
+  return db.getFirstAsync<SnippetRow>(
+    'SELECT id, tool, title, body, language, created_at, updated_at FROM bench_snippets WHERE id = ? AND deleted_at IS NULL',
+    [id],
+  );
+}
+
+export async function saveSnippet(
+  db: SQLiteDatabase,
+  input: { tool: string; title: string; body: string; language?: string | null; id?: string },
+): Promise<string> {
+  const now = nowIso();
+  if (input.id) {
+    await db.runAsync(
+      `UPDATE bench_snippets SET tool = ?, title = ?, body = ?, language = ?, updated_at = ?
+       WHERE id = ?`,
+      [input.tool, input.title, input.body, input.language ?? null, now, input.id],
+    );
+    return input.id;
+  }
+  const id = createId();
+  await db.runAsync(
+    `INSERT INTO bench_snippets (id, tool, title, body, language, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [id, input.tool, input.title, input.body, input.language ?? null, now, now],
+  );
+  return id;
+}
+
+export async function deleteSnippet(db: SQLiteDatabase, id: string) {
+  const now = nowIso();
+  await db.runAsync(
+    'UPDATE bench_snippets SET deleted_at = ?, updated_at = ? WHERE id = ?',
+    [now, now, id],
+  );
+}
+
+/** How many snippets are kept — one figure for the shelf's honest empty state. */
+export async function countSnippets(db: SQLiteDatabase): Promise<number> {
+  const row = await db.getFirstAsync<{ count: number }>(
+    'SELECT COUNT(*) AS count FROM bench_snippets WHERE deleted_at IS NULL',
+  );
+  return row?.count ?? 0;
 }

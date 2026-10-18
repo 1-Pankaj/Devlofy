@@ -2,21 +2,25 @@
  * More — appearance, desktop mode, data and the honest fine print.
  */
 import { useSQLiteContext } from 'expo-sqlite';
-import { DownloadSimple } from 'phosphor-react-native';
+import { useRouter } from 'expo-router';
+import { DownloadSimple, Toolbox } from 'phosphor-react-native';
 import { useState, type ReactNode } from 'react';
 import { Share, View } from 'react-native';
 
 import { AppButton } from '@/components/ui/app-button';
 import { AppText } from '@/components/ui/app-text';
 import { AnimatedNumber } from '@/components/ui/animated-number';
+import { ListRow } from '@/components/ui/list-row';
 import { Panel } from '@/components/ui/panel';
 import { Eyebrow } from '@/components/ui/pill';
 import { Screen } from '@/components/ui/screen';
+import { SectionHeader } from '@/components/ui/section';
 import { Segmented } from '@/components/ui/segmented';
 import { FadeUp } from '@/components/ui/stagger';
 import { TextField } from '@/components/ui/text-field';
 import { useLiveQuery } from '@/lib/db/hooks';
 import { exportAll, getDataStats } from '@/lib/db/repo';
+import { BENCH_TOOLS } from '@/lib/bench/tools';
 import { APP_VERSION } from '@/lib/version';
 import { GOAL_OPTIONS, useSettings, type DesktopMode, type ThemeMode } from '@/state/settings';
 import { radius, spacing, useTheme } from '@/theme';
@@ -58,6 +62,7 @@ export default function MoreScreen() {
   const dailyGoalMinutes = useSettings((s) => s.dailyGoalMinutes);
   const setDailyGoalMinutes = useSettings((s) => s.setDailyGoalMinutes);
 
+  const router = useRouter();
   const stats = useLiveQuery((d) => getDataStats(d));
   const [exportNote, setExportNote] = useState<string | null>(null);
 
@@ -92,6 +97,19 @@ export default function MoreScreen() {
         subtitle: 'Shape the app around how you work.',
       }}>
       <FadeUp index={0}>
+        <SectionHeader eyebrow="offline" title="Bench" />
+        <Panel coreStyle={{ padding: 0, overflow: 'hidden' }}>
+          <ListRow
+            icon={<Toolbox size={17} color={colors.accent} weight="light" />}
+            tone="accent"
+            title="Bench"
+            subtitle={`${BENCH_TOOLS.length} tools that run on this device — nothing is uploaded`}
+            onPress={() => router.push('/bench')}
+          />
+        </Panel>
+      </FadeUp>
+
+      <FadeUp index={1}>
         <Panel coreStyle={{ padding: 0 }}>
           <SettingBlock title="Your name" caption="Used for the greeting. Everything else is yours too.">
             <TextField value={userName} onChangeText={setUserName} placeholder="Your name" />
@@ -140,7 +158,7 @@ export default function MoreScreen() {
         </Panel>
       </FadeUp>
 
-      <FadeUp index={1}>
+      <FadeUp index={2}>
         <View style={{ gap: spacing.lg }}>
           {/* Data: one hero figure, then the supporting counts */}
           <View
@@ -205,7 +223,7 @@ export default function MoreScreen() {
         </View>
       </FadeUp>
 
-      <FadeUp index={2}>
+      <FadeUp index={3}>
         <Panel coreStyle={{ gap: spacing.xs }}>
           <Eyebrow>about</Eyebrow>
           <AppText variant="subheadMedium">Devlofy v{APP_VERSION}</AppText>

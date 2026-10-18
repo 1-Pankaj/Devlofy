@@ -52,9 +52,9 @@ import { FadeUp } from '@/components/ui/stagger';
 import { TextField } from '@/components/ui/text-field';
 import { GithubGate } from '@/components/github/gate';
 import { ChipPicker, Notice } from '@/components/github/rows';
-import { DiffView } from '@/components/github/diff-view';
+import { DiffView } from '@/components/ui/diff-view';
 import { GithubError } from '@/lib/github/api';
-import { describeDiff, diffLines } from '@/lib/github/diff';
+import { describeDiff, diffLines } from '@/lib/diff';
 import { createPull, type PullSummary } from '@/lib/github/pulls';
 import {
   commitFile,
