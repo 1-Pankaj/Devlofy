@@ -20,6 +20,25 @@ created: 2026-10-17
 - [ ] Project templates (tasks + milestones from a template) — promoted from Later; the shape is already in the seed.
 - [ ] Unit tests for the pure modules (`engine/*`, `money.ts`, `parse-task.ts`) — needs a runner (vitest) added to the project; no test infrastructure exists today, and these are the modules where a silent wrong number would go unnoticed. `github/api.ts` and `github/device.ts` now belong on that list too: their parsers are pure, and their failure paths (401, rate limit, missing permission) are exactly the ones a real token hits.
 
+### Tier A candidates — pure HTTPS, no new native dependency ([[09-platform-ceiling]])
+
+All of these run on Android **and web**, inside Expo Go. Ranked by value ÷ risk in that note.
+
+- [ ] **GitHub two-way**: browse/read files with syntax highlighting, edit → commit to a branch → open a PR, submit a review (approve / request changes / comment), merge (merge/squash/rebase), issue triage, Actions control (dispatch / re-run / cancel / logs), releases from generated notes, gists, notifications inbox. Reverses ADR-019's read-only rule and therefore needs **ADR-020** plus the write-safety design (never `main` by default, diff before commit, no force-push, bounds on what can be written).
+- [ ] **Repo ⇄ project binding**: a project page shows *its* repo's open PRs and its CI; that is what no standalone GitHub client can do.
+- [ ] **The closed loop**: a failed check becomes a task in Today (with a block and an estimate), a merged PR becomes an invoice line, commit activity feeds the rhythm heatmap, a merged PR grows the Garden.
+- [ ] **Watching your back while closed**: `expo-background-task` (verified **in Expo Go**) polls CI/reviews and posts a **local** notification (local notifications work in Expo Go; remote push needs a dev build; no web at all).
+- [ ] **Offline dev toolbox**: HTTP/API client with saved requests + environments (reuses the credential store), JSON/YAML tools, JWT decoder, regex tester, cron parser, diff viewer, hash/UUID/base64, timestamp, colour/contrast, TLS cert expiry, snippet vault. All pure JS, all offline.
+- [ ] Token hardening, corrected: `expo-secure-store` (Android Keystore) **is in Expo Go**, so the earlier "needs a dev-build check" caveat on this line was wrong — it can ship in Tier A.
+
+### Tier B candidates — need a development build, Android only ([[09-platform-ceiling]])
+
+Nothing here starts until a spike proves the transport.
+
+- [ ] **Spike: SSH transport.** Prove or kill pure-JS `ssh2` + `react-native-tcp-socket` (or a New-Arch-compatible libssh2 wrapper) on the tablet in a dev build. `react-native-ssh-sftp` has had no npm release in over a year and its New-Arch support is unverified — RN 0.88 is New-Arch-only, so an unported module is a hard stop.
+- [ ] **Spike: terminal view.** `expo-libghostty` 0.8.1 (MIT, real libghostty VT core, bring-your-own-PTY) is documented for SDK 57 and needs a compatibility check on 58; fallback is xterm.js in `react-native-webview`.
+- [ ] **Connect** (only after both spikes): saved SSH hosts with host-key verification, pure-JS Ed25519 keygen + one-tap "add this key to GitHub", one-shot remote commands with the block timer running, SFTP, and an SSH terminal themed from `src/theme`. Remote-only; a local shell is a worse Termux in a prettier frame.
+
 ## Later
 
 - [ ] Pipeline board (lead → active → archived) with drag.
@@ -36,9 +55,11 @@ created: 2026-10-17
 
 - Cloud sync service — violates ADR-002 (revisit only on user demand and with export-first migration).
 - Chat AI assistant — explicitly not wanted; "AI" means algorithms (ADR-002).
-- Real git client on mobile — dashboard only; mobile git is a trap.
+- Real git client on mobile — dashboard only; mobile git is a trap. **Sharpened ([[09-platform-ceiling]]):** the API *can* commit and open PRs (Tier A), so what stays rejected is the *working tree* — clone, rebase, merge-conflict resolution, LFS, submodules. A commit through the API is not a compromise; a half-working git in a pocket is.
 - Team features — solo-first; multi-user is a different product.
 - Third-party component kits for the core UI — see ADR-004.
+- **A Termux-class userland inside Devlofy — blocked by the platform, not by taste.** Android 10+ forbids executing binaries from the app's writable data dir, so it would mean baking a distribution (and a proot rootfs) into the APK: hundreds of MB, and a duplicate of the Termux already on the device. See [[09-platform-ceiling]].
+- **A local shell (toybox, no package manager) for its own sake** — superseded by the remote-only terminal; a worse Termux in a prettier frame.
 
 ## Feature budget ledger
 
@@ -51,3 +72,4 @@ created: 2026-10-17
 | v0.2 working day (2026-10-18) | Precise motion (no overshoot anywhere), project attribution for focus blocks, per-project time tracked, 12-week rhythm heatmap, daily focus goal, quick-add task grammar w/ parse preview, due-date-ordered queue + due pills | Task scheduling follow-ons (energy pairing, reorder, editing dates after creation), command palette — deferred to v1, listed above |
 | v0.3 majors (2026-10-18) | **The Engine** (Next up ranking + reasons, rhythm/peak band, median block, estimate drift) with task-attributed blocks; **Money-lite** (schema v2 rates, auto-billable blocks, `/invoice` draft + copy-as-text, currency setting); **Search** (`/search` over four kinds, ⌘K on web, act-in-place rows) | Backlog dents, not new debt: focus-from-task, the money-lite line, and the command-palette line are struck through above; Task scheduling follow-ons, time-log *editing*, git dashboard, notifications, weekly review, project templates stay in Next |
 | v0.4 GitHub (2026-10-18) | **`/github`**: read-only dashboard (review requests, own PRs, assigned issues, newest CI run per recently pushed repo, repo list), pasted-token + device-flow sign-in, KV snapshot cache with staleness shown, honest per-section partial reads, Work entry row | The git-dashboard line is now a follow-on line (pinned repos, commits feed, review actions) plus token hardening; **no schema change** — the cache is a KV value, so the database stays user content only |
+| Research (2026-10-18) | **Nothing shipped.** [[09-platform-ceiling]]: a feasibility map of the three platform tiers, the full GitHub write surface with endpoints and scopes, the SSH/terminal ecosystem as it actually stands, and the platform fact that kills an in-app Termux | Nothing displaced — research is not a feature, and the tier-A/B candidate sets are parked above rather than promoted |

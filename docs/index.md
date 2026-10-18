@@ -17,6 +17,7 @@ This folder is an **Obsidian vault**. Open it directly in Obsidian (`Open folder
 - [[06-data-model]] — SQLite schema, migrations, sync-readiness.
 - [[07-decisions]] — the decision log (ADRs).
 - [[08-backlog]] — feature budget, next, later.
+- [[09-platform-ceiling]] — feasibility research: what the platforms allow (GitHub writes, SSH, terminals, and what is a hard no). No decisions taken.
 
 ## The one-liner
 
