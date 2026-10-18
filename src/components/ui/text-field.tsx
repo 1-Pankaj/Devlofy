@@ -26,6 +26,8 @@ export type TextFieldProps = Pick<
   | 'selectTextOnFocus'
   | 'keyboardType'
   | 'autoCapitalize'
+  | 'autoCorrect'
+  | 'secureTextEntry'
   | 'maxLength'
   | 'submitBehavior'
 > & {

@@ -48,11 +48,23 @@ Three features that change what the app *is*, all offline, all local compute ([[
 
 Surfaces touched: Today gains the **Next up** card and a header search action; Garden gains the **Rhythm** card; Work gains a **Billing** section; client detail gains its rate pill and a scoped draft; new routes `/invoice` and `/search`; both forms gain a rate field; More is untouched (currency lives on the invoice screen, where the question arises).
 
+## v0.4 — GitHub *(built 2026-10-18)*
+
+The first feature that leaves the device, and the only one that can be stale ([[07-decisions]] ADR-019):
+
+- **The dashboard** — what is waiting on you: review requests, your own open pull requests, issues assigned to you, the newest CI run on each recently pushed repo, and the repo list. **Read-only**: the app never writes to GitHub. Reached from Work → GitHub; new route `/github`.
+- **Two ways in** — paste a personal access token (both platforms), or sign in with the **device flow** (Android only, and only once a client ID is configured in `app.json`). ⌘K-style convenience is not offered: this is a destination, not a palette.
+- **A snapshot with a date** — the last good read is cached locally and paints instantly; it refreshes in the background only when older than ten minutes, and a failed refresh keeps the snapshot and says how old it is instead of blanking the screen. Offline degrade, not offline failure.
+- **Honest partial reads** — permissions are per-token, so any section that could not be read says so in its own words rather than showing an empty list.
+- **No schema change** — the token and the snapshot live in the KV store, not the database ([[06-data-model]]).
+
+Surfaces touched: Work gains a **GitHub** section (with a connected pill); new route `/github`; `app.json` gains `expo.extra.githubClientId` (empty by default — the on-device sign-in stays hidden until it is set).
+
 ## v1 — the spine *(next)*
 
 - Task scheduling follow-ons: energy pairing, manual reordering, due-date editing after creation.
 - Time log editing and manual entries (the log is read-only today).
-- Git dashboard (GitHub device flow, read-mostly: PRs, commits, issues, CI) — needs online, degrades to last-synced. **Blocked on the user's own OAuth client ID.**
+- Git dashboard follow-ons: pin the repos you care about, a commit/contribution feed, review *actions* (the read-only dashboard shipped in v0.4).
 - Notifications/alarms (mobile-only; **expo-notifications does not support web**).
 - Weekly review ritual: period summary, what slipped, one-tap carry-over.
 - Learning: spaced repetition (FSRS) over notes and project tips.

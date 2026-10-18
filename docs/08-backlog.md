@@ -11,13 +11,14 @@ created: 2026-10-17
 
 - [ ] Task scheduling follow-ons: energy pairing, manual reorder, editing due date/estimate after creation. ("Focus on this task" **shipped** in v0.3 — the Next up card starts a block attributed to the task.)
 - [ ] Time log editing: manual entries, edit/delete a session, move a block to another project. (Billable flags and per-project totals **shipped** in v0.3.)
-- [ ] Git dashboard: GitHub device-flow auth (client ID only, token in `expo-secure-store`), last-synced cards for PRs/issues/CI, offline-degrades to cache. **Blocked: needs the user's own OAuth client ID** — device flow cannot use someone else's.
+- [ ] Git dashboard follow-ons: **pinned repos** (choose the five that matter instead of "most recently pushed"), a commits/contributions feed, and review *actions* (approve / comment) — the read-only dashboard **shipped** in v0.4.
+- [ ] Token, hardening: move the GitHub token to `expo-secure-store` (Android Keystore) — needs a dev-build check because it is a native module; the KV store was chosen for v0.4 so Expo Go cannot break ([[07-decisions]] ADR-019).
 - [ ] Notifications: focus-end + daily planning reminder (mobile-only; expo-notifications has no web support).
 - [ ] Weekly review ritual: this week vs last, per-project split, what slipped, one-tap carry-over of unfinished tasks.
 - [ ] Learning track: FSRS spaced repetition over notes + tips; game-dev content pack (Unity/Godot recipes).
 - [ ] Client comm log entries on the client detail screen (calls, emails as notes).
 - [ ] Project templates (tasks + milestones from a template) — promoted from Later; the shape is already in the seed.
-- [ ] Unit tests for the pure modules (`engine/*`, `money.ts`, `parse-task.ts`) — needs a runner (vitest) added to the project; no test infrastructure exists today, and these are the modules where a silent wrong number would go unnoticed.
+- [ ] Unit tests for the pure modules (`engine/*`, `money.ts`, `parse-task.ts`) — needs a runner (vitest) added to the project; no test infrastructure exists today, and these are the modules where a silent wrong number would go unnoticed. `github/api.ts` and `github/device.ts` now belong on that list too: their parsers are pure, and their failure paths (401, rate limit, missing permission) are exactly the ones a real token hits.
 
 ## Later
 
@@ -49,3 +50,4 @@ created: 2026-10-17
 | Design + features wave (next) | Type scale + elevation pass, premium empty states, notes upgrades (checklists, tags + search, pin, links), full client/project add-edit | Scoped into v0.2 and v0.3 below |
 | v0.2 working day (2026-10-18) | Precise motion (no overshoot anywhere), project attribution for focus blocks, per-project time tracked, 12-week rhythm heatmap, daily focus goal, quick-add task grammar w/ parse preview, due-date-ordered queue + due pills | Task scheduling follow-ons (energy pairing, reorder, editing dates after creation), command palette — deferred to v1, listed above |
 | v0.3 majors (2026-10-18) | **The Engine** (Next up ranking + reasons, rhythm/peak band, median block, estimate drift) with task-attributed blocks; **Money-lite** (schema v2 rates, auto-billable blocks, `/invoice` draft + copy-as-text, currency setting); **Search** (`/search` over four kinds, ⌘K on web, act-in-place rows) | Backlog dents, not new debt: focus-from-task, the money-lite line, and the command-palette line are struck through above; Task scheduling follow-ons, time-log *editing*, git dashboard, notifications, weekly review, project templates stay in Next |
+| v0.4 GitHub (2026-10-18) | **`/github`**: read-only dashboard (review requests, own PRs, assigned issues, newest CI run per recently pushed repo, repo list), pasted-token + device-flow sign-in, KV snapshot cache with staleness shown, honest per-section partial reads, Work entry row | The git-dashboard line is now a follow-on line (pinned repos, commits feed, review actions) plus token hardening; **no schema change** — the cache is a KV value, so the database stays user content only |

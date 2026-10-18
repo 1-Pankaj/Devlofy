@@ -55,6 +55,13 @@ Indexes: `tasks(status)`, `tasks(project_id)`, `sessions(started_at)`, `notes(up
 - **Notes**: `LIKE` over `title` + `body` + `tags`, narrowable by linked client/project chips.
 - **v1.5**: **FTS5** on native behind a capability check; web keeps LIKE (the wasm build has no FTS5 — see [[03-architecture]]). Any FTS result must keep the v0.3 shape.
 
+## Not in the database (KV)
+
+Two things deliberately live outside SQLite, in the KV adapter (`src/lib/storage`: `expo-sqlite/kv-store` on native, `localStorage` on web — ADR-011):
+
+- **Settings** — zustand persist (theme, goal, currency, focus project, desktop mode).
+- **GitHub** (`devlofy.github.auth`, `devlofy.github.snapshot`) — the token and the last good dashboard snapshot, with `fetchedAt` (v0.4, [[07-decisions]] ADR-019). A cache of somebody else's data is not user content: it has no relationships to keep, no migration story worth having, and it must never be exported as if it were the user's own record. `exportAll()` therefore does not include it, and losing it costs one refresh.
+
 ## Seeding
 
 First run seeds a living demo (idempotent, guarded on `clients` being empty): Codeloom (self) + Northwind Labs (client, **rated ₹2,500/h**) + Personal; four projects (Devlofy included); milestones for Northwind Portal; today's tasks; a welcome note; and a week of focus sessions — attributed to tasks at realistic local hours (morning-weighted, so the rhythm card has a shape) and **billable where the project is rated**, so the invoice draft has a real number on a fresh install. Devlofy and Starlight blocks stay unrated on purpose, so the "not priced" state is visible too. It's normal data afterwards — delete freely.

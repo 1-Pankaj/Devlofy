@@ -66,6 +66,24 @@ export function clamp01(value: number): number {
   return Math.min(1, Math.max(0, value));
 }
 
+/**
+ * "just now" / "20m ago" / "3h ago" / "2d ago" — how stale a snapshot or a CI
+ * run is, which is the only thing that matters about a timestamp from GitHub.
+ */
+export function formatAgo(iso: string | null): string {
+  if (!iso) return 'unknown';
+  const then = new Date(iso).getTime();
+  if (!Number.isFinite(then)) return 'unknown';
+  const minutes = Math.floor((Date.now() - then) / 60_000);
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  return format(new Date(iso), 'MMM d');
+}
+
 /** "07:42" or "1:03:11" — running timers. */
 export function formatTimer(totalSeconds: number): string {
   const s = Math.max(0, Math.floor(totalSeconds));

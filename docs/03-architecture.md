@@ -14,6 +14,7 @@ created: 2026-10-17
 | State | **zustand** + persist | Tiny, plays with SQLite/storage adapters |
 | Database | **expo-sqlite** everywhere | Native: real SQLite. Web: wasm + OPFS |
 | 3D | **three + @react-three/fiber** via expo-gl | One scene, two renderers (see below) |
+| Network | **None, by design.** One exception: `/github`, read-only, cached as a dated snapshot ([[07-decisions]] ADR-019) | Local-first is the product |
 | UI system | **Material 3 Expressive** — tonal surfaces, one FAB per screen, owned primitives ([[04-design-language]]) | Non-generic, no component kit, no web look |
 | Icons | **phosphor-react-native** (light/regular) | Precise lines, brand-consistent |
 | Fonts | Geist + JetBrains Mono | UI and display / machine-truth |
@@ -72,11 +73,12 @@ src/
     db/                   # migrations, seed, repo, hooks, provider
     engine/               # the Engine: rhythm.ts, next-up.ts, estimate.ts, use-engine.ts
     garden/model.ts       # pure tree math (deterministic PRNG)
+    github/               # the one networked feature: api.ts, device.ts, token.ts, cache.ts, config.ts
     layout/breakpoints.ts # window size classes + desktop mode
     three/                # platform shim
     money.ts              # rates → line items → invoice text (pure)
     parse-task.ts         # the quick-add grammar (pure)
-    format.ts, share.ts, storage*.ts, search-shortcut*.ts
+    format.ts, share.ts, storage*.ts, search-shortcut*.ts, version.ts
   state/settings.ts       # zustand persisted settings
   theme/                  # colors, spacing, radius, typography, motion, shadows, provider
 ```

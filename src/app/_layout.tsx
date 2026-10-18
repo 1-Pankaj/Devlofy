@@ -92,6 +92,7 @@ function RootNavigator() {
         <Stack.Screen name="project/[id]" />
         <Stack.Screen name="client/[id]" />
         <Stack.Screen name="invoice" />
+        <Stack.Screen name="github" />
         <Stack.Screen
           name="search"
           options={{ presentation: 'modal', animation: 'fade' }}

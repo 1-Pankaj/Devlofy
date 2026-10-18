@@ -8,6 +8,7 @@ import {
   CaretRight,
   CurrencyCircleDollar,
   Folder,
+  GithubLogo,
   Plus,
   UsersThree,
 } from 'phosphor-react-native';
@@ -31,6 +32,7 @@ import { FadeUp } from '@/components/ui/stagger';
 import { useLiveQuery } from '@/lib/db/hooks';
 import { listClients, listProjects, listSessionsInWindow } from '@/lib/db/repo';
 import { formatMinutes, formatShortDate } from '@/lib/format';
+import { useGithubConnected } from '@/lib/github/use-github';
 import { formatHours, formatMoney, invoiceTotals, periodRange } from '@/lib/money';
 import { useSettings } from '@/state/settings';
 import { spacing, useTheme } from '@/theme';
@@ -46,6 +48,7 @@ export default function WorkScreen() {
   const clients = useLiveQuery((d) => listClients(d));
 
   const currency = useSettings((s) => s.currency);
+  const githubConnected = useGithubConnected();
   const month = useMemo(() => periodRange('month'), []);
   const draft = useLiveQuery(
     (d) => listSessionsInWindow(d, month.from.toISOString(), month.to.toISOString()),
@@ -222,6 +225,35 @@ export default function WorkScreen() {
                     <AppText variant="mono" tone="secondary">
                       {formatMoney(billed.amount, currency)}
                     </AppText>
+                  ) : null}
+                  <CaretRight size={14} color={colors.textTertiary} weight="bold" />
+                </View>
+              }
+            />
+          </Panel>
+        </View>
+      </FadeUp>
+
+      {/* The one surface that reads the outside world — it belongs here because
+          this is where the work lives, and it is read-only. */}
+      <FadeUp index={3}>
+        <View>
+          <SectionHeader eyebrow="code" title="GitHub" />
+          <Panel coreStyle={{ padding: 0, overflow: 'hidden' }}>
+            <ListRow
+              icon={<GithubLogo size={17} color={colors.accent} weight="light" />}
+              tone="accent"
+              title="GitHub"
+              subtitle={
+                githubConnected === true
+                  ? 'Connected · reviews, PRs and checks'
+                  : 'Reviews, PRs, issues and checks — read-only'
+              }
+              onPress={() => router.push('/github')}
+              trailing={
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  {githubConnected === true ? (
+                    <StatusPill label="connected" tone="accent" />
                   ) : null}
                   <CaretRight size={14} color={colors.textTertiary} weight="bold" />
                 </View>

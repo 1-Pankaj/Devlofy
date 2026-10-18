@@ -2,7 +2,7 @@
   "expo": {
     "name": "Devlofy",
     "slug": "devlofy",
-    "version": "0.3.0",
+    "version": "0.4.0",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "devlofy",
@@ -51,6 +51,10 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "comment": "githubClientId is the public client ID of the user's own GitHub OAuth App (Device Flow enabled). Empty = on-device sign-in is hidden and a pasted token is the only way in. A client ID is public and safe to commit; a client secret is not, and device flow never needs one.",
+      "githubClientId": ""
     }
   }
 }
