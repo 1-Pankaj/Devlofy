@@ -3,7 +3,7 @@
  *
  * A local-first app should never make you remember *where* a thing lives: a name
  * you half-remember could be a project, a client, a note, or a task. This screen
- * asks the database once per kind and returns the four groups together, so the
+ * asks the database once per kind and returns every group together, so the
  * answer arrives even when you guessed the wrong noun.
  *
  * Reached from the Today header, or Cmd/Ctrl-K on web.
@@ -18,6 +18,7 @@ import {
   FileText,
   Folder,
   MagnifyingGlass,
+  Pulse,
   UsersThree,
 } from 'phosphor-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -41,6 +42,7 @@ const GROUPS: { kind: SearchHit['kind']; title: string; eyebrow: string }[] = [
   { kind: 'client', title: 'Clients', eyebrow: 'relationships' },
   { kind: 'note', title: 'Notes', eyebrow: 'writing' },
   { kind: 'task', title: 'Tasks', eyebrow: 'plan' },
+  { kind: 'site', title: 'Watch targets', eyebrow: 'the outside world' },
 ];
 
 export default function SearchScreen() {
@@ -82,6 +84,8 @@ export default function SearchScreen() {
       else if (hit.kind === 'client')
         router.push({ pathname: '/client/[id]', params: { id: hit.id } });
       else if (hit.kind === 'note') router.push({ pathname: '/note/[id]', params: { id: hit.id } });
+      else if (hit.kind === 'site')
+        router.push({ pathname: '/sentinel/[id]', params: { id: hit.id } });
       else handleToggleTask(hit);
     },
     [handleToggleTask, router],
@@ -118,7 +122,7 @@ export default function SearchScreen() {
             onChangeText={setQuery}
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
-            placeholder="Projects, clients, notes, tasks…"
+            placeholder="Projects, clients, notes, tasks, targets…"
             placeholderTextColor={colors.textTertiary}
             selectionColor={colors.accent}
             cursorColor={colors.accent}
@@ -157,7 +161,7 @@ export default function SearchScreen() {
       ) : failed ? (
         <Panel>
           <ErrorState
-            what="your notes, tasks, projects and clients"
+            what="your notes, tasks, projects, clients and targets"
             onRetry={() => results.refresh()}
           />
         </Panel>
@@ -174,7 +178,7 @@ export default function SearchScreen() {
           <EmptyState
             icon={MagnifyingGlass}
             title={`Nothing for “${debounced.trim()}”`}
-            message="No project, client, note or task matches. Try a shorter word."
+            message="No project, client, note, task or watch target matches. Try a shorter word."
           />
         </Panel>
       ) : (
@@ -204,11 +208,13 @@ export default function SearchScreen() {
                         <FileText size={17} color={colors.textTertiary} weight="light" />
                       ) : hit.kind === 'task' ? (
                         <CheckSquare size={17} color={colors.textTertiary} weight="light" />
+                      ) : hit.kind === 'site' ? (
+                        <Pulse size={17} color={colors.accent} weight="light" />
                       ) : (
                         <CircleIcon size={17} color={colors.textTertiary} weight="light" />
                       )
                     }
-                    tone={hit.kind === 'project' ? 'accent' : 'neutral'}
+                    tone={hit.kind === 'project' || hit.kind === 'site' ? 'accent' : 'neutral'}
                     title={hit.title}
                     subtitle={hit.subtitle ?? undefined}
                     showSeparator={index < group.hits.length - 1}

@@ -881,6 +881,8 @@ export async function exportAll(db: SQLiteDatabase) {
     'sessions',
     'notes',
     'bench_snippets',
+    'watch_sites',
+    'watch_checks',
   ] as const;
   const dump: Record<string, unknown[]> = {};
   for (const table of tables) {
@@ -888,9 +890,10 @@ export async function exportAll(db: SQLiteDatabase) {
   }
   return {
     app: 'devlofy',
-    // Bumped to 2 when `bench_snippets` joined the dump: a newer export carries a
-    // table an older reader has never seen, and a format number is how it says so.
-    version: 2,
+    // 2 added `bench_snippets`; 3 added Sentinel's `watch_sites`/`watch_checks`.
+    // A newer export carries tables an older reader has never seen, and the
+    // format number is how it says so.
+    version: 3,
     exported_at: nowIso(),
     data: dump,
   };
@@ -1030,7 +1033,7 @@ export async function setSessionBillable(
 // ─────────────────────────────── Search ───────────────────────────────
 
 export type SearchHit = {
-  kind: 'project' | 'client' | 'note' | 'task';
+  kind: 'project' | 'client' | 'note' | 'task' | 'site';
   id: string;
   title: string;
   subtitle: string | null;
@@ -1055,7 +1058,7 @@ export async function searchEverything(
   if (needle.length < 2) return [];
   const like = `%${needle}%`;
 
-  const [projects, clients, notes, tasks] = await Promise.all([
+  const [projects, clients, notes, tasks, sites] = await Promise.all([
     db.getAllAsync<{ id: string; name: string; client_name: string | null; status: string }>(
       `SELECT p.id, p.name, c.name AS client_name, p.status
        FROM projects p LEFT JOIN clients c ON c.id = p.client_id
@@ -1081,6 +1084,12 @@ export async function searchEverything(
        WHERE t.deleted_at IS NULL AND (t.title LIKE ? OR p.name LIKE ?)
        ORDER BY t.status = 'done' ASC, t.priority DESC LIMIT ?`,
       [like, like, perKind],
+    ),
+    db.getAllAsync<{ id: string; name: string; url: string; enabled: number }>(
+      `SELECT id, name, url, enabled FROM watch_sites
+       WHERE deleted_at IS NULL AND (name LIKE ? OR url LIKE ? OR note LIKE ?)
+       ORDER BY name COLLATE NOCASE ASC LIMIT ?`,
+      [like, like, like, perKind],
     ),
   ]);
 
@@ -1110,6 +1119,12 @@ export async function searchEverything(
       subtitle: row.project_name,
       project_id: row.project_id,
       done: row.status === 'done' ? 1 : 0,
+    })),
+    ...sites.map<SearchHit>((row) => ({
+      kind: 'site',
+      id: row.id,
+      title: row.name,
+      subtitle: row.enabled === 1 ? row.url : `${row.url} · paused`,
     })),
   ];
 }
@@ -1194,4 +1209,214 @@ export async function countSnippets(db: SQLiteDatabase): Promise<number> {
     'SELECT COUNT(*) AS count FROM bench_snippets WHERE deleted_at IS NULL',
   );
   return row?.count ?? 0;
+}
+
+// ─────────────────────────── Sentinel ───────────────────────────
+// Targets are user content, so they are tombstoned like everything else. Checks
+// are *measurements the app took* (ADR-023): they are pruned and deleted outright
+// rather than tombstoned, which is why `watch_checks` carries no `deleted_at`.
+// Every judgement made from them lives in `src/lib/sentinel/status.ts`, not here.
+
+/** Checks kept per target. Past this the oldest are pruned on every run. */
+export const CHECKS_KEPT = 500;
+
+export type WatchSiteRow = {
+  id: string;
+  name: string;
+  url: string;
+  /** The only acceptable status; null accepts anything below 500. */
+  expect_status: number | null;
+  /** Above this many ms a response is slow but still up; null means no budget. */
+  expect_ms: number | null;
+  /** 0 pauses the target: it stays on the board, but is never checked. */
+  enabled: number;
+  note: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type WatchCheckRow = {
+  id: string;
+  site_id: string;
+  checked_at: string;
+  /** A judgement, stored because it depended on the expectation of that moment. */
+  verdict: 'up' | 'slow' | 'down';
+  /** HTTP status when the runtime could read one; null on web and on failure. */
+  status: number | null;
+  /** Milliseconds until the request resolved. */
+  ms: number;
+  /** Which runtime measured it — a web check cannot see a status code. */
+  source: 'native' | 'web';
+  /** A sentence for the log: what failed, or what was hidden. */
+  detail: string | null;
+};
+
+export type WatchSiteInput = {
+  id?: string;
+  name: string;
+  url: string;
+  expectStatus: number | null;
+  expectMs: number | null;
+  enabled: boolean;
+  note: string | null;
+};
+
+export async function listWatchSites(db: SQLiteDatabase): Promise<WatchSiteRow[]> {
+  return db.getAllAsync<WatchSiteRow>(
+    `SELECT * FROM watch_sites
+     WHERE deleted_at IS NULL
+     ORDER BY enabled DESC, name COLLATE NOCASE ASC`,
+  );
+}
+
+export async function getWatchSite(db: SQLiteDatabase, id: string): Promise<WatchSiteRow | null> {
+  return db.getFirstAsync<WatchSiteRow>(
+    'SELECT * FROM watch_sites WHERE id = ? AND deleted_at IS NULL',
+    [id],
+  );
+}
+
+export async function countWatchSites(db: SQLiteDatabase): Promise<number> {
+  const row = await db.getFirstAsync<{ count: number }>(
+    'SELECT COUNT(*) AS count FROM watch_sites WHERE deleted_at IS NULL',
+  );
+  return row?.count ?? 0;
+}
+
+export async function saveWatchSite(db: SQLiteDatabase, input: WatchSiteInput): Promise<string> {
+  const now = nowIso();
+  if (input.id) {
+    await db.runAsync(
+      `UPDATE watch_sites
+       SET name = ?, url = ?, expect_status = ?, expect_ms = ?, enabled = ?, note = ?, updated_at = ?
+       WHERE id = ?`,
+      [
+        input.name,
+        input.url,
+        input.expectStatus,
+        input.expectMs,
+        input.enabled ? 1 : 0,
+        input.note,
+        now,
+        input.id,
+      ],
+    );
+    return input.id;
+  }
+  const id = createId();
+  await db.runAsync(
+    `INSERT INTO watch_sites
+       (id, name, url, expect_status, expect_ms, enabled, note, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      id,
+      input.name,
+      input.url,
+      input.expectStatus,
+      input.expectMs,
+      input.enabled ? 1 : 0,
+      input.note,
+      now,
+      now,
+    ],
+  );
+  return id;
+}
+
+/**
+ * Deleting a target takes its history with it: the checks describe a site that
+ * no longer exists here, and keeping them would grow the export for a thing the
+ * user asked to forget.
+ */
+export async function deleteWatchSite(db: SQLiteDatabase, id: string) {
+  const now = nowIso();
+  await db.runAsync('DELETE FROM watch_checks WHERE site_id = ?', [id]);
+  await db.runAsync(
+    'UPDATE watch_sites SET deleted_at = ?, updated_at = ? WHERE id = ?',
+    [now, now, id],
+  );
+}
+
+/** The newest checks for one target, newest first — a log, not a window. */
+export async function listWatchChecks(
+  db: SQLiteDatabase,
+  siteId: string,
+  limit = 60,
+): Promise<WatchCheckRow[]> {
+  return db.getAllAsync<WatchCheckRow>(
+    `SELECT * FROM watch_checks
+     WHERE site_id = ?
+     ORDER BY checked_at DESC, rowid DESC
+     LIMIT ?`,
+    [siteId, limit],
+  );
+}
+
+/** Every check taken since a moment, oldest first — the board's one read. */
+export async function listWatchChecksSince(
+  db: SQLiteDatabase,
+  sinceIso: string,
+): Promise<WatchCheckRow[]> {
+  return db.getAllAsync<WatchCheckRow>(
+    `SELECT * FROM watch_checks
+     WHERE checked_at >= ?
+     ORDER BY site_id ASC, checked_at ASC, rowid ASC`,
+    [sinceIso],
+  );
+}
+
+/**
+ * The last check of every target, in one query — not one query per row. `MAX`
+ * on an ISO string is a valid "newest" because the format sorts lexicographically.
+ */
+export async function latestWatchChecks(db: SQLiteDatabase): Promise<WatchCheckRow[]> {
+  return db.getAllAsync<WatchCheckRow>(
+    `SELECT c.* FROM watch_checks c
+     JOIN (
+       SELECT site_id, MAX(checked_at) AS newest
+       FROM watch_checks
+       GROUP BY site_id
+     ) m ON m.site_id = c.site_id AND m.newest = c.checked_at
+     ORDER BY c.checked_at DESC`,
+  );
+}
+
+/**
+ * Records one measurement and prunes the target's history to `CHECKS_KEPT`.
+ * Pruning happens here, at the only place that writes checks, so the log can
+ * never grow past its bound no matter how often the board is opened.
+ */
+export async function insertWatchCheck(
+  db: SQLiteDatabase,
+  check: Omit<WatchCheckRow, 'id' | 'created_at' | 'updated_at'>,
+): Promise<void> {
+  const now = nowIso();
+  await db.runAsync(
+    `INSERT INTO watch_checks
+       (id, site_id, checked_at, verdict, status, ms, source, detail, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      createId(),
+      check.site_id,
+      check.checked_at,
+      check.verdict,
+      check.status,
+      check.ms,
+      check.source,
+      check.detail,
+      now,
+      now,
+    ],
+  );
+  await db.runAsync(
+    `DELETE FROM watch_checks
+     WHERE site_id = ?
+       AND id NOT IN (
+         SELECT id FROM watch_checks
+         WHERE site_id = ?
+         ORDER BY checked_at DESC, rowid DESC
+         LIMIT ?
+       )`,
+    [check.site_id, check.site_id, CHECKS_KEPT],
+  );
 }

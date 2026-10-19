@@ -3,7 +3,7 @@
  */
 import { useSQLiteContext } from 'expo-sqlite';
 import { useRouter } from 'expo-router';
-import { DownloadSimple, Toolbox } from 'phosphor-react-native';
+import { DownloadSimple, Pulse, Toolbox } from 'phosphor-react-native';
 import { useState, type ReactNode } from 'react';
 import { Share, View } from 'react-native';
 
@@ -20,7 +20,7 @@ import { Segmented } from '@/components/ui/segmented';
 import { FadeUp } from '@/components/ui/stagger';
 import { TextField } from '@/components/ui/text-field';
 import { useLiveQuery } from '@/lib/db/hooks';
-import { exportAll, getDataStats } from '@/lib/db/repo';
+import { exportAll, countWatchSites, getDataStats } from '@/lib/db/repo';
 import { BENCH_TOOLS } from '@/lib/bench/tools';
 import { APP_VERSION } from '@/lib/version';
 import { GOAL_OPTIONS, useSettings, type DesktopMode, type ThemeMode } from '@/state/settings';
@@ -65,6 +65,7 @@ export default function MoreScreen() {
 
   const router = useRouter();
   const stats = useLiveQuery((d) => getDataStats(d));
+  const targets = useLiveQuery((d) => countWatchSites(d));
   const [exportNote, setExportNote] = useState<string | null>(null);
 
   const handleExport = async () => {
@@ -111,6 +112,25 @@ export default function MoreScreen() {
       </FadeUp>
 
       <FadeUp index={1}>
+        <SectionHeader eyebrow="networked" title="Sentinel" />
+        <Panel coreStyle={{ padding: 0, overflow: 'hidden' }}>
+          <ListRow
+            icon={<Pulse size={17} color={colors.accent} weight="light" />}
+            tone="accent"
+            title="Sentinel"
+            subtitle={
+              targets.status === 'error'
+                ? 'Could not count your targets — open to look'
+                : targets.data === 0
+                  ? 'Watch the URLs you own — status, latency, incidents'
+                  : `${targets.data} ${targets.data === 1 ? 'target' : 'targets'} watched from this device`
+            }
+            onPress={() => router.push('/sentinel')}
+          />
+        </Panel>
+      </FadeUp>
+
+      <FadeUp index={2}>
         <Panel coreStyle={{ padding: 0 }}>
           <SettingBlock title="Your name" caption="Used for the greeting. Everything else is yours too.">
             <TextField value={userName} onChangeText={setUserName} placeholder="Your name" />
@@ -159,7 +179,7 @@ export default function MoreScreen() {
         </Panel>
       </FadeUp>
 
-      <FadeUp index={2}>
+      <FadeUp index={3}>
         <View style={{ gap: spacing.lg }}>
           {/* Data: one hero figure, then the supporting counts */}
           {stats.status === 'error' && !stats.data ? (
@@ -230,7 +250,7 @@ export default function MoreScreen() {
         </View>
       </FadeUp>
 
-      <FadeUp index={3}>
+      <FadeUp index={4}>
         <Panel coreStyle={{ gap: spacing.xs }}>
           <Eyebrow>about</Eyebrow>
           <AppText variant="subheadMedium">Devlofy v{APP_VERSION}</AppText>

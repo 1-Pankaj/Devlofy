@@ -27,6 +27,7 @@ neutral ramp, plus a **tertiary** hue reserved for exactly one meaning.
 | `accent` (+ `accentSoft`, `accentBorder`) | **indigo** `#4B5AA0` / `#BCC2FF` | the brand: active nav, the primary action, progress, selection, **money** (rates, line items, the draft total) |
 | `ember` (+ `emberSoft`) | **amber** `#A85A08` / `#FFB870` | focus and time only: a running session, the timer, the streak, minutes tracked |
 | `info` / `danger` | blue-grey / red | state: sync state, destructive and failure |
+| *reused, not added* | — | **Sentinel reads status through the three roles above**: up in `accent` (the quiet default — a board of healthy targets should look like the brand, not like confetti), slow in `ember` (a verdict about *time*, which is what ember is for), down in `danger`. A fourth hue for "success" was declined: the palette is a tonal M3 set with one primary and one tertiary, and a health board is not a reason to break it ([[07-decisions]] ADR-023) |
 
 - **Everything is a token** in `src/theme/colors.ts`. No component holds a literal colour.
 - Neutrals are **tinted** with the primary hue (`#F5F2FB` canvas, `#131318` dark) — never
@@ -36,6 +37,10 @@ neutral ramp, plus a **tertiary** hue reserved for exactly one meaning.
   pair is always checked, never eyeballed.**
 - **One accent action per screen.** Selection (nav, filters, chips) reads by tone and weight,
   and where it matters (the segmented control) by a check mark — not by colour alone.
+- **Nothing pretends to be live.** If a number was measured rather than streamed, it is shown
+  with the time it was measured. Sentinel is the load-bearing example: it has no pulsing dot,
+  no ticking "last checked" and no refreshing shimmer, because it checks only while you are
+  looking ([[07-decisions]] ADR-023).
 
 ## Surfaces — tone, not borders
 

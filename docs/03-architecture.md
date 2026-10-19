@@ -14,7 +14,7 @@ created: 2026-10-17
 | State | **zustand** + persist | Tiny, plays with SQLite/storage adapters |
 | Database | **expo-sqlite** everywhere | Native: real SQLite. Web: wasm + OPFS |
 | 3D | **three + @react-three/fiber** via expo-gl | One scene, two renderers (see below) |
-| Network | **None, by design.** One exception: `/github`, two-way but branch-bounded, cached as a dated snapshot ([[07-decisions]] ADR-019 → 020) | Local-first is the product |
+| Network | **Two features, both opt-in and neither required.** `/github` — two-way but branch-bounded, cached as a dated snapshot ([[07-decisions]] ADR-019 → 020); `/sentinel` — requests to *your own* URLs, taken only when you look at the board, stored locally as your own history ([[07-decisions]] ADR-023). Everything else runs with the radio off | Local-first is the product |
 | UI system | **Material 3 Expressive** — tonal surfaces, one FAB per screen, owned primitives ([[04-design-language]]) | Non-generic, no component kit, no web look |
 | Icons | **phosphor-react-native** (light/regular) | Precise lines, brand-consistent |
 | Fonts | Geist + JetBrains Mono | UI and display / machine-truth |
@@ -28,6 +28,7 @@ created: 2026-10-17
 Examples in the repo:
 - `src/lib/three/index.native.ts` → `@react-three/fiber/native`; `index.web.ts` → `@react-three/fiber`. Scene code imports `@/lib/three` and runs unchanged.
 - `src/lib/storage.native.ts` → `expo-sqlite/kv-store`; `storage.web.ts` → `localStorage`; `storage.ts` is the type anchor/fallback.
+- `src/lib/sentinel/probe.ts` (native) reads a real HTTP status; `probe.web.ts` cannot — a browser hides every cross-origin response behind an opaque one — so it reports reachable-or-not and how long it took. Both return the same `CheckFacts`, so the verdict logic never learns which runtime it is on: it only *records* it, and the board labels a web result "reachable" rather than "up" ([[07-decisions]] ADR-023).
 
 Any new platform-specific capability (notifications, file system, haptics) follows the same pattern: `feature.ts` (types + no-op) + `feature.native.ts` + `feature.web.ts`.
 
@@ -62,8 +63,10 @@ src/
     project-form.tsx      # modal
     client-form.tsx       # modal
     invoice.tsx           # invoice draft (period/client scoped, a view over sessions)
-    search.tsx            # global search modal (four kinds)
+    search.tsx            # global search modal (five kinds)
     bench/                # the offline toolbox: index (shelf), [tool] (one host route), snippets
+    sentinel/             # the watch board: index (board, worst first), [id] (one target's
+                          #   history), site-form (modal)
     github/               # the code host: index (hub), repo, browse, blob, edit, pulls, pr,
                           #   issues, issue, new-issue, actions, notifications, release
     _layout.tsx           # providers, fonts, splash, stack
@@ -73,14 +76,20 @@ src/
     garden/               # garden-scene.tsx (R3F)
     focus/                # heatmap, project chips, Next up (the Engine's card), rhythm card
     bench/                # eleven tool screens + the "keep this" panel + shared tool chrome
+    sentinel/             # site-card (one target on the board), latency-chart (the strip, SVG)
   lib/
     db/                   # migrations, seed, repo, hooks, provider
     engine/               # the Engine: rhythm.ts, next-up.ts, estimate.ts, use-engine.ts
     bench/                # pure tool logic: hash, json, sql, regex, jwt, encode, time, colour,
                           #   textstats, patch (LineDiff → unified patch), tools (the registry),
                           #   self-check.ts (known-answer checks — run it under Node)
+    sentinel/             # the second networked feature, and the only one that *aims* at the
+                          #   network: status.ts (pure verdicts, windows, incidents, URL parsing),
+                          #   probe.ts + probe.web.ts (the platform split — a status code on native,
+                          #   reachable-or-not in a browser), run.ts (sequential checks), use-sentinel.ts,
+                          #   self-check.ts
     garden/model.ts       # pure tree math (deterministic PRNG)
-    github/               # the one networked feature: api.ts, repo.ts, pulls.ts, issues.ts, ci.ts,
+    github/               # the other networked feature: api.ts, repo.ts, pulls.ts, issues.ts, ci.ts,
                           #   patch.ts (parses GitHub's patch *into* DiffHunks), device.ts, token.ts,
                           #   cache.ts, config.ts, use-github.ts
     layout/breakpoints.ts # window size classes + desktop mode
@@ -112,15 +121,21 @@ Press `Shift+M` in the Expo CLI to browse the SQLite database with the dev tool.
 
 ## Checking the pure modules without a test runner
 
-`src/lib/bench/self-check.ts` holds known-answer checks over every pure module Bench owns (hashes against published vectors, RFC semantics for base64/URL/JWT, cron against real timestamps, WCAG contrast, diff/patch round-trips). It is plain TypeScript returning a result list, so it runs anywhere TypeScript does — and Node 22 is not always built with TS support, so the route is an explicit emit:
+Known-answer checks live beside the pure modules they cover — one file per folder, deliberately, so each stays runnable on its own and neither grows into a suite nobody runs:
+
+- `src/lib/bench/self-check.ts` — **80** checks (hashes against published vectors, RFC semantics for base64/URL/JWT, cron against real timestamps, WCAG contrast, diff/patch round-trips).
+- `src/lib/sentinel/self-check.ts` — **78** checks (the verdict every set of facts produces, uptime windows, incident runs, the latency spread, URL parsing, and every label the board shows).
+
+Both are plain TypeScript returning a result list, so they run anywhere TypeScript does. Node 22 here is not built with TS support, so the route is an explicit emit — and note `--target es2022` (the app's own lib level; `es2020` rejects `Array.prototype.at`) and `--ignoreDeprecations 6.0` (TypeScript 6 still accepts `--moduleResolution node10`, but only if you say you know):
 
 ```bash
-npx tsc src/lib/bench/self-check.ts --ignoreConfig --outDir /tmp/bv \
-  --module commonjs --target es2020 --moduleResolution node --skipLibCheck
-node -e "require('/tmp/bv/bench/self-check.js').runSelfCheck()"
+npx tsc src/lib/sentinel/self-check.ts --ignoreConfig --outDir /tmp/sv \
+  --module commonjs --target es2022 --moduleResolution node10 --ignoreDeprecations 6.0 --skipLibCheck
+node -e "const r = require('/tmp/sv/self-check.js').runSelfCheck(); \
+  console.log(r.length, 'checks ·', r.filter(c => !c.pass).length, 'failing')"
 ```
 
-It prints `total / passed / failed` and the detail of anything that failed. When a pure module changes, add the case that would have caught the change: this file is the reason a hand-written SHA-1 can be trusted next to `git` ([[07-decisions]] ADR-021). The intent in [[08-backlog]] is to extend this habit to the Engine and the GitHub parsers rather than introduce vitest.
+The result shape (`{ name, pass, detail }[]`) is identical in both files, so one snippet formats either. When a pure module changes, add the case that would have caught the change: this habit is the reason a hand-written SHA-1 can be trusted next to `git` ([[07-decisions]] ADR-021) and the reason Sentinel's verdicts can be trusted without a server ([[07-decisions]] ADR-023). The intent in [[08-backlog]] is to extend it to the Engine and the GitHub parsers rather than introduce vitest.
 
 ## Checking 3D without a GPU
 

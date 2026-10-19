@@ -58,6 +58,32 @@ All of it is HTTPS + JSON against `api.github.com`, which **does** send CORS hea
 
 Still not built, and still the right call: **gists** ([[08-backlog]]), **Actions log download** (a 302 to a ~60 s ZIP), and any **check-run** write (GitHub-App-only; a user token posts commit statuses instead).
 
+## Tier A · watching your own URLs (shipped as Sentinel, v0.7)
+
+A status board is `fetch` and nothing else — no native module, no account, no server — but it is
+the clearest case in the app of a tier that is technically available on both platforms while
+being *honest* on only one of them.
+
+- **Native** (what the tablet runs) performs an ordinary request: it reads the real **status
+  code**, follows redirects, and times the round trip. This is a genuine status check.
+- **Web** can read nothing from another origin. A browser without CORS headers on the far side
+  gives an **opaque** response: `status` is always `0` and the body is unreadable, by design and
+  by spec. `mode: 'no-cors'` still resolves if the host answered and rejects if it did not, so
+  the browser half can prove **reachable / not reachable + how long it took** and *nothing else*.
+  A 500 that serves a page is "reachable". A CORS-blocked-but-healthy endpoint looks the same as
+  a refused connection: both reject with `TypeError: Failed to fetch`.
+
+Sentinel is therefore built around the split rather than pretending it away ([[07-decisions]]
+ADR-023): the same verdict function handles both, the runtime is *recorded* on every check, a web
+result is shown as **reachable** instead of "up", and the board prints the limitation as a sentence
+whenever the numbers on screen came from a browser. The consequence for planning is the useful
+part: any future "was it up at 03:00?" or "tell me the moment it breaks" needs
+`expo-background-task` + a local notification (the section above), not a better web check.
+
+Also outside Tier A, and deliberately not attempted: **TLS certificate expiry** and **DNS**.
+Both need the handshake or a resolver, not `fetch` — a browser will not expose either, and a
+native module for them is Tier B work for a feature nobody has asked for twice.
+
 ## Tier A · notifications and background work (both verified)
 
 Two Expo modules matter here, and both behave better than expected:

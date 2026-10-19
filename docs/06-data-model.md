@@ -12,6 +12,8 @@ Local SQLite database `devlofy.db`, opened and migrated in `src/lib/db/`. Schema
 1. **`id` is an app-generated string** — 16 base-36 characters from `src/lib/ids.ts` (Web Crypto when the runtime has it, `Math.random` otherwise; Hermes cannot rely on either). Globally unique at personal-app scale, generated on-device. No autoincrement anywhere.
 2. **`created_at` / `updated_at`** are ISO-8601 UTC strings on every table.
 3. **Deletes are tombstones**: `deleted_at` is set; nothing is hard-deleted. Every read filters `deleted_at IS NULL`.
+   **One documented exception (v4):** `watch_checks` has no `deleted_at`, because a check is a *measurement the app
+   took*, not a document the user wrote — it is pruned to the newest 500 per target instead ([[07-decisions]] ADR-023).
 4. **No server assumptions**: no sequences, no triggers, no server time.
 
 If sync ever happens (it's a "maybe"), the schema is already shaped for last-write-wins.
@@ -27,8 +29,10 @@ If sync ever happens (it's a "maybe"), the schema is already shaped for last-wri
 | `sessions` | time log / focus | `kind` (focus/meeting/break), `started_at`, `ended_at`, `minutes`, `project_id` (nullable — what the block was *for*), `task_id` (nullable — what the block was *spent on*, which is what makes estimate drift possible), `billable` (set at start from the resolved rate), `note` |
 | `notes` | knowledge | `title`, `body` (markdown-ish), `pinned`, `tags` (comma-separated lowercase slugs — see `src/lib/tags.ts`), optional `project_id`/`client_id` (link chips in the editor) |
 | `bench_snippets` | what you kept from a Bench tool (v3) | `tool` (the tool id — it decides which screen re-opens it), `title`, `body` (the tool's own artifact: formatted JSON, a unified patch, a regex, a digest…), `language` (nullable, for the shared code renderer) |
+| `watch_sites` | Sentinel: a URL you watch (v4) | `name`, `url`, `expect_status` (nullable — the only status that counts as up), `expect_ms` (nullable — the time budget above which a response is *slow* but still up), `enabled` (0 = paused: kept on the board with its history, skipped by Check all), `note` |
+| `watch_checks` | Sentinel: one measurement (v4) — **no `deleted_at`, see the rule above** | `site_id`, `checked_at`, `verdict` (`up`/`slow`/`down`, frozen at the moment it was judged), `status` (nullable — null on web and on a transport failure), `ms`, `source` (`native`/`web` — which runtime measured it), `detail` (the failure sentence, or the note that a browser hid the status) |
 
-Indexes: `tasks(status)`, `tasks(project_id)`, `sessions(started_at)`, `notes(updated_at DESC)`, `projects(client_id)`, **`sessions(project_id)`** (v2), **`bench_snippets(updated_at DESC)`** and **`bench_snippets(tool)`** (v3) — all partial on `deleted_at IS NULL`.
+Indexes: `tasks(status)`, `tasks(project_id)`, `sessions(started_at)`, `notes(updated_at DESC)`, `projects(client_id)`, **`sessions(project_id)`** (v2), **`bench_snippets(updated_at DESC)`** and **`bench_snippets(tool)`** (v3), **`watch_checks(site_id, checked_at DESC)`** and **`watch_checks(checked_at DESC)`** (v4) — the first group partial on `deleted_at IS NULL` (the check indexes are not, since that table has no tombstone).
 
 ## Migrations
 
@@ -37,6 +41,7 @@ Indexes: `tasks(status)`, `tasks(project_id)`, `sessions(started_at)`, `notes(up
 | 1 | the six tables above + five partial indexes | the foundation ([[03-architecture]]) |
 | 2 | `clients.hourly_rate`, `projects.hourly_rate`, `idx_sessions_project` | money-lite: a block's price resolves from its project, so pricing needs no new join table and no per-block input ([[07-decisions]] ADR-017) |
 | 3 | `bench_snippets` + `idx_bench_snippets_updated` / `idx_bench_snippets_tool` | Bench: a kept snippet is user content — it has a title, a tool it belongs to, and must ride along in the app's own export — so it is a table, not a KV value ([[07-decisions]] ADR-021) |
+| 4 | `watch_sites`, `watch_checks` + a name index and two check indexes | Sentinel: targets are user content (a table, exported, tombstoned) and the check log is the user's own history — never someone else's data, so unlike GitHub's snapshot it belongs in SQLite ([[07-decisions]] ADR-023) |
 
 ## Derived data (computed, never stored)
 
@@ -49,11 +54,13 @@ Indexes: `tasks(status)`, `tasks(project_id)`, `sessions(started_at)`, `notes(up
 - **Rhythm (the Engine)** = finished blocks bucketed by **local** hour and weekday, the best contiguous 3-hour band, and the median block length — computed in JS, not SQL, so the buckets are in the user's timezone rather than UTC (`src/lib/engine/rhythm.ts`).
 - **Next up** = a weighted score over every open task plus the reasons behind it (`src/lib/engine/next-up.ts`); never persisted, and re-ranked on every read.
 - **Estimate drift** = per-task `SUM(sessions.minutes)` against `tasks.est_minutes` (`listEstimateSamples`), reported as a ratio once four tasks have both numbers.
+- **Incidents** = runs of three or more consecutive `down` verdicts, derived by `incidentsIn()` from the stored checks ([[07-decisions]] ADR-023) — a rule, not a table, so the threshold can change without a migration.
+- **Uptime / latency spread** = `uptimeIn()` and `latencyStats()` over the checks in a window (`src/lib/sentinel/status.ts`). Uptime is over *the checks taken*, never wall-clock time, and failed checks are excluded from the spread (a timeout describes the timeout, not the server).
 - **Invoice draft** = a *view*, not a table: sessions in a window, grouped by project, each priced at `COALESCE(projects.hourly_rate, clients.hourly_rate)` (`src/lib/money.ts`). Nothing to keep in sync, nothing to go stale.
 
 ## Search
 
-- **Global** (v0.3): `searchEverything()` runs four bounded `LIKE` queries over projects (name/description/stack), clients (name/company/email/notes), notes (title/body) and tasks (title/project name), and returns one grouped result set (six per kind, `perKind`). Reached from Today's header or ⌘/Ctrl-K on web ([[07-decisions]] ADR-018).
+- **Global** (v0.3, five kinds since v0.7): `searchEverything()` runs five bounded `LIKE` queries over projects (name/description/stack), clients (name/company/email/notes), notes (title/body), tasks (title/project name) and **watch targets** (name/url/note, v0.7), and returns one grouped result set (six per kind, `perKind`). A site row navigates to its own screen like the others — no dead end ([[07-decisions]] ADR-018, ADR-023). Reached from Today's header or ⌘/Ctrl-K on web.
 - **Notes**: `LIKE` over `title` + `body` + `tags`, narrowable by linked client/project chips.
 - **Bench snippets** are searched on their own screen (`/bench/snippets`, `listSnippets(db, query)` over `title` + `body`) rather than through `searchEverything()`. A snippet is a value you go and use in a tool, not a record you navigate to; it has its own list, its own search field, and the shelf row that opens it ([[07-decisions]] ADR-021).
 - **v1.5**: **FTS5** on native behind a capability check; web keeps LIKE (the wasm build has no FTS5 — see [[03-architecture]]). Any FTS result must keep the v0.3 shape.
@@ -71,7 +78,7 @@ First run seeds a living demo (idempotent, guarded on `clients` being empty): Co
 
 ## Export & backup
 
-`exportAll()` dumps every table as JSON (`{ app, version, exported_at, data }`); the More screen shares it (native share sheet) or copies it (web clipboard). The dump's `version` went to **2** in v0.6 when `bench_snippets` joined it, so a reader can tell whether it will find a table it knows. **Export exists from v0.1 because data ownership is the product promise**, and "every table" is literal: a new table is added to the `tables` list in the same change that creates it. A full backup/restore file flow lands in v2 ([[02-scope]]).
+`exportAll()` dumps every table as JSON (`{ app, version, exported_at, data }`); the More screen shares it (native share sheet) or copies it (web clipboard). The dump's `version` went to **2** in v0.6 (`bench_snippets`) and to **3** in v0.7 (`watch_sites` + `watch_checks`), so a reader can tell whether it will find a table it knows. **Export exists from v0.1 because data ownership is the product promise**, and "every table" is literal: a new table is added to the `tables` list in the same change that creates it. A full backup/restore file flow lands in v2 ([[02-scope]]).
 
 ## Migration policy
 

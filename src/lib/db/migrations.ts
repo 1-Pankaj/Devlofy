@@ -4,6 +4,10 @@
  * Rules:
  *  - Every table carries `id` (nanoid text), `created_at`, `updated_at` (ISO
  *    strings) and a soft-delete tombstone `deleted_at`. Sync-ready from day one.
+ *    The one exception is `watch_checks` (v4): a check is a measurement the app
+ *    took rather than a document the user wrote, so it is pruned to the newest N
+ *    per target and deleted with its target instead of being tombstoned. See
+ *    ADR-023 and the comment on that migration.
  *  - Never edit a shipped migration — append a new one.
  *  - Connection settings (journal mode, foreign keys) are applied outside the
  *    migration transaction.
@@ -139,6 +143,49 @@ const MIGRATIONS: Migration[] = [
       );`,
       `CREATE INDEX idx_bench_snippets_tool ON bench_snippets (tool) WHERE deleted_at IS NULL;`,
       `CREATE INDEX idx_bench_snippets_updated ON bench_snippets (updated_at DESC) WHERE deleted_at IS NULL;`,
+    ],
+  },
+  {
+    // Sentinel. Targets and their check log — *user content* again, so unlike
+    // GitHub's KV cache these live in SQLite: queryable, prunable, exportable.
+    //
+    // `watch_checks` is the one table here **without** a `deleted_at`, on purpose
+    // (ADR-023): a check is a *measurement the app took*, not a document the user
+    // wrote, and a tombstoned measurement is one we have already decided not to
+    // keep. It is pruned to the newest N per site instead, and deleted outright
+    // with its site, so the log (and therefore the export) stays bounded. The
+    // `verdict` is stored rather than re-derived, because it depends on the
+    // expectation that was set at that moment — changing a target's expected
+    // status must not silently rewrite its history.
+    version: 4,
+    statements: [
+      `CREATE TABLE watch_sites (
+        id TEXT PRIMARY KEY NOT NULL,
+        name TEXT NOT NULL,
+        url TEXT NOT NULL,
+        expect_status INTEGER,
+        expect_ms INTEGER,
+        enabled INTEGER NOT NULL DEFAULT 1,
+        note TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        deleted_at TEXT
+      );`,
+      `CREATE TABLE watch_checks (
+        id TEXT PRIMARY KEY NOT NULL,
+        site_id TEXT NOT NULL REFERENCES watch_sites (id),
+        checked_at TEXT NOT NULL,
+        verdict TEXT NOT NULL,
+        status INTEGER,
+        ms INTEGER NOT NULL,
+        source TEXT NOT NULL,
+        detail TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );`,
+      `CREATE INDEX idx_watch_checks_site ON watch_checks (site_id, checked_at DESC);`,
+      `CREATE INDEX idx_watch_checks_checked ON watch_checks (checked_at DESC);`,
+      `CREATE INDEX idx_watch_sites_name ON watch_sites (name COLLATE NOCASE) WHERE deleted_at IS NULL;`,
     ],
   },
 ];

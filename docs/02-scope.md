@@ -93,6 +93,20 @@ Surfaces touched: More gains its **Bench** section; new route `/bench` (shelf, `
 
 The same release also closes [[05-blender-pipeline]]'s last open model item — **the Garden's code-authored kit** ([[07-decisions]] ADR-022): a bench that unlocks with growth and a **signpost with one plate per active project** (the first garden objects whose shape is data), plus a code model for every non-trophy prop so the garden is dressed when its GLB never arrives. Eight models in `src/lib/three/kit/`, all offline, no new dependency — and `tools/preview/` renders them to a PNG without a GPU, because a browser without WebGL (like a headless container) can only show the "3D is unavailable" still.
 
+## v0.7 — Sentinel, the board that watches your own URLs *(built 2026-10-19)*
+
+The second new **category** since v0.1 ([[10-categories]] §2), and the **second networked feature** — with a stricter rule than GitHub's, because Sentinel's whole purpose is to make requests, and they go to the user's own infrastructure ([[07-decisions]] ADR-023):
+
+- **A board, not a list, in More** — the tab bar is unchanged; Sentinel opens from a `networked` section on More. Route `/sentinel` is a stack: the board (worst first), a target's own screen, and the registration form as a modal.
+- **What it is** — register the URLs you own (a site, an API, a health endpoint). Each target gets a status (up / slow / down), the time the request took, a history strip, 24-hour reliability, an incident log, and a full check log — all stored locally, all exportable.
+- **Checks run when you look, and only then** — no polling, no background task, no scheduler. Opening the board checks anything older than 15 minutes; Check all / Check now does it on demand. Every figure says how many checks it is over, because "uptime" here counts *the checks taken*, never wall-clock time.
+- **Three failures in a row is an incident** — derived from the stored verdicts by a pure function, so the rule can improve without a migration. A verdict, by contrast, is *recorded* at the moment it is judged, so changing what a target expects tomorrow never rewrites yesterday.
+- **Honest about the two runtimes** — on the tablet a check reads the real HTTP status; in a browser it cannot (a cross-origin response is opaque), so a web result is labelled **reachable**, never "up", and the board says so in a sentence whenever the numbers came from a browser.
+- **What a target can require** — the only status that counts as up (or "anything below 500"), a time budget above which a response is slow but still up, a pause that keeps the history, and a note.
+- **Pure logic, verified** — the verdict, the windows, the incident runs, the latency spread, the URL parser and every label live in `src/lib/sentinel/status.ts` and are covered by **seventy-eight known-answer checks** (`src/lib/sentinel/self-check.ts`).
+
+Surfaces touched: More gains its **Sentinel** section; new route `/sentinel` (board, `[id]`, `site-form`); `src/lib/sentinel/*` + `src/components/sentinel/*` (`latency-chart`, `site-card`); `searchEverything()` grows a **fifth** kind; **schema v4** and export `version: 3` ([[06-data-model]]).
+
 ## v1 — the spine *(next)*
 
 - Task scheduling follow-ons: energy pairing, manual reordering, due-date editing after creation.

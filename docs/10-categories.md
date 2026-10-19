@@ -108,7 +108,7 @@ Bench is ("11 tools that run on this device — nothing is uploaded").
 
 ---
 
-## 2 · Sentinel — is production up?
+## 2 · Sentinel — is production up? *(built — v0.7, [[07-decisions]] ADR-023)*
 
 **What it is.** You register the URLs you actually own, and the app watches them:
 status, latency, "three failures in a row is an incident", maintenance windows,
@@ -133,9 +133,25 @@ form. Optional badge on the tab when something is down.
 your targets and your history, queryable, prunable, exportable. Migration + data
 model update.
 
-**Not in v1:** TLS expiry (needs the handshake, not `fetch`), DNS, and anything
-that requires being always-on — checks run when you open the board, with the
-timestamp shown, exactly like GitHub's dated snapshot.
+**Built (v0.7), and where it differs from this sketch.** The board, the target
+screen (latency strip, incident log, 24h/7d/30d reliability, check log) and the
+form all shipped, along with **schema v4** and a fifth kind in global search.
+Three details were decided during the build and are worth knowing here:
+
+- **No "uptime %" without its denominator.** Checks run when you open the board,
+  so a wall-clock percentage would be a lie; the figure always says how many
+  checks it covers ("99.4% up · 12 checks"), and the empty incident state says
+  absence of evidence is not proof.
+- **No tab badge.** The tab bar carries destinations, not alarms, and an alarm
+  that only updates while you look is not an alarm. A notification when something
+  goes down needs a background task (a development build) — it is in
+  [[08-backlog]] with that reason attached, not quietly promised here.
+- **One caveat shown, not four implied.** The board prints the browser limitation
+  as a sentence only when the numbers on screen actually came from a browser, and
+  the web verdict word is "reachable" rather than "up".
+
+**Not in v1 (unchanged):** TLS expiry (needs the handshake, not `fetch`), DNS, and
+anything that requires being always-on.
 
 ---
 
