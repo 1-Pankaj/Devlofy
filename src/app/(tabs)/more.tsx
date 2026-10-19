@@ -11,7 +11,7 @@ import { AppButton } from '@/components/ui/app-button';
 import { AppText } from '@/components/ui/app-text';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import { ErrorState } from '@/components/ui/error-state';
-import { ListRow } from '@/components/ui/list-row';
+import { FeatureCard } from '@/components/ui/feature-card';
 import { Panel } from '@/components/ui/panel';
 import { Eyebrow } from '@/components/ui/pill';
 import { Screen } from '@/components/ui/screen';
@@ -20,8 +20,10 @@ import { Segmented } from '@/components/ui/segmented';
 import { FadeUp } from '@/components/ui/stagger';
 import { TextField } from '@/components/ui/text-field';
 import { useLiveQuery } from '@/lib/db/hooks';
-import { exportAll, countWatchSites, getDataStats } from '@/lib/db/repo';
+import { exportAll, countSnippets, getDataStats } from '@/lib/db/repo';
 import { BENCH_TOOLS } from '@/lib/bench/tools';
+import { standingLine } from '@/lib/sentinel/status';
+import { useSentinelStanding } from '@/lib/sentinel/use-sentinel';
 import { APP_VERSION } from '@/lib/version';
 import { GOAL_OPTIONS, useSettings, type DesktopMode, type ThemeMode } from '@/state/settings';
 import { radius, spacing, useTheme } from '@/theme';
@@ -65,7 +67,19 @@ export default function MoreScreen() {
 
   const router = useRouter();
   const stats = useLiveQuery((d) => getDataStats(d));
-  const targets = useLiveQuery((d) => countWatchSites(d));
+  const snippets = useLiveQuery((d) => countSnippets(d));
+  const standing = useSentinelStanding();
+  const sentinelLine = standingLine(standing.standing);
+  // A read that failed says so, rather than showing the card with no live line —
+  // "no verdict" and "could not read" must never look the same. An empty board
+  // gets a neutral pill too: it is the only place a new user learns the shelf
+  // card leads somewhere they have not set up yet.
+  const sentinelStat =
+    standing.status === 'error'
+      ? 'Could not read the board'
+      : (sentinelLine?.text ?? 'Nothing watched yet');
+  const sentinelTone =
+    standing.status === 'error' || !sentinelLine ? 'neutral' : sentinelLine.tone;
   const [exportNote, setExportNote] = useState<string | null>(null);
 
   const handleExport = async () => {
@@ -98,39 +112,35 @@ export default function MoreScreen() {
         title: 'More',
         subtitle: 'Shape the app around how you work.',
       }}>
+      {/* The shelf. These two are the app's own tools — not settings, and not the
+          tracker. They lead the tab, and each carries its live count so the card
+          answers "anything wrong?" before it is opened. */}
       <FadeUp index={0}>
-        <SectionHeader eyebrow="offline" title="Bench" />
-        <Panel coreStyle={{ padding: 0, overflow: 'hidden' }}>
-          <ListRow
-            icon={<Toolbox size={17} color={colors.accent} weight="light" />}
-            tone="accent"
+        <SectionHeader eyebrow="offline & networked" title="Bench & Sentinel" />
+        <View style={{ gap: spacing.md }}>
+          <FeatureCard
+            icon={Toolbox}
             title="Bench"
-            subtitle={`${BENCH_TOOLS.length} tools that run on this device — nothing is uploaded`}
+            promise="Hashes, JSON, diffs, tokens — computed on this device."
+            stat={
+              snippets.status === 'ready' && snippets.data
+                ? `${BENCH_TOOLS.length} tools · ${snippets.data} kept`
+                : `${BENCH_TOOLS.length} tools`
+            }
             onPress={() => router.push('/bench')}
           />
-        </Panel>
+          <FeatureCard
+            icon={Pulse}
+            title="Sentinel"
+            promise="Watch the URLs you own: status, latency, incidents."
+            stat={sentinelStat}
+            tone={sentinelTone}
+            onPress={() => router.push('/sentinel')}
+          />
+        </View>
       </FadeUp>
 
       <FadeUp index={1}>
-        <SectionHeader eyebrow="networked" title="Sentinel" />
-        <Panel coreStyle={{ padding: 0, overflow: 'hidden' }}>
-          <ListRow
-            icon={<Pulse size={17} color={colors.accent} weight="light" />}
-            tone="accent"
-            title="Sentinel"
-            subtitle={
-              targets.status === 'error'
-                ? 'Could not count your targets — open to look'
-                : targets.data === 0
-                  ? 'Watch the URLs you own — status, latency, incidents'
-                  : `${targets.data} ${targets.data === 1 ? 'target' : 'targets'} watched from this device`
-            }
-            onPress={() => router.push('/sentinel')}
-          />
-        </Panel>
-      </FadeUp>
-
-      <FadeUp index={2}>
         <Panel coreStyle={{ padding: 0 }}>
           <SettingBlock title="Your name" caption="Used for the greeting. Everything else is yours too.">
             <TextField value={userName} onChangeText={setUserName} placeholder="Your name" />
@@ -179,7 +189,7 @@ export default function MoreScreen() {
         </Panel>
       </FadeUp>
 
-      <FadeUp index={3}>
+      <FadeUp index={2}>
         <View style={{ gap: spacing.lg }}>
           {/* Data: one hero figure, then the supporting counts */}
           {stats.status === 'error' && !stats.data ? (
@@ -250,7 +260,7 @@ export default function MoreScreen() {
         </View>
       </FadeUp>
 
-      <FadeUp index={4}>
+      <FadeUp index={3}>
         <Panel coreStyle={{ gap: spacing.xs }}>
           <Eyebrow>about</Eyebrow>
           <AppText variant="subheadMedium">Devlofy v{APP_VERSION}</AppText>

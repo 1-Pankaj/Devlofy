@@ -126,6 +126,35 @@ An error is also **not "not found"**: "no longer exists" may only be said after 
 read that came back null. Where a screen has several queries, each panel carries its own state —
 one failed section is a sentence in that panel, never a blank page.
 
+## Reaching a feature — a shelf card, and its state where the work is
+
+More is a hub, not a junk drawer. The categories reached from it (Bench, Sentinel) open the tab
+as a **feature shelf** of `FeatureCard`s, and the difference between a card and a `ListRow` is
+deliberate:
+
+| | `ListRow` | `FeatureCard` |
+|---|---|---|
+| Job | one item inside a group | a place you can go |
+| Leading | 36px well, usually neutral | 44px well on a soft tone, always |
+| State | none | a **live pill**: what the feature is doing right now |
+| Reads as | a preference | a product |
+
+- **A pill never computes anything.** `More` and `Today` both render
+  `standingLine(standingOf(…))` from `src/lib/sentinel/status.ts` — one pure function, so two
+  screens showing the same fact cannot disagree. A card that derived its own number would be a
+  second source of truth for it.
+- **"Nothing to say" is a state, not an absence** — the neutral pill (`Nothing watched yet`) —
+  and a failed read keeps its own wording (`Could not read the board`) instead of rendering as
+  an empty one. The states rule above applies to a pill, not just a screen.
+- **The state surfaces where the work is.** A card is where you *go to* a feature; the Sentinel
+  strip on Today is where you *find out you need to*. Reach paths stay where the feature budget
+  put them ([[07-decisions]] ADR-001/ADR-021/ADR-024).
+- **The tab bar still carries destinations, not alarms.** No badge, ever — the alarm is a
+  `danger` pill on Today, and it costs one row only while the feature is actually set up.
+- **A card never animates to be noticed.** No pulsing dot, no badge bounce, no live shimmer:
+  `statusColors()` gives the pill and the icon well one shared tone, and that is the whole
+  attention budget.
+
 ## Typography — one voice
 
 **Geist** does everything; hierarchy comes from weight and size, never from switching

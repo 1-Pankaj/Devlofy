@@ -6,6 +6,10 @@
  * asks the database once per kind and returns every group together, so the
  * answer arrives even when you guessed the wrong noun.
  *
+ * Bench's tools are the exception — they are code, not rows — and they are the
+ * most-forgotten thing in the app, so they are matched here too: typing "sha256"
+ * or "base64" opens the tool rather than reporting nothing.
+ *
  * Reached from the Today header, or Cmd/Ctrl-K on web.
  */
 import { useRouter } from 'expo-router';
@@ -35,14 +39,24 @@ import { Screen } from '@/components/ui/screen';
 import { SectionHeader } from '@/components/ui/section';
 import { useLiveQuery } from '@/lib/db/hooks';
 import { searchEverything, setTaskDone, type SearchHit } from '@/lib/db/repo';
+import { searchTools, toolById } from '@/lib/bench/tools';
 import { fonts, radius, spacing, useTheme } from '@/theme';
 
-const GROUPS: { kind: SearchHit['kind']; title: string; eyebrow: string }[] = [
+/**
+ * Bench's tools are a registry, not rows, so they are the one kind this screen
+ * merges in itself. Keeping the shape the same means the render below has one
+ * union to branch on rather than two lists.
+ */
+type ToolHit = { kind: 'tool'; id: string; title: string; subtitle: string | null };
+type ResultRow = SearchHit | ToolHit;
+
+const GROUPS: { kind: ResultRow['kind']; title: string; eyebrow: string }[] = [
   { kind: 'project', title: 'Projects', eyebrow: 'portfolio' },
   { kind: 'client', title: 'Clients', eyebrow: 'relationships' },
   { kind: 'note', title: 'Notes', eyebrow: 'writing' },
   { kind: 'task', title: 'Tasks', eyebrow: 'plan' },
   { kind: 'site', title: 'Watch targets', eyebrow: 'the outside world' },
+  { kind: 'tool', title: 'Bench tools', eyebrow: 'offline' },
 ];
 
 export default function SearchScreen() {
@@ -63,12 +77,20 @@ export default function SearchScreen() {
   const results = useLiveQuery((d) => searchEverything(d, debounced), { deps: [debounced] });
 
   const grouped = useMemo(() => {
-    const hits = results.data ?? [];
+    // Bench's eleven tools are not database rows, so they are matched with the
+    // shelf's own `searchTools` — one matcher, so "sha256" finds Hash here exactly
+    // as it does there. Below the two-character floor, both sources stay quiet.
+    const rows: ResultRow[] = results.data ? [...results.data] : [];
+    if (debounced.trim().length >= 2) {
+      for (const tool of searchTools(debounced)) {
+        rows.push({ kind: 'tool', id: tool.id, title: tool.name, subtitle: tool.blurb });
+      }
+    }
     return GROUPS.map((group) => ({
       ...group,
-      hits: hits.filter((hit) => hit.kind === group.kind),
+      hits: rows.filter((hit) => hit.kind === group.kind),
     })).filter((group) => group.hits.length > 0);
-  }, [results.data]);
+  }, [results.data, debounced]);
 
   const handleToggleTask = useCallback(
     async (hit: SearchHit) => {
@@ -79,13 +101,15 @@ export default function SearchScreen() {
   );
 
   const handleOpen = useCallback(
-    (hit: SearchHit) => {
+    (hit: ResultRow) => {
       if (hit.kind === 'project') router.push({ pathname: '/project/[id]', params: { id: hit.id } });
       else if (hit.kind === 'client')
         router.push({ pathname: '/client/[id]', params: { id: hit.id } });
       else if (hit.kind === 'note') router.push({ pathname: '/note/[id]', params: { id: hit.id } });
       else if (hit.kind === 'site')
         router.push({ pathname: '/sentinel/[id]', params: { id: hit.id } });
+      else if (hit.kind === 'tool')
+        router.push({ pathname: '/bench/[tool]', params: { tool: hit.id } });
       else handleToggleTask(hit);
     },
     [handleToggleTask, router],
@@ -95,7 +119,7 @@ export default function SearchScreen() {
   const searching = typed && results.status === 'loading' && !results.data;
   // A failed search is not an empty one: `results.refresh` is the only way back.
   const failed = typed && results.status === 'error' && !results.data;
-  const total = (results.data ?? []).length;
+  const total = grouped.reduce((count, group) => count + group.hits.length, 0);
 
   return (
     <Screen
@@ -122,7 +146,7 @@ export default function SearchScreen() {
             onChangeText={setQuery}
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
-            placeholder="Projects, clients, notes, tasks, targets…"
+            placeholder="Projects, notes, tasks, tools…"
             placeholderTextColor={colors.textTertiary}
             selectionColor={colors.accent}
             cursorColor={colors.accent}
@@ -178,7 +202,7 @@ export default function SearchScreen() {
           <EmptyState
             icon={MagnifyingGlass}
             title={`Nothing for “${debounced.trim()}”`}
-            message="No project, client, note, task or watch target matches. Try a shorter word."
+            message="No project, client, note, task, watch target or Bench tool matches. Try a shorter word."
           />
         </Panel>
       ) : (
@@ -196,6 +220,9 @@ export default function SearchScreen() {
             <Panel coreStyle={{ padding: 0, overflow: 'hidden' }}>
               {group.hits.map((hit, index) => {
                 const done = hit.kind === 'task' && hit.done === 1;
+                // A tool hit wears its own glyph: the row should look like the
+                // tool it opens, the same way a project hit wears a folder.
+                const ToolIcon = hit.kind === 'tool' ? toolById(hit.id)?.icon : undefined;
                 return (
                   <ListRow
                     key={`${hit.kind}-${hit.id}`}
@@ -210,11 +237,17 @@ export default function SearchScreen() {
                         <CheckSquare size={17} color={colors.textTertiary} weight="light" />
                       ) : hit.kind === 'site' ? (
                         <Pulse size={17} color={colors.accent} weight="light" />
+                      ) : ToolIcon ? (
+                        <ToolIcon size={17} color={colors.accent} weight="light" />
                       ) : (
                         <CircleIcon size={17} color={colors.textTertiary} weight="light" />
                       )
                     }
-                    tone={hit.kind === 'project' || hit.kind === 'site' ? 'accent' : 'neutral'}
+                    tone={
+                      hit.kind === 'project' || hit.kind === 'site' || hit.kind === 'tool'
+                        ? 'accent'
+                        : 'neutral'
+                    }
                     title={hit.title}
                     subtitle={hit.subtitle ?? undefined}
                     showSeparator={index < group.hits.length - 1}

@@ -21,7 +21,7 @@ created: 2026-10-17
 - **Garden** — 3D tree grown from real focus data: Blender-authored GLBs over the procedural fallback; **focus blocks (25/50/90) with countdown, progress bar and auto-close at zero**; project attribution; live overlay timer; **12-week rhythm heatmap**; recent sessions.
 - **Work** — projects list with progress rings **and time tracked per project**, project detail (progress, milestones, tasks, focus time), clients list, **client detail (delivery stats, details, portfolio)**, create project / create client.
 - **Notes** — search over titles + bodies, pinned notes, **rebuilt editor**: autosave with live save badge, **markdown preview**, **starter templates**, word/char footer, pin + inline delete confirm.
-- **More** — name, theme (System / Dark / Light), desktop mode, **daily focus goal**, data stats, JSON export, about.
+- **More** — the **feature shelf** first (Bench and Sentinel as cards carrying a live figure, v0.7.1), then name, theme (System / Dark / Light), desktop mode, **daily focus goal**, data stats, JSON export, about.
 - **Desktop mode** — side rail + centered content; adaptive tab shell.
 - **System** — safe-area insets owned by `Screen` everywhere, animated `ProgressRing` / `LiveDot` / `Loading` primitives, root crash boundary, loading/error/empty handled on every list.
 - **Data layer** — full local schema ([[06-data-model]]), migrations, first-run seed, sync-ready (app-generated ids, `updated_at`, tombstones).
@@ -103,9 +103,20 @@ The second new **category** since v0.1 ([[10-categories]] §2), and the **second
 - **Three failures in a row is an incident** — derived from the stored verdicts by a pure function, so the rule can improve without a migration. A verdict, by contrast, is *recorded* at the moment it is judged, so changing what a target expects tomorrow never rewrites yesterday.
 - **Honest about the two runtimes** — on the tablet a check reads the real HTTP status; in a browser it cannot (a cross-origin response is opaque), so a web result is labelled **reachable**, never "up", and the board says so in a sentence whenever the numbers came from a browser.
 - **What a target can require** — the only status that counts as up (or "anything below 500"), a time budget above which a response is slow but still up, a pause that keeps the history, and a note.
-- **Pure logic, verified** — the verdict, the windows, the incident runs, the latency spread, the URL parser and every label live in `src/lib/sentinel/status.ts` and are covered by **seventy-eight known-answer checks** (`src/lib/sentinel/self-check.ts`).
+- **Pure logic, verified** — the verdict, the windows, the incident runs, the latency spread, the URL parser, every label and (since v0.7.1) the standing that More and Today both render live in `src/lib/sentinel/status.ts`, covered by **ninety known-answer checks** (`src/lib/sentinel/self-check.ts`).
 
 Surfaces touched: More gains its **Sentinel** section; new route `/sentinel` (board, `[id]`, `site-form`); `src/lib/sentinel/*` + `src/components/sentinel/*` (`latency-chart`, `site-card`); `searchEverything()` grows a **fifth** kind; **schema v4** and export `version: 3` ([[06-data-model]]).
+
+## v0.7.1 — the two categories get a front door *(built 2026-10-19)*
+
+No new feature: a fix to how the two releases above are *reached*, because both were reachable and both were invisible ([[07-decisions]] ADR-024).
+
+- **More opens with a shelf, not a list of settings.** Bench and Sentinel are `FeatureCard`s — a 44px tone-tinted icon well, the promise, and a **live pill** — so they read as places rather than as two more preferences next to "Theme". The reach path does not change: still More, still no sixth tab (ADR-001).
+- **Sentinel's standing is on Today.** A strip between the day's tallies and the week: absent until a URL is watched, `accent` when everything is fine, `ember` for slow, `danger` for down or (in a browser) unreachable. It is the *same component and the same sentence* as the More card — one pure function, two screens — and it **never runs a check**, so opening Today cannot fire requests at the user's servers; it says when the answer was measured instead, and it is the reason the tab bar still needs no badge.
+- **Bench's tools are findable.** `/search` matches `BENCH_TOOLS` with the shelf's own `searchTools()`, so "sha256", "base64" or "jwt" opens the tool instead of returning nothing — the toolbox was the one thing the app's global search could not see. `searchEverything()` is unchanged (five kinds); the sixth group is matched by the screen, because a tool is code, not a row.
+- **A failed read is still not an empty one** — the card says "Could not read the board" rather than showing no pill, and an empty board says "Nothing watched yet" in the neutral tone.
+
+Surfaces touched: `src/components/ui/feature-card.tsx` (new, now part of the design system, [[04-design-language]]), `src/components/sentinel/standing-strip.tsx` (new), `standingOf()`/`standingLine()` in `src/lib/sentinel/status.ts` (+12 known-answer checks → 90), `useSentinelStanding()` in `use-sentinel.ts`, More's shelf, Today's strip, and `/search`'s sixth group; **no schema change, no new dependency, no new export version**.
 
 ## v1 — the spine *(next)*
 

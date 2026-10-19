@@ -103,8 +103,9 @@ CORS on web — that is Bench's *second* release, not its first ([[08-backlog]])
 **Open question — answered: a shelf inside More, not a sixth tab.** A tab is a
 place the app's day runs through; Bench is a place you visit with an errand, and
 sixth-tab real estate would have demoted one of the five that already work. The
-tab bar is unchanged; More gains an `offline` section whose row says exactly what
-Bench is ("11 tools that run on this device — nothing is uploaded").
+tab bar is unchanged; More opens with a **feature shelf** whose card says exactly what
+Bench is and carries its live count — and since v0.7.1 that card is a `FeatureCard`, not a
+settings row ([[07-decisions]] ADR-024).
 
 ---
 
@@ -127,7 +128,8 @@ status codes, headers and bodies. The screen says which one it is showing.
 
 **Screens.** `/sentinel` (the board: worst first, not alphabetical), a site's
 detail (latency chart, incident log, uptime for 24h/7d/30d), and an add/edit
-form. Optional badge on the tab when something is down.
+form. ~~Optional badge on the tab when something is down.~~ **Resolved: no badge** — the
+standing is a strip on **Today** instead ([[07-decisions]] ADR-023, ADR-024).
 
 **Data.** New tables (`watch_sites`, `watch_checks`) — this *is* user content:
 your targets and your history, queryable, prunable, exportable. Migration + data
@@ -143,9 +145,10 @@ Three details were decided during the build and are worth knowing here:
   checks it covers ("99.4% up · 12 checks"), and the empty incident state says
   absence of evidence is not proof.
 - **No tab badge.** The tab bar carries destinations, not alarms, and an alarm
-  that only updates while you look is not an alarm. A notification when something
-  goes down needs a background task (a development build) — it is in
-  [[08-backlog]] with that reason attached, not quietly promised here.
+  that only updates while you look is not an alarm. It went to the one place that is
+  always opened instead: the board's standing is a strip on **Today** (ADR-024). A
+  notification when something goes down needs a background task (a development build) —
+  it is in [[08-backlog]] with that reason attached, not quietly promised here.
 - **One caveat shown, not four implied.** The board prints the browser limitation
   as a sentence only when the numbers on screen actually came from a browser, and
   the web verdict word is "reachable" rather than "up".

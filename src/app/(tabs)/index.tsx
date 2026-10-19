@@ -37,6 +37,7 @@ import Animated, {
 import { GardenScene } from '@/components/garden/garden-scene';
 import { NextUp } from '@/components/focus/next-up';
 import { ProjectChips } from '@/components/focus/project-chips';
+import { SentinelStrip } from '@/components/sentinel/standing-strip';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import { AppText } from '@/components/ui/app-text';
 import { emptyArt } from '@/components/ui/empty-art';
@@ -476,8 +477,14 @@ export default function TodayScreen() {
         </View>
       </FadeUp>
 
-      {/* The week */}
+      {/* Sentinel — the one thing here that can be true without being opened.
+          Absent entirely until a URL is watched; a red pill when one is down. */}
       <FadeUp index={2}>
+        <SentinelStrip onPress={() => router.push('/sentinel')} />
+      </FadeUp>
+
+      {/* The week */}
+      <FadeUp index={3}>
         <Panel>
           <View
             style={{
@@ -526,7 +533,7 @@ export default function TodayScreen() {
 
       {/* Recent sessions: a shelf, not a list */}
       {(recent.data?.length ?? 0) > 0 ? (
-        <FadeUp index={3}>
+        <FadeUp index={4}>
           <View>
             <SectionHeader eyebrow="History" title="Recent sessions" />
             <ScrollView
@@ -563,7 +570,7 @@ export default function TodayScreen() {
       ) : null}
 
       {/* Plan: quick-add + queue */}
-      <FadeUp index={4}>
+      <FadeUp index={5}>
         <View>
           <SectionHeader
             eyebrow="Plan"
@@ -743,7 +750,7 @@ export default function TodayScreen() {
       </FadeUp>
 
       {/* Garden teaser */}
-      <FadeUp index={5}>
+      <FadeUp index={6}>
         <Panel rounding="xl" coreStyle={{ padding: 0, overflow: 'hidden' }}>
           <PressableScale
             haptic="selection"
@@ -786,7 +793,7 @@ export default function TodayScreen() {
       </FadeUp>
 
       {/* Craft tip — deliberately not a card */}
-      <FadeUp index={6}>
+      <FadeUp index={7}>
         <View
           style={{
             gap: spacing.sm,

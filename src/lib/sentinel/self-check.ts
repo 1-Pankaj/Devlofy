@@ -24,6 +24,8 @@ import {
   latencyStats,
   minutesSince,
   normalizeUrl,
+  standingLine,
+  standingOf,
   uptimeIn,
   verdictFor,
   verdictLabel,
@@ -325,6 +327,131 @@ export function runSelfCheck(): CheckResult[] {
     check('hours and minutes', formatSpan(72), '1h 12m'),
     check('an unfinished incident', formatSpan(null), 'still failing'),
     contains('the web note explains the limit', verdictLabel('up', 'web'), 'reachable'),
+  );
+
+  // ── the standing: the one sentence Today and More both show
+  const standingSite = (id: string, enabled = 1) => ({ id, enabled });
+  const standingCheck = (
+    site_id: string,
+    verdict: Verdict,
+    source: 'native' | 'web' = 'native',
+    minute = 0,
+  ) => ({ site_id, verdict, checked_at: at(minute), source });
+
+  results.push(
+    check(
+      'everything up reads as one line',
+      standingLine(
+        standingOf(
+          [standingSite('a'), standingSite('b'), standingSite('c')],
+          [standingCheck('a', 'up'), standingCheck('b', 'up'), standingCheck('c', 'up')],
+        ),
+      ),
+      { text: '3 up', tone: 'accent' },
+    ),
+    check(
+      'a down target leads the sentence',
+      standingLine(
+        standingOf(
+          [standingSite('a'), standingSite('b'), standingSite('c'), standingSite('d')],
+          [
+            standingCheck('a', 'down'),
+            standingCheck('b', 'up'),
+            standingCheck('c', 'up'),
+            standingCheck('d', 'up'),
+          ],
+        ),
+      ),
+      { text: '1 down · 3 up', tone: 'danger' },
+    ),
+    check(
+      'slow is its own word, and ember',
+      standingLine(
+        standingOf(
+          [standingSite('a'), standingSite('b'), standingSite('c')],
+          [
+            standingCheck('a', 'slow'),
+            standingCheck('b', 'up'),
+            standingCheck('c', 'up'),
+          ],
+        ),
+      ),
+      { text: '1 slow · 2 up', tone: 'ember' },
+    ),
+    check(
+      'a browser-only board says unreachable, never down',
+      standingLine(
+        standingOf(
+          [standingSite('a'), standingSite('b')],
+          [standingCheck('a', 'down', 'web'), standingCheck('b', 'up', 'web')],
+        ),
+      ),
+      { text: '1 unreachable · 1 reachable', tone: 'danger' },
+    ),
+    check(
+      'one native check is enough to say down',
+      standingLine(
+        standingOf(
+          [standingSite('a'), standingSite('b')],
+          [standingCheck('a', 'down', 'web'), standingCheck('b', 'up', 'native')],
+        ),
+      ),
+      { text: '1 down · 1 up', tone: 'danger' },
+    ),
+    // The important one: a paused target is history, not an alarm.
+    check(
+      'a paused target cannot raise the alarm',
+      standingOf(
+        [standingSite('a'), standingSite('b', 0)],
+        [standingCheck('a', 'up'), standingCheck('b', 'down')],
+      ),
+      {
+        sites: 2,
+        watched: 1,
+        paused: 1,
+        up: 1,
+        slow: 0,
+        down: 0,
+        never: 0,
+        worst: 'up',
+        lastCheckedAt: at(0),
+        reachedOnly: false,
+      },
+    ),
+    check(
+      'nothing judged yet is neutral, not a pass',
+      standingLine(standingOf([standingSite('a'), standingSite('b')], [])),
+      { text: '2 not checked', tone: 'neutral' },
+    ),
+    check(
+      'a mix says what is judged and what is not',
+      standingLine(
+        standingOf([standingSite('a'), standingSite('b')], [standingCheck('a', 'up')]),
+      ),
+      { text: '1 up · 1 not checked', tone: 'accent' },
+    ),
+    check(
+      'all paused is its own sentence',
+      standingLine(standingOf([standingSite('a', 0), standingSite('b', 0)], [])),
+      { text: '2 paused', tone: 'neutral' },
+    ),
+    check('no targets, nothing to say', standingLine(standingOf([], [])), null),
+    check(
+      'the newest check wins the timestamp',
+      standingOf(
+        [standingSite('a'), standingSite('b')],
+        [standingCheck('a', 'up', 'native', 3), standingCheck('b', 'up', 'native', 9)],
+      ).lastCheckedAt,
+      at(9),
+    ),
+    check(
+      'the worst verdict wins, not the newest',
+      standingOf(
+        [standingSite('a'), standingSite('b')],
+        [standingCheck('a', 'down', 'native', 1), standingCheck('b', 'up', 'native', 9)],
+      ).worst,
+      'down',
+    ),
   );
 
   return results;

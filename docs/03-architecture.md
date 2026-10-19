@@ -63,7 +63,7 @@ src/
     project-form.tsx      # modal
     client-form.tsx       # modal
     invoice.tsx           # invoice draft (period/client scoped, a view over sessions)
-    search.tsx            # global search modal (five kinds)
+    search.tsx            # global search modal (the database's five kinds, plus Bench's tools)
     bench/                # the offline toolbox: index (shelf), [tool] (one host route), snippets
     sentinel/             # the watch board: index (board, worst first), [id] (one target's
                           #   history), site-form (modal)
@@ -71,12 +71,15 @@ src/
                           #   issues, issue, new-issue, actions, notifications, release
     _layout.tsx           # providers, fonts, splash, stack
   components/
-    ui/                   # Panel, AppButton, AppText, ListRow, Segmented, Screen, CodeBlock, DiffView, …
+    ui/                   # Panel, AppButton, AppText, ListRow, FeatureCard (the More shelf's
+                          #   destination card: icon well + promise + a live status pill),
+                          #   Segmented, Screen, CodeBlock, DiffView, …
     nav/                  # nav-items, BottomTabBar, DesktopShell
     garden/               # garden-scene.tsx (R3F)
     focus/                # heatmap, project chips, Next up (the Engine's card), rhythm card
     bench/                # eleven tool screens + the "keep this" panel + shared tool chrome
-    sentinel/             # site-card (one target on the board), latency-chart (the strip, SVG)
+    sentinel/             # site-card (one target on the board), latency-chart (the strip, SVG),
+                          #   standing-strip.tsx (the Today card: the board's answer, off the board)
   lib/
     db/                   # migrations, seed, repo, hooks, provider
     engine/               # the Engine: rhythm.ts, next-up.ts, estimate.ts, use-engine.ts
@@ -124,7 +127,7 @@ Press `Shift+M` in the Expo CLI to browse the SQLite database with the dev tool.
 Known-answer checks live beside the pure modules they cover — one file per folder, deliberately, so each stays runnable on its own and neither grows into a suite nobody runs:
 
 - `src/lib/bench/self-check.ts` — **80** checks (hashes against published vectors, RFC semantics for base64/URL/JWT, cron against real timestamps, WCAG contrast, diff/patch round-trips).
-- `src/lib/sentinel/self-check.ts` — **78** checks (the verdict every set of facts produces, uptime windows, incident runs, the latency spread, URL parsing, and every label the board shows).
+- `src/lib/sentinel/self-check.ts` — **90** checks (the verdict every set of facts produces, uptime windows, incident runs, the latency spread, URL parsing, every label the board shows, and — since ADR-024 — the standing that the More card and the Today strip render, including that a paused target cannot raise an alarm).
 
 Both are plain TypeScript returning a result list, so they run anywhere TypeScript does. Node 22 here is not built with TS support, so the route is an explicit emit — and note `--target es2022` (the app's own lib level; `es2020` rejects `Array.prototype.at`) and `--ignoreDeprecations 6.0` (TypeScript 6 still accepts `--moduleResolution node10`, but only if you say you know):
 

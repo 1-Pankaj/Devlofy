@@ -36,12 +36,14 @@ import { checkSite, checkSites } from './run';
 import {
   incidentsIn,
   isStale,
+  standingOf,
   uptimeIn,
   worstFirst,
   type CheckLike,
   type Incident,
   type UptimeWindow,
   type Verdict,
+  type WatchStanding,
 } from './status';
 
 /** How much history the board summarises per target. */
@@ -196,6 +198,44 @@ export function useSentinelBoard(): SentinelBoard {
     progress: runner.progress,
     lastCheckedAt: data?.lastCheckedAt ?? null,
     runAll: () => runner.runAll(data?.sites ?? []),
+  };
+}
+
+export type SentinelStandingView = {
+  status: 'loading' | 'error' | 'ready';
+  error: string | null;
+  refresh: () => void;
+  /** Null until the first read lands. */
+  standing: WatchStanding | null;
+};
+
+/**
+ * The board's answer, without the board.
+ *
+ * Today and More both need one thing from Sentinel — "is anything of mine down
+ * right now?" — and neither should pay for it. `useSentinelBoard()` reads a week
+ * of checks per target to draw sparklines; this reads two cheap rows per target
+ * and folds them with the same pure `standingOf()` the self-checks cover, so the
+ * summary on Today cannot drift from the board it summarises.
+ *
+ * It never runs a check. Opening Today must not fire requests at the user's
+ * servers (that policy lives in the board), so a stale answer here is possible
+ * and that is exactly why the strip states the time it was measured.
+ */
+export function useSentinelStanding(): SentinelStandingView {
+  const query = useLiveQuery<WatchStanding>(
+    async (db) => {
+      const [sites, latest] = await Promise.all([listWatchSites(db), latestWatchChecks(db)]);
+      return standingOf(sites, latest);
+    },
+    { deps: [] },
+  );
+
+  return {
+    status: query.status,
+    error: query.error,
+    refresh: query.refresh,
+    standing: query.data ?? null,
   };
 }
 

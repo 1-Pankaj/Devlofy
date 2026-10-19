@@ -349,3 +349,127 @@ export function formatSpan(minutes: number | null): string {
   const rest = minutes % 60;
   return rest === 0 ? `${hours}h` : `${hours}h ${rest}m`;
 }
+
+// ───────────────────── the standing: one sentence about everything ─────────────────────
+
+/**
+ * What the board says when it is *not* on screen.
+ *
+ * Sentinel's answer to "is anything of mine down?" is worth more than a screen
+ * you remember to open, so it is summarised wherever the user already is (Today)
+ * and on the shelf that leads to it (More). Both must say the same thing, so the
+ * sentence is built here once — from the stored verdicts, never from a counter.
+ *
+ * The wording obeys the runtime rule: on a browser the verdict `down` means
+ * "did not answer", and calling that "down" would claim more than a browser can
+ * know, so a web-only standing says **unreachable**.
+ */
+export type StandingSite = { id: string; enabled: number };
+
+export type StandingCheck = {
+  site_id: string;
+  verdict: Verdict;
+  checked_at: string;
+  source: CheckSource;
+};
+
+export type WatchStanding = {
+  /** Every target on the board, including paused ones. */
+  sites: number;
+  /** Targets that are actually checked. */
+  watched: number;
+  paused: number;
+  up: number;
+  slow: number;
+  down: number;
+  /** Watched targets with no check at all yet. */
+  never: number;
+  /** The worst verdict among watched targets — null when nothing has been judged. */
+  worst: Verdict | null;
+  /** Newest check across watched targets, for "checked 4m ago". */
+  lastCheckedAt: string | null;
+  /** True when every judgement came from a browser, so "up" would be an overclaim. */
+  reachedOnly: boolean;
+};
+
+export type StandingTone = 'accent' | 'ember' | 'danger' | 'neutral';
+
+export function standingOf(sites: StandingSite[], latest: StandingCheck[]): WatchStanding {
+  const latestBySite = new Map(latest.map((check) => [check.site_id, check]));
+  const standing: WatchStanding = {
+    sites: sites.length,
+    watched: 0,
+    paused: 0,
+    up: 0,
+    slow: 0,
+    down: 0,
+    never: 0,
+    worst: null,
+    lastCheckedAt: null,
+    reachedOnly: false,
+  };
+
+  let judged = 0;
+  let fromNative = false;
+  for (const site of sites) {
+    // A paused target is not part of the answer to "is anything down?" — its last
+    // verdict is history, and raising an alarm from it would be a lie about now.
+    if (site.enabled !== 1) {
+      standing.paused += 1;
+      continue;
+    }
+    standing.watched += 1;
+    const check = latestBySite.get(site.id);
+    if (!check) {
+      standing.never += 1;
+      continue;
+    }
+    judged += 1;
+    if (check.source === 'native') fromNative = true;
+    if (check.verdict === 'down') standing.down += 1;
+    else if (check.verdict === 'slow') standing.slow += 1;
+    else standing.up += 1;
+    if (!standing.worst || VERDICT_RANK[check.verdict] > VERDICT_RANK[standing.worst]) {
+      standing.worst = check.verdict;
+    }
+    if (!standing.lastCheckedAt || check.checked_at > standing.lastCheckedAt) {
+      standing.lastCheckedAt = check.checked_at;
+    }
+  }
+
+  standing.reachedOnly = judged > 0 && !fromNative;
+  return standing;
+}
+
+/**
+ * The sentence — counts only, worst first, with the honest verb for the runtime.
+ * `null` when there is nothing worth saying: no targets, or nothing read yet.
+ */
+export function standingLine(
+  standing: WatchStanding | null,
+): { text: string; tone: StandingTone } | null {
+  if (!standing || standing.sites === 0) return null;
+  if (standing.watched === 0) {
+    return { text: `${standing.paused} paused`, tone: 'neutral' };
+  }
+
+  const bad = standing.reachedOnly ? 'unreachable' : 'down';
+  const good = standing.reachedOnly ? 'reachable' : 'up';
+  const parts: string[] = [];
+  if (standing.down > 0) parts.push(`${standing.down} ${bad}`);
+  if (standing.slow > 0) parts.push(`${standing.slow} slow`);
+  if (standing.up > 0) parts.push(`${standing.up} ${good}`);
+  if (standing.never > 0) parts.push(`${standing.never} not checked`);
+
+  // Nothing judged is not the same as nothing wrong: only healthy checks earn
+  // the accent, so "2 not checked" never looks like a pass.
+  const tone: StandingTone =
+    standing.down > 0
+      ? 'danger'
+      : standing.slow > 0
+        ? 'ember'
+        : standing.up > 0
+          ? 'accent'
+          : 'neutral';
+  return { text: parts.join(' · '), tone };
+}
