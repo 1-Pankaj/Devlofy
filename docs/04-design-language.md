@@ -155,8 +155,34 @@ deliberate:
   `statusColors()` gives the pill and the icon well one shared tone, and that is the whole
   attention budget.
 
-## Typography — one voice
+## Writing — one input, everything else rendered
 
+The note editor is the one screen the user writes in for a long sitting, so it has its own shape —
+and its rules are the app's rules, applied to a keyboard:
+
+- **Fixed chrome, one scroll.** Header, title, meta, stats and the format bar stay put; the block
+  list owns its own scroll. A toolbar that scrolls away with the text is a toolbar nobody presses.
+- **One `TextInput` is mounted at a time** — the block you are in. Every other block is *drawn*, so
+  inline marks (`**bold**`, `[[links]]`) are visible only in the block you are editing and resolved
+  everywhere else. This is why `active` (what the toolbar acts on) and `editing` (what has an input)
+  are separate pieces of state: a toolbar press blurs the input on web, and the toolbar must still
+  know what it is formatting.
+- **Two modes, one document.** Editing and reading are the same body rendered two ways: the reader
+  runs the same inline tokenizer with the syntax taken out and `[[links]]` tappable. The old
+  side-by-side "markdown preview" (v0.1–v0.7) is gone — a preview that can disagree with the thing
+  you are typing is a second truth, and it was never worth a split screen on a tablet.
+- **A mark is a token, not a mode.** Bold is `**` in the text, converted as you type, so the note is
+  the same string in the reader, in search and in the export — never a rich-text blob. The bar
+  *reflects* the caret (`activeMarks`) instead of holding state of its own.
+- **The keyboard is the primary input.** Markdown input rules (`# `, `- `, `1. `, `[] `, `> `, a
+  fenced code block, `---`) and a `/` menu on an empty block are the fast path; the format bar is for
+  the mouse and the finger. Enter starts the next block, and on an empty list item it leaves the list.
+- **Destruction is a two-tap confirm on the screen that owns the thing** (ADR-021's rule), and a
+  pressable row's trailing slot is never another pressable.
+- **Nothing jumps.** A new block never re-scrolls the list under the caret, and the block being
+  edited is brought into view once, quietly, when focus arrives.
+
+## Typography — one voice
 **Geist** does everything; hierarchy comes from weight and size, never from switching
 typefaces. JetBrains Mono survives only where the text really is machine output: code blocks
 and raw tabular figures.

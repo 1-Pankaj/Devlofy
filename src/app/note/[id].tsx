@@ -1,22 +1,37 @@
 /**
- * Note editor — autosaving, offline, yours.
+ * Note editor — a block editor over markdown, autosaving, offline, yours.
  *
- * Draft state is nullable: `null` means "show what's in the database" and the
- * first keystroke takes local ownership. Saves are debounced and flushed on
- * unmount, so nothing typed is ever lost. Templates turn an empty note into a
- * skeleton in one tap; preview renders the markdown as a reader.
+ * The screen is *chrome*: a header that never scrolls (back, save state, reading
+ * toggle, more), the title, the note's relationships, a stats line, and then the
+ * BlockEditor, which owns the writing surface and the format bar. Reading view
+ * draws the same blocks the editor edits.
+ *
+ * Everything the note can *do* is in one place — the ⋯ sheet: pin it, outline it,
+ * turn its to-dos into real tasks, start a focus block from it, copy it, delete
+ * it. That is the fix for "features are not discoverable": there is exactly one
+ * place to look.
+ *
+ * Draft state is still nullable (`null` = show what the database says); saves are
+ * debounced and flushed on unmount, so nothing typed is ever lost. A bounded
+ * in-memory history gives undo/redo over the body without a new table.
  */
+import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import {
+  Books,
+  CheckSquare,
+  Copy,
+  DotsThree,
   Eye,
   PencilSimple,
   PushPin,
+  Target,
   Trash,
   WarningCircle,
   type IconProps,
 } from 'phosphor-react-native';
-import type { ComponentRef, ComponentType } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -28,32 +43,60 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { MarkdownPreview } from '@/components/notes/markdown-preview';
+import { BlockEditor } from '@/components/notes/block-editor';
+import { ExtractSheet, type ExtractPreview } from '@/components/notes/extract-sheet';
+import { LinkSheet, OutlineSheet } from '@/components/notes/link-sheet';
 import { NoteMeta } from '@/components/notes/note-meta';
+import { ReadingView } from '@/components/notes/reading-view';
 import { AppText } from '@/components/ui/app-text';
 import { BackRow } from '@/components/ui/back-button';
+import { BottomSheet, SheetRow } from '@/components/ui/bottom-sheet';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Eyebrow } from '@/components/ui/pill';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { useLiveQuery } from '@/lib/db/hooks';
 import {
+  createNote,
+  createTask,
   deleteNote,
+  findNoteBacklinks,
+  getActiveSession,
   getNote,
   listClients,
   listExistingTags,
+  listNotes,
   listProjects,
+  startFocusSession,
   updateNote,
 } from '@/lib/db/repo';
 import { countWords, formatDayLabel } from '@/lib/format';
 import { NOTE_TEMPLATES, type NoteTemplate } from '@/lib/note-templates';
+import { openTasks, outlineOf, parseBlocks, toggleTask, visibleText } from '@/lib/notes/blocks';
+import type { Focus } from '@/lib/notes/blocks';
+import { parseTaskInput } from '@/lib/parse-task';
+import { shareText } from '@/lib/share';
 import { normalizeTag, serializeTags, splitTags } from '@/lib/tags';
+import { useSettings } from '@/state/settings';
 import { fonts, radius, spacing, useTheme } from '@/theme';
 
 type Draft = { title: string; body: string };
 type SaveState = 'saved' | 'saving';
 
 const AUTOSAVE_MS = 700;
+const HISTORY_LIMIT = 80;
+/** A burst of typing is one undo step; this is how long a burst lasts. */
+const HISTORY_BURST_MS = 900;
+/**
+ * How long an outline jump waits for its sheet before giving up on being told.
+ * On web a sheet is a `Modal`, and react-native-web's Modal is a *focus trap*:
+ * while it is up it redirects focus into itself, and the moment it unmounts it
+ * hands focus back to whatever held it before the sheet opened. A caret that
+ * moves before then is simply taken away again, so the hand-off rides the
+ * sheet's own `onDismiss`; this timer is only the belt-and-braces fallback for a
+ * dismiss report that never arrives.
+ */
+const JUMP_FALLBACK_MS = 700;
 
 function IconButton({
   icon: Icon,
@@ -95,13 +138,7 @@ function SaveBadge({ state }: { state: SaveState }) {
   const saving = state === 'saving';
 
   return (
-    <View
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: spacing.sm,
-        paddingHorizontal: spacing.md,
-      }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
       <View
         style={{
           width: 7,
@@ -123,34 +160,67 @@ export default function NoteEditorScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
+  const focusProjectId = useSettings((state) => state.focusProjectId);
+  const setFocusProjectId = useSettings((state) => state.setFocusProjectId);
 
   const note = useLiveQuery((d) => getNote(d, id), { deps: [id] });
   const data = note.data;
 
-  const [draft, setDraft] = useState<Draft | null>(null);
-  const [saveState, setSaveState] = useState<SaveState>('saved');
-  const [previewing, setPreviewing] = useState(false);
-  const [confirming, setConfirming] = useState(false);
-  const [pinned, setPinned] = useState<boolean | null>(null);
-  const [tagOverride, setTagOverride] = useState<string[] | null>(null);
-  // `undefined` = follow the database, `null` = explicitly unlinked.
-  const [clientOverride, setClientOverride] = useState<string | null | undefined>(undefined);
-  const [projectOverride, setProjectOverride] = useState<string | null | undefined>(undefined);
-
+  const library = useLiveQuery((d) => listNotes(d));
   const clientList = useLiveQuery((d) => listClients(d));
   const projectList = useLiveQuery((d) => listProjects(d));
   const tagPool = useLiveQuery((d) => listExistingTags(d));
+  const activeSession = useLiveQuery((d) => getActiveSession(d));
+  const backlinks = useLiveQuery((d) => findNoteBacklinks(d, data?.title ?? '', id), {
+    deps: [data?.title, id],
+  });
 
-  const bodyRef = useRef<ComponentRef<typeof TextInput>>(null);
+  const [draft, setDraft] = useState<Draft | null>(null);
+  const [saveState, setSaveState] = useState<SaveState>('saved');
+  const [reading, setReading] = useState(false);
+  const [menu, setMenu] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [flash, setFlash] = useState<string | null>(null);
+  const [pinned, setPinned] = useState<boolean | null>(null);
+  const [tagOverride, setTagOverride] = useState<string[] | null>(null);
+  const [clientOverride, setClientOverride] = useState<string | null | undefined>(undefined);
+  const [projectOverride, setProjectOverride] = useState<string | null | undefined>(undefined);
+  const [link, setLink] = useState<{ apply: (value: string) => void; tab: 'note' | 'web' } | null>(null);
+  const [outline, setOutline] = useState(false);
+  const [extract, setExtract] = useState<{ previews: ExtractPreview[]; lines: string[] } | null>(null);
+  const [extracting, setExtracting] = useState(false);
+  const [focusRequest, setFocusRequest] = useState<{ index: number; nonce: number } | null>(null);
+  const [historyDepth, setHistoryDepth] = useState({ past: 0, future: 0 });
+
   const savedRef = useRef<Draft>({ title: '', body: '' });
   const latestRef = useRef<Draft | null>(null);
   const dirtyRef = useRef(false);
   const hydratedRef = useRef(false);
   const refreshRef = useRef(note.refresh);
+  const pastRef = useRef<string[]>([]);
+  const futureRef = useRef<string[]>([]);
+  const lastPushRef = useRef(0);
+  const suppressRef = useRef(false);
+  const nonceRef = useRef(0);
+  const focusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingJumpRef = useRef<number | null>(null);
+
+  useEffect(
+    () => () => {
+      if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     refreshRef.current = note.refresh;
   }, [note.refresh]);
+
+  useEffect(() => {
+    if (!flash) return;
+    const timer = setTimeout(() => setFlash(null), 4000);
+    return () => clearTimeout(timer);
+  }, [flash]);
 
   // Hydrate the saved baseline once; adopt database truth only while no local
   // edits are pending (e.g. after a save round-trip).
@@ -178,8 +248,7 @@ export default function NoteEditorScreen() {
   useEffect(() => {
     if (!draft) return;
     latestRef.current = draft;
-    const dirty =
-      draft.title !== savedRef.current.title || draft.body !== savedRef.current.body;
+    const dirty = draft.title !== savedRef.current.title || draft.body !== savedRef.current.body;
     dirtyRef.current = dirty;
     if (!dirty) {
       setSaveState('saved');
@@ -187,9 +256,18 @@ export default function NoteEditorScreen() {
     }
     setSaveState('saving');
     const timeout = setTimeout(async () => {
+      // Save whatever is newest *now*: the draft can move on between the
+      // keystroke that scheduled this and the moment it fires.
+      const payload = latestRef.current ?? draft;
       try {
-        await updateNote(db, id, { title: draft.title, body: draft.body });
-        savedRef.current = { title: draft.title, body: draft.body };
+        await updateNote(db, id, payload);
+        // A newer edit can land while the write is in flight (the debounce is
+        // 700 ms, a slow write is slower). Only the write that still matches the
+        // screen may clear the dirty flag — clearing it for a superseded one
+        // would let the refresh below adopt a row that is *behind* the screen,
+        // and the last line typed would disappear.
+        if (latestRef.current !== payload) return;
+        savedRef.current = payload;
         dirtyRef.current = false;
         setSaveState('saved');
         refreshRef.current();
@@ -210,20 +288,99 @@ export default function NoteEditorScreen() {
     [db, id],
   );
 
-  const words = useMemo(() => countWords(draft?.body ?? ''), [draft?.body]);
-  const chars = draft?.body.length ?? 0;
-  const freshNote = data?.title === 'Untitled note' && data?.body === '';
+  const body = draft?.body ?? '';
+  const blocks = useMemo(() => parseBlocks(body), [body]);
+  const words = useMemo(() => countWords(visibleText(body)), [body]);
+  const headings = useMemo(() => outlineOf(body), [body]);
+  const freshNote = data?.title === '' && data?.body === '';
   const effectivePinned = pinned ?? data?.pinned === 1;
   const effectiveTags = tagOverride ?? splitTags(data?.tags);
   const effectiveClientId = clientOverride === undefined ? data?.client_id ?? null : clientOverride;
   const effectiveProjectId = projectOverride === undefined ? data?.project_id ?? null : projectOverride;
   const clientName = (clientList.data ?? []).find((c) => c.id === effectiveClientId)?.name ?? null;
   const projectName = (projectList.data ?? []).find((p) => p.id === effectiveProjectId)?.name ?? null;
+  const projectOptions = (projectList.data ?? []).map((p) => ({ id: p.id, name: p.name }));
+
+  /** `[[Title]]` → the note with that title, so links resolve or say they cannot. */
+  const notes = (library.data ?? []).map((row) => ({ id: row.id, title: row.title }));
+  const byTitle = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const entry of notes) map.set(entry.title.trim().toLowerCase(), entry.id);
+    return map;
+  }, [notes]);
+  const resolveRef = useCallback(
+    (target: string) => byTitle.get(target.trim().toLowerCase()) ?? null,
+    [byTitle],
+  );
+
+  const handleOpenRef = useCallback(
+    (target: string) => {
+      const targetId = resolveRef(target);
+      if (targetId) router.push(`/note/${targetId}`);
+    },
+    [resolveRef, router],
+  );
+
+  const handleStartRef = useCallback(
+    async (target: string) => {
+      const title = target.trim();
+      if (!title) return;
+      const newId = await createNote(db);
+      await updateNote(db, newId, { title });
+      router.push(`/note/${newId}`);
+    },
+    [db, router],
+  );
+
+  const recordHistory = useCallback((previous: string) => {
+    if (suppressRef.current) {
+      suppressRef.current = false;
+      return;
+    }
+    const now = Date.now();
+    if (now - lastPushRef.current > HISTORY_BURST_MS) {
+      pastRef.current.push(previous);
+      if (pastRef.current.length > HISTORY_LIMIT) pastRef.current.shift();
+      futureRef.current = [];
+      setHistoryDepth({ past: pastRef.current.length, future: 0 });
+    }
+    lastPushRef.current = now;
+  }, []);
+
+  const handleEditorChange = useCallback(
+    (next: Focus) => {
+      const previous = latestRef.current?.body ?? savedRef.current.body;
+      if (next.body !== previous) recordHistory(previous);
+      update({ body: next.body });
+    },
+    [recordHistory, update],
+  );
+
+  const undo = useCallback(() => {
+    const previous = pastRef.current.pop();
+    if (previous === undefined) return;
+    futureRef.current.push(latestRef.current?.body ?? savedRef.current.body);
+    suppressRef.current = true;
+    lastPushRef.current = 0;
+    update({ body: previous });
+    setHistoryDepth({ past: pastRef.current.length, future: futureRef.current.length });
+  }, [update]);
+
+  const redo = useCallback(() => {
+    const next = futureRef.current.pop();
+    if (next === undefined) return;
+    pastRef.current.push(latestRef.current?.body ?? savedRef.current.body);
+    suppressRef.current = true;
+    lastPushRef.current = 0;
+    update({ body: next });
+    setHistoryDepth({ past: pastRef.current.length, future: futureRef.current.length });
+  }, [update]);
 
   const applyTemplate = useCallback((template: NoteTemplate) => {
     setDraft({ title: template.title, body: template.body });
     latestRef.current = { title: template.title, body: template.body };
-    bodyRef.current?.focus();
+    nonceRef.current += 1;
+    setFocusRequest({ index: 0, nonce: nonceRef.current });
   }, []);
 
   const togglePin = useCallback(async () => {
@@ -244,18 +401,13 @@ export default function NoteEditorScreen() {
   );
 
   const handleAddTag = useCallback(
-    (tag: string) => {
-      const current = tagOverride ?? splitTags(data?.tags);
-      commitTags([...current, tag]);
-    },
+    (tag: string) => commitTags([...(tagOverride ?? splitTags(data?.tags)), tag]),
     [commitTags, data?.tags, tagOverride],
   );
 
   const handleRemoveTag = useCallback(
-    (tag: string) => {
-      const current = tagOverride ?? splitTags(data?.tags);
-      commitTags(current.filter((existing) => existing !== normalizeTag(tag)));
-    },
+    (tag: string) =>
+      commitTags((tagOverride ?? splitTags(data?.tags)).filter((existing) => existing !== normalizeTag(tag))),
     [commitTags, data?.tags, tagOverride],
   );
 
@@ -279,23 +431,129 @@ export default function NoteEditorScreen() {
     [db, id],
   );
 
-  // Tap a task box in the preview to flip `- [ ]` ↔ `- [x]` in the source.
-  const toggleCheck = useCallback((line: number) => {
-    setDraft((prev) => {
-      const base = prev ?? savedRef.current;
-      const lines = base.body.replace(/\r\n/g, '\n').split('\n');
-      if (line < 0 || line >= lines.length) return prev;
-      const match = /^(\s*[-*]\s+\[)( |x|X)(\]\s+.*)$/.exec(lines[line]);
-      if (!match) return prev;
-      lines[line] = `${match[1]}${match[2].toLowerCase() === 'x' ? ' ' : 'x'}${match[3]}`;
-      return { ...base, body: lines.join('\n') };
-    });
+  // Tap a task in the reading view to flip it in the source.
+  const toggleCheck = useCallback(
+    (index: number) => {
+      const previous = latestRef.current?.body ?? savedRef.current.body;
+      const next = toggleTask(previous, index).body;
+      if (next === previous) return;
+      recordHistory(previous);
+      update({ body: next });
+    },
+    [recordHistory, update],
+  );
+
+  const openOutline = useCallback(() => {
+    setMenu(false);
+    setOutline(true);
   }, []);
+
+  const openExtract = useCallback(() => {
+    setMenu(false);
+    const now = new Date();
+    const lines = openTasks(body);
+    setExtract({
+      previews: lines.map((line) => {
+        const parsed = parseTaskInput(line.text, projectOptions, now);
+        return { title: parsed.title, tokens: parsed.tokens.map((token) => token.label) };
+      }),
+      lines: lines.map((line) => line.text),
+    });
+  }, [body, projectOptions]);
+
+  const runExtract = useCallback(async () => {
+    if (!extract || extracting) return;
+    setExtracting(true);
+    const now = new Date();
+    try {
+      for (const line of extract.lines) {
+        const parsed = parseTaskInput(line, projectOptions, now);
+        await createTask(db, {
+          title: parsed.title,
+          projectId: parsed.projectId ?? effectiveProjectId,
+          priority: parsed.priority,
+          estMinutes: parsed.estMinutes,
+          dueAt: parsed.dueAt,
+        });
+      }
+      setExtract(null);
+      setFlash(
+        `${extract.lines.length} ${extract.lines.length === 1 ? 'to-do' : 'to-dos'} added to Today`,
+      );
+    } catch {
+      setFlash('Could not add those to-dos.');
+    } finally {
+      setExtracting(false);
+    }
+  }, [db, effectiveProjectId, extract, extracting, projectOptions]);
+
+  const startFocus = useCallback(async () => {
+    if (activeSession.data) return;
+    const projectId = effectiveProjectId ?? focusProjectId;
+    try {
+      await startFocusSession(db, projectId);
+      if (projectId && projectId !== focusProjectId) setFocusProjectId(projectId);
+      if (process.env.EXPO_OS !== 'web') {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+      }
+      setMenu(false);
+      setFlash(projectName ? `Focus block started on ${projectName}.` : 'Focus block started.');
+    } catch {
+      setFlash('Could not start a focus block.');
+    }
+  }, [activeSession.data, db, effectiveProjectId, focusProjectId, projectName, setFocusProjectId]);
+
+  const copyNote = useCallback(async () => {
+    const text = `# ${draft?.title ?? ''}\n\n${body}`.trim();
+    const result = await shareText(text, draft?.title ?? 'Note');
+    setMenu(false);
+    setFlash(
+      result === 'copied'
+        ? 'Copied to the clipboard.'
+        : result === 'shared'
+          ? 'Handed to the share sheet.'
+          : 'Could not share this note.',
+    );
+  }, [body, draft?.title]);
 
   const handleDelete = useCallback(async () => {
     await deleteNote(db, id);
     router.back();
   }, [db, id, router]);
+
+  const landJump = useCallback((index: number) => {
+    nonceRef.current += 1;
+    setFocusRequest({ index, nonce: nonceRef.current });
+  }, []);
+
+  /** The sheet said it is gone, or the fallback timer ran out. */
+  const landPendingJump = useCallback(() => {
+    const index = pendingJumpRef.current;
+    pendingJumpRef.current = null;
+    if (index !== null) landJump(index);
+  }, [landJump]);
+
+  /**
+   * Jumping to a heading from the outline. The reading view is left first (a
+   * jump is an invitation to edit), and the caret follows the sheet's close —
+   * see `JUMP_FALLBACK_MS` for why it cannot go earlier on web.
+   */
+  const jumpTo = useCallback(
+    (index: number) => {
+      setReading(false);
+      if (Platform.OS !== 'web') {
+        landJump(index);
+        return;
+      }
+      pendingJumpRef.current = index;
+      if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
+      focusTimerRef.current = setTimeout(landPendingJump, JUMP_FALLBACK_MS);
+    },
+    [landJump, landPendingJump],
+  );
+
+  const openExtractCount = useMemo(() => openTasks(body).length, [body]);
+  const backlinkRows = backlinks.data ?? [];
 
   if (note.status === 'loading' && !data) {
     return (
@@ -347,73 +605,101 @@ export default function NoteEditorScreen() {
     );
   }
 
+  const templateFooter: ReactNode =
+    !reading && body.trim().length === 0 ? (
+      <View style={{ gap: spacing.md, marginTop: spacing.xxl, paddingHorizontal: spacing.xs }}>
+        <Eyebrow>start from a template</Eyebrow>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+          {NOTE_TEMPLATES.map((template) => {
+            const TemplateIcon = template.icon;
+            return (
+              <PressableScale
+                key={template.id}
+                haptic="selection"
+                accessibilityLabel={`Insert ${template.label} template`}
+                onPress={() => applyTemplate(template)}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: spacing.sm,
+                    paddingHorizontal: spacing.lg,
+                    height: 40,
+                    borderRadius: radius.full,
+                    backgroundColor: colors.surfaceElevated,
+                    borderWidth: 1,
+                    borderColor: colors.hairline,
+                  }}>
+                  <TemplateIcon size={15} color={colors.accent} weight="light" />
+                  <AppText variant="captionMedium" tone="secondary">
+                    {template.label}
+                  </AppText>
+                </View>
+              </PressableScale>
+            );
+          })}
+        </View>
+      </View>
+    ) : null;
+
+  const footer: ReactNode =
+    reading && backlinkRows.length > 0 ? (
+      <View style={{ marginTop: spacing.xxl, gap: spacing.sm }}>
+        <Eyebrow>linked from</Eyebrow>
+        {backlinkRows.map((row) => (
+          <PressableScale
+            key={row.id}
+            haptic="selection"
+            accessibilityLabel={`Open ${row.title}`}
+            onPress={() => router.push(`/note/${row.id}`)}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: spacing.sm,
+                paddingVertical: spacing.sm,
+              }}>
+              <Books size={15} color={colors.accent} weight="light" />
+              <AppText variant="subhead" numberOfLines={1} style={{ flex: 1 }}>
+                {row.title || 'Untitled note'}
+              </AppText>
+            </View>
+          </PressableScale>
+        ))}
+      </View>
+    ) : (
+      templateFooter
+    );
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
-          contentContainerStyle={{
+        <View
+          style={{
             paddingHorizontal: spacing.xl,
             paddingTop: insets.top + spacing.sm,
-            paddingBottom: insets.bottom + (Platform.OS === 'ios' ? 120 : 64),
           }}>
-          {confirming ? (
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: spacing.lg,
-                paddingVertical: spacing.md,
-              }}>
-              <AppText variant="subheadMedium" tone="danger" style={{ flex: 1 }}>
-                Delete this note?
-              </AppText>
-              <PressableScale haptic="light" onPress={() => setConfirming(false)}>
-                <AppText variant="captionMedium" tone="secondary">
-                  Keep
-                </AppText>
-              </PressableScale>
-              <PressableScale haptic="medium" onPress={handleDelete}>
-                <AppText variant="captionMedium" tone="danger">
-                  Delete
-                </AppText>
-              </PressableScale>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: spacing.md,
+            }}>
+            <BackRow label="Notes" />
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+              <SaveBadge state={saveState} />
+              <IconButton
+                icon={reading ? PencilSimple : Eye}
+                label={reading ? 'Edit note' : 'Reading view'}
+                active={reading}
+                onPress={() => setReading((value) => !value)}
+              />
+              <IconButton icon={DotsThree} label="Note options" active={menu} onPress={() => setMenu(true)} />
             </View>
-          ) : (
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: spacing.md,
-              }}>
-              <BackRow label="Notes" />
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-                <SaveBadge state={saveState} />
-                <IconButton
-                  icon={previewing ? PencilSimple : Eye}
-                  label={previewing ? 'Edit note' : 'Preview markdown'}
-                  active={previewing}
-                  onPress={() => setPreviewing((value) => !value)}
-                />
-                <IconButton
-                  icon={PushPin}
-                  label={effectivePinned ? 'Unpin note' : 'Pin note'}
-                  active={effectivePinned}
-                  onPress={togglePin}
-                />
-                <IconButton
-                  icon={Trash}
-                  label="Delete note"
-                  danger
-                  onPress={() => setConfirming(true)}
-                />
-              </View>
-            </View>
-          )}
+          </View>
 
           <TextInput
             value={draft?.title ?? ''}
@@ -423,13 +709,11 @@ export default function NoteEditorScreen() {
             selectionColor={colors.accent}
             cursorColor={colors.accent}
             returnKeyType="next"
-            submitBehavior="submit"
-            onSubmitEditing={() => bodyRef.current?.focus()}
             autoFocus={freshNote}
             selectTextOnFocus={freshNote}
             accessibilityLabel="Note title"
             style={{
-              marginTop: spacing.xxl,
+              marginTop: spacing.lg,
               padding: 0,
               color: colors.text,
               fontFamily: fonts.displaySemibold,
@@ -446,7 +730,7 @@ export default function NoteEditorScreen() {
             clientName={clientName}
             projectName={projectName}
             clients={(clientList.data ?? []).map((c) => ({ id: c.id, name: c.name }))}
-            projects={(projectList.data ?? []).map((p) => ({ id: p.id, name: p.name }))}
+            projects={projectOptions.map((p) => ({ id: p.id, name: p.name }))}
             suggestions={tagPool.data ?? []}
             onAddTag={handleAddTag}
             onRemoveTag={handleRemoveTag}
@@ -454,100 +738,128 @@ export default function NoteEditorScreen() {
             onPickProject={handlePickProject}
           />
 
-          <View
-            style={{
-              height: 1,
-              backgroundColor: colors.hairline,
-              marginTop: spacing.lg,
-              marginBottom: spacing.lg,
-            }}
-          />
-
-          {previewing ? (
-            <View style={{ minHeight: 320 }}>
-              <MarkdownPreview source={draft?.body ?? ''} onToggleCheck={toggleCheck} />
-            </View>
-          ) : (
-            <TextInput
-              ref={bodyRef}
-              value={draft?.body ?? ''}
-              onChangeText={(value) => update({ body: value })}
-              placeholder={
-                'Write it down. Markdown works — # heading, - list, - [ ] task, ``` code'
-              }
-              placeholderTextColor={colors.textTertiary}
-              selectionColor={colors.accent}
-              cursorColor={colors.accent}
-              multiline
-              textAlignVertical="top"
-              scrollEnabled={false}
-              accessibilityLabel="Note body"
-              style={{
-                minHeight: 320,
-                padding: 0,
-                color: colors.text,
-                fontFamily: fonts.bodyRegular,
-                fontSize: 16,
-                lineHeight: 26,
-              }}
-            />
-          )}
-
-          {!previewing && (draft?.body ?? '').trim().length === 0 ? (
-            <View style={{ gap: spacing.md, marginTop: spacing.xxl }}>
-              <Eyebrow>start from a template</Eyebrow>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
-                {NOTE_TEMPLATES.map((template) => {
-                  const TemplateIcon = template.icon;
-                  return (
-                    <PressableScale
-                      key={template.id}
-                      haptic="selection"
-                      accessibilityLabel={`Insert ${template.label} template`}
-                      onPress={() => applyTemplate(template)}>
-                      <View
-                        style={{
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          gap: spacing.sm,
-                          paddingHorizontal: spacing.lg,
-                          height: 40,
-                          borderRadius: radius.full,
-                          backgroundColor: colors.surfaceElevated,
-                          borderWidth: 1,
-                          borderColor: colors.hairline,
-                        }}>
-                        <TemplateIcon size={15} color={colors.accent} weight="light" />
-                        <AppText variant="captionMedium" tone="secondary">
-                          {template.label}
-                        </AppText>
-                      </View>
-                    </PressableScale>
-                  );
-                })}
-              </View>
-            </View>
-          ) : null}
-
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginTop: spacing.xxl,
-              paddingTop: spacing.lg,
-              borderTopWidth: 1,
-              borderTopColor: colors.hairline,
-            }}>
-            <AppText variant="mono" tone="tertiary">
-              {words} {words === 1 ? 'word' : 'words'} · {chars} chars
-            </AppText>
-            <AppText variant="mono" tone="tertiary">
-              edited {formatDayLabel(data.updated_at)}
+          <View style={{ paddingVertical: spacing.md }}>
+            <AppText variant="mono" tone={flash ? 'accent' : 'tertiary'}>
+              {flash ??
+                `${words} ${words === 1 ? 'word' : 'words'} · ${blocks.length} ${
+                  blocks.length === 1 ? 'block' : 'blocks'
+                } · edited ${formatDayLabel(data.updated_at)}`}
             </AppText>
           </View>
-        </ScrollView>
+        </View>
+
+        {reading ? (
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{
+              paddingHorizontal: spacing.xl,
+              paddingBottom: insets.bottom + spacing.xxxl,
+            }}>
+            <ReadingView
+              body={body}
+              onToggleTask={toggleCheck}
+              resolveRef={resolveRef}
+              onOpenRef={handleOpenRef}
+              onStartRef={handleStartRef}
+            />
+            {footer}
+          </ScrollView>
+        ) : (
+          <View style={{ flex: 1, paddingHorizontal: spacing.xl }}>
+            <BlockEditor
+              body={body}
+              onChange={handleEditorChange}
+              canUndo={historyDepth.past > 0}
+              canRedo={historyDepth.future > 0}
+              onUndo={undo}
+              onRedo={redo}
+              resolveRef={resolveRef}
+              onOpenRef={handleOpenRef}
+              onStartRef={handleStartRef}
+              onMention={(apply) => setLink({ apply, tab: 'note' })}
+              onLink={(apply) => setLink({ apply, tab: 'web' })}
+              focusRequest={focusRequest}
+              footer={templateFooter}
+            />
+          </View>
+        )}
       </KeyboardAvoidingView>
+
+      <BottomSheet
+        visible={menu}
+        onClose={() => {
+          setMenu(false);
+          setConfirmDelete(false);
+        }}
+        title={draft?.title?.trim() || 'Untitled note'}
+        note={`${words} ${words === 1 ? 'word' : 'words'} · ${blocks.length} blocks`}>
+        <SheetRow
+          label={effectivePinned ? 'Unpin' : 'Pin to the top'}
+          icon={PushPin}
+          tone={effectivePinned ? 'accent' : 'default'}
+          onPress={() => {
+            togglePin();
+            setMenu(false);
+          }}
+        />
+        {headings.length > 0 ? (
+          <SheetRow label="Outline" icon={Books} detail={`${headings.length} headings`} onPress={openOutline} />
+        ) : null}
+        {openExtractCount > 0 ? (
+          <SheetRow
+            label="Turn to-dos into tasks"
+            icon={CheckSquare}
+            detail={`${openExtractCount} unchecked ${openExtractCount === 1 ? 'box' : 'boxes'} in this note`}
+            onPress={openExtract}
+          />
+        ) : null}
+        <SheetRow
+          label={activeSession.data ? 'A focus block is already running' : 'Focus on this note'}
+          icon={Target}
+          tone={activeSession.data ? 'default' : 'ember'}
+          disabled={Boolean(activeSession.data)}
+          onPress={startFocus}
+        />
+        <SheetRow label="Copy as markdown" icon={Copy} onPress={copyNote} />
+        <View style={{ height: 1, backgroundColor: colors.hairline, marginVertical: spacing.xs }} />
+        <SheetRow
+          label={confirmDelete ? 'Tap again to delete' : 'Delete note'}
+          icon={Trash}
+          tone="danger"
+          onPress={() => {
+            if (confirmDelete) handleDelete();
+            else setConfirmDelete(true);
+          }}
+        />
+      </BottomSheet>
+
+      <LinkSheet
+        visible={link !== null}
+        onClose={() => setLink(null)}
+        tab={link?.tab ?? 'note'}
+        onTabChange={(tab) => setLink((prev) => (prev ? { ...prev, tab } : prev))}
+        notes={notes}
+        currentId={id}
+        onPickNote={(title) => link?.apply(`[[${title}]]`)}
+        onPickUrl={(href) => link?.apply(href)}
+      />
+
+      <OutlineSheet
+        visible={outline}
+        onClose={() => setOutline(false)}
+        onDismiss={landPendingJump}
+        headings={headings}
+        onJump={jumpTo}
+      />
+
+      <ExtractSheet
+        visible={extract !== null}
+        onClose={() => setExtract(null)}
+        previews={extract?.previews ?? []}
+        projectName={projectName}
+        busy={extracting}
+        onCreate={runExtract}
+      />
     </View>
   );
 }

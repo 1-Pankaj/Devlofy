@@ -68,12 +68,40 @@ export async function getNote(db: SQLiteDatabase, id: string): Promise<Note | nu
   );
 }
 
+/**
+ * Notes that point at this one with `[[Title]]` — the backlinks a writer wants
+ * and rarely gets. A wikilink is literal text, so one indexed-free `LIKE` over
+ * `body` finds them; the two patterns cover `[[Title]]` and `[[Title|alias]]`.
+ * SQLite's LIKE is case-insensitive, which is what a hand-typed link needs, and
+ * the title's own `%`/`_` are escaped so a note called "100% done" cannot wildcard.
+ */
+export async function findNoteBacklinks(
+  db: SQLiteDatabase,
+  title: string,
+  excludeId: string,
+): Promise<{ id: string; title: string }[]> {
+  const clean = title.trim();
+  if (!clean) return [];
+  const escaped = clean.replace(/[\\%_]/g, (character) => `\\${character}`);
+  return db.getAllAsync<{ id: string; title: string }>(
+    `SELECT id, title FROM notes
+     WHERE deleted_at IS NULL AND id != ?
+       AND (body LIKE ? ESCAPE '\\' OR body LIKE ? ESCAPE '\\')
+     ORDER BY updated_at DESC`,
+    [excludeId, `%[[${escaped}]]%`, `%[[${escaped}|%`],
+  );
+}
+
 export async function createNote(db: SQLiteDatabase): Promise<string> {
   const id = createId();
   const now = nowIso();
+  // A new note has *no* title, not the words "Untitled note": the editor shows
+  // its placeholder, so the first thing typed is the title instead of being
+  // appended to a default. Every surface that lists notes falls back on the way
+  // out (`row.title || 'Untitled note'`), and search does the same.
   await db.runAsync(
     `INSERT INTO notes (id, title, body, created_at, updated_at)
-     VALUES (?, 'Untitled note', '', ?, ?)`,
+     VALUES (?, '', '', ?, ?)`,
     [id, now, now],
   );
   return id;

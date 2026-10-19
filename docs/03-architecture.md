@@ -73,16 +73,25 @@ src/
   components/
     ui/                   # Panel, AppButton, AppText, ListRow, FeatureCard (the More shelf's
                           #   destination card: icon well + promise + a live status pill),
-                          #   Segmented, Screen, CodeBlock, DiffView, …
+                          #   BottomSheet/SheetRow/SheetOption (the app's one sheet: scrim,
+                          #   rising surface, title, close), Segmented, Screen, CodeBlock,
+                          #   DiffView, …
     nav/                  # nav-items, BottomTabBar, DesktopShell
     garden/               # garden-scene.tsx (R3F)
     focus/                # heatmap, project chips, Next up (the Engine's card), rhythm card
     bench/                # eleven tool screens + the "keep this" panel + shared tool chrome
     sentinel/             # site-card (one target on the board), latency-chart (the strip, SVG),
                           #   standing-strip.tsx (the Today card: the board's answer, off the board)
+    notes/                # block-editor (the writing surface: one input, focus/caret, the slash
+                          #   menu, the block sheet, the format bar), format-bar, block-sheet,
+                          #   rich-text (inline marks → Text), reading-view, link-sheet (the note
+                          #   picker + the outline), extract-sheet, note-meta
   lib/
     db/                   # migrations, seed, repo, hooks, provider
     engine/               # the Engine: rhythm.ts, next-up.ts, estimate.ts, use-engine.ts
+    notes/                # blocks.ts (the block model: parse, split, merge, move, indent, input
+                          #   rules — every edit is body → body), inline.ts (the inline tokenizer
+                          #   and the toolbar's helpers), self-check.ts
     bench/                # pure tool logic: hash, json, sql, regex, jwt, encode, time, colour,
                           #   textstats, patch (LineDiff → unified patch), tools (the registry),
                           #   self-check.ts (known-answer checks — run it under Node)
@@ -124,12 +133,13 @@ Press `Shift+M` in the Expo CLI to browse the SQLite database with the dev tool.
 
 ## Checking the pure modules without a test runner
 
-Known-answer checks live beside the pure modules they cover — one file per folder, deliberately, so each stays runnable on its own and neither grows into a suite nobody runs:
+Known-answer checks live beside the pure modules they cover — one file per folder, deliberately, so each stays runnable on its own and none grows into a suite nobody runs:
 
 - `src/lib/bench/self-check.ts` — **80** checks (hashes against published vectors, RFC semantics for base64/URL/JWT, cron against real timestamps, WCAG contrast, diff/patch round-trips).
 - `src/lib/sentinel/self-check.ts` — **90** checks (the verdict every set of facts produces, uptime windows, incident runs, the latency spread, URL parsing, every label the board shows, and — since ADR-024 — the standing that the More card and the Today strip render, including that a paused target cannot raise an alarm).
+- `src/lib/notes/self-check.ts` — **190** checks (what Enter does to every kind of block — a list continues, an empty list item *leaves* the list, a heading at the end starts a paragraph, a fence takes a line instead of splitting; what Backspace merges and where the caret lands; what the input rules eat as you type; inline marks, `[[wikilinks]]` and escapes; and the round-trip that keeps a note the app half-understands byte-identical).
 
-Both are plain TypeScript returning a result list, so they run anywhere TypeScript does. Node 22 here is not built with TS support, so the route is an explicit emit — and note `--target es2022` (the app's own lib level; `es2020` rejects `Array.prototype.at`) and `--ignoreDeprecations 6.0` (TypeScript 6 still accepts `--moduleResolution node10`, but only if you say you know):
+All three are plain TypeScript returning a result list, so they run anywhere TypeScript does. Node 22 here is not built with TS support, so the route is an explicit emit — and note `--target es2022` (the app's own lib level; `es2020` rejects `Array.prototype.at`) and `--ignoreDeprecations 6.0` (TypeScript 6 still accepts `--moduleResolution node10`, but only if you say you know):
 
 ```bash
 npx tsc src/lib/sentinel/self-check.ts --ignoreConfig --outDir /tmp/sv \
@@ -138,7 +148,7 @@ node -e "const r = require('/tmp/sv/self-check.js').runSelfCheck(); \
   console.log(r.length, 'checks ·', r.filter(c => !c.pass).length, 'failing')"
 ```
 
-The result shape (`{ name, pass, detail }[]`) is identical in both files, so one snippet formats either. When a pure module changes, add the case that would have caught the change: this habit is the reason a hand-written SHA-1 can be trusted next to `git` ([[07-decisions]] ADR-021) and the reason Sentinel's verdicts can be trusted without a server ([[07-decisions]] ADR-023). The intent in [[08-backlog]] is to extend it to the Engine and the GitHub parsers rather than introduce vitest.
+The result shape (`{ name, pass, detail }[]`) is identical in all three files, so one snippet formats any of them. When a pure module changes, add the case that would have caught the change: this habit is the reason a hand-written SHA-1 can be trusted next to `git` ([[07-decisions]] ADR-021), the reason Sentinel's verdicts can be trusted without a server ([[07-decisions]] ADR-023), and the reason "pressing Enter on an empty bullet leaves the list" is a fact rather than an opinion ([[07-decisions]] ADR-025). The intent in [[08-backlog]] is to extend it to the Engine and the GitHub parsers rather than introduce vitest.
 
 ## Checking 3D without a GPU
 
