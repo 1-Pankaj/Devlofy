@@ -18,7 +18,7 @@
 import { Check } from 'phosphor-react-native';
 import type { ComponentRef, ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ScrollView, TextInput, View, type TextStyle, type ViewStyle } from 'react-native';
+import { Platform, ScrollView, TextInput, View, type TextStyle, type ViewStyle } from 'react-native';
 
 import { BlockSheet } from '@/components/notes/block-sheet';
 import { FormatBar } from '@/components/notes/format-bar';
@@ -375,6 +375,10 @@ export function BlockEditor({
               multiline
               autoFocus
               scrollEnabled={false}
+              // A DOM `<textarea>` is two rows tall until told otherwise, and the
+              // browser's own floor would make every one-line block twice the
+              // height it is on a phone. (Native has no such floor.)
+              rows={Platform.OS === 'web' ? 1 : undefined}
               textAlignVertical="top"
               autoCapitalize="sentences"
               selectionColor={colors.accent}
