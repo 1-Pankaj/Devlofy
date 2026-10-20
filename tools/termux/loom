@@ -1,0 +1,39 @@
+#!/data/data/com.termux/files/usr/bin/bash
+# loom — Termux entry point.
+#
+# Source of truth: tools/termux/loom in the Devlofy repository. Install it with:
+#   cp tools/termux/loom "$PREFIX/bin/loom" && chmod +x "$PREFIX/bin/loom"
+#
+# The real CLI lives inside the Ubuntu proot at /usr/local/bin/loom (a symlink
+# to tools/loom/loom). This shim only takes a wake lock (so Android does not
+# freeze a running build), forwards every argument, and releases the lock on
+# the way out.
+#
+# Override the distro with:  LOOM_DISTRO=<alias> loom
+set -u
+
+DISTRO="${LOOM_DISTRO:-ubuntu}"
+INNER="/usr/local/bin/loom"
+
+if ! command -v proot-distro >/dev/null 2>&1; then
+  printf 'loom: proot-distro is not installed in Termux.\n' >&2
+  printf '      Install it with: pkg install proot-distro\n' >&2
+  exit 127
+fi
+
+unlock() {
+  if command -v termux-wake-unlock >/dev/null 2>&1; then
+    termux-wake-unlock >/dev/null 2>&1 || true
+  fi
+}
+
+if command -v termux-wake-lock >/dev/null 2>&1; then
+  termux-wake-lock >/dev/null 2>&1 || true
+fi
+trap unlock EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+proot-distro login "$DISTRO" -- "$INNER" "$@"
+status=$?
+exit "$status"

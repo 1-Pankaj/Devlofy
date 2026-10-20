@@ -54,3 +54,6 @@ graphify-out/
 # @generated expo skills end
 
 __pycache__/
+
+# loom: the live session handoff is local state, not project history
+docs/handoffs/latest.md

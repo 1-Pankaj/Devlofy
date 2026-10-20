@@ -1,0 +1,1653 @@
+#!/usr/bin/env bash
+# loom — one command for the Devlofy cockpit.
+#
+# Source of truth: tools/loom/loom in the Devlofy repository. It is installed
+# as a symlink at /usr/local/bin/loom inside the Ubuntu proot, so an edit here
+# is live. The Termux-side shim (tools/termux/loom) only takes a wake lock and
+# forwards here.
+#
+# Rules this file keeps:
+#   · no daemons, no polling, no network of its own;
+#   · nothing is written outside ~/.config/loom, ~/.local/share/loom,
+#     ~/.local/state/loom, and the project's opencode.json + .opencode/ +
+#     docs/handoffs/latest.md;
+#   · a failed read must never look like an empty success;
+#   · destructive actions print what they will do, and never touch uncommitted
+#     work you did not ask them to touch.
+set -uo pipefail
+
+LOOM_VERSION="1.0.0"
+LOOM_STARTED_AT=$(date +%s)
+
+# ---------------------------------------------------------------- presentation
+
+if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
+  c_bold=$'\033[1m'
+  c_dim=$'\033[2m'
+  c_red=$'\033[31m'
+  c_green=$'\033[32m'
+  c_yellow=$'\033[33m'
+  c_reset=$'\033[0m'
+else
+  c_bold= c_dim= c_red= c_green= c_yellow= c_reset=
+fi
+
+say() { printf '%s\n' "$*"; }
+ok() { printf '  %s✓%s %s\n' "$c_green" "$c_reset" "$*"; }
+warn() { printf '  %s!%s %s\n' "$c_yellow" "$c_reset" "$*"; }
+bad() { printf '  %s✗%s %s\n' "$c_red" "$c_reset" "$*"; }
+die() {
+  printf 'loom: %s\n' "$*" >&2
+  exit 1
+}
+have() { command -v "$1" >/dev/null 2>&1; }
+
+row() { # status label detail
+  case "$1" in
+    ok) printf '  %s✓%s %-16s %s\n' "$c_green" "$c_reset" "$2" "${3:-}" ;;
+    warn) printf '  %s!%s %-16s %s\n' "$c_yellow" "$c_reset" "$2" "${3:-}" ;;
+    bad) printf '  %s✗%s %-16s %s\n' "$c_red" "$c_reset" "$2" "${3:-}" ;;
+  esac
+}
+
+require_uint() {
+  case "${1:-}" in
+    '' | *[!0-9]*) die "expected a number, got: ${1:-}" ;;
+  esac
+}
+
+# --------------------------------------------------------------------- settings
+
+LOOM_DATA="${XDG_DATA_HOME:-$HOME/.local/share}/loom"
+LOOM_STATE="${XDG_STATE_HOME:-$HOME/.local/state}/loom"
+LOOM_CFG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/loom"
+LOOM_CFG="$LOOM_CFG_DIR/config.sh"
+
+# Precedence: flag > environment > config file > default. Remember what the
+# environment asked for before defaults and the config file can overwrite it.
+_env_project="${LOOM_PROJECT-}"
+_env_snapshots="${LOOM_SNAPSHOTS-}"
+_env_continue="${LOOM_CONTINUE-}"
+_env_port="${LOOM_DEV_PORT-}"
+_env_web="${LOOM_CHECK_WEB-}"
+
+LOOM_PROJECT="${LOOM_PROJECT:-$HOME/Devlofy}"
+LOOM_SNAPSHOTS="${LOOM_SNAPSHOTS:-10}"
+LOOM_CONTINUE="${LOOM_CONTINUE:-1}"
+LOOM_DEV_PORT="${LOOM_DEV_PORT:-8081}"
+LOOM_CHECK_WEB="${LOOM_CHECK_WEB:-0}"
+
+if [ -f "$LOOM_CFG" ]; then
+  # shellcheck source=/dev/null
+  . "$LOOM_CFG"
+fi
+
+[ -n "$_env_project" ] && LOOM_PROJECT="$_env_project"
+[ -n "$_env_snapshots" ] && LOOM_SNAPSHOTS="$_env_snapshots"
+[ -n "$_env_continue" ] && LOOM_CONTINUE="$_env_continue"
+[ -n "$_env_port" ] && LOOM_DEV_PORT="$_env_port"
+[ -n "$_env_web" ] && LOOM_CHECK_WEB="$_env_web"
+
+# A keep limit of 0 would prune the snapshot that was just written.
+case "${LOOM_SNAPSHOTS:-10}" in
+  '' | 0) LOOM_SNAPSHOTS=1 ;;
+esac
+
+ensure_dirs() {
+  mkdir -p "$LOOM_DATA/snapshots" "$LOOM_STATE/checks" "$LOOM_CFG_DIR" 2>/dev/null ||
+    die "cannot create $LOOM_DATA — check permissions"
+  if [ ! -f "$LOOM_CFG" ]; then
+    cat >"$LOOM_CFG" <<'CFG' || die "cannot write $LOOM_CFG"
+# loom — local settings. Edit freely; loom never overwrites this file.
+
+# The project `loom` boots into. Override per-run with: loom --project DIR
+LOOM_PROJECT="$HOME/Devlofy"
+
+# How many git-bundle snapshots to keep (newest first).
+LOOM_SNAPSHOTS=10
+
+# Continue the last opencode session on boot (1), or always start fresh (0).
+LOOM_CONTINUE=1
+
+# Metro port used by `loom dev`.
+LOOM_DEV_PORT=8081
+
+# Set to 1 to make `loom check` include `expo export --platform web` by default.
+LOOM_CHECK_WEB=0
+CFG
+    chmod 644 "$LOOM_CFG" 2>/dev/null || true
+  fi
+}
+
+project_name() {
+  local root
+  root=$(git -C "$LOOM_PROJECT" rev-parse --show-toplevel 2>/dev/null) || root="$LOOM_PROJECT"
+  basename "$root"
+}
+
+# Every piece of per-project state (snapshots, check result, check logs, journal,
+# eslint cache) is namespaced by the repository's real path. `loom --project
+# other` can then never read — or restore — this project's state.
+project_slug() {
+  local root abs hash
+  root=$(git -C "$LOOM_PROJECT" rev-parse --show-toplevel 2>/dev/null) || root="$LOOM_PROJECT"
+  abs=$(cd "$root" 2>/dev/null && pwd -P) || abs="$root"
+  hash=$(printf '%s' "$abs" | cksum | awk '{print $1}')
+  printf '%s-%s' "$(basename "$abs")" "$hash"
+}
+
+snapshot_dir() { printf '%s/snapshots/%s' "$LOOM_DATA" "$(project_slug)"; }
+check_log_dir() { printf '%s/checks/%s' "$LOOM_STATE" "$(project_slug)"; }
+last_check_file() { printf '%s/check-%s.state' "$LOOM_STATE" "$(project_slug)"; }
+journal_file() { printf '%s/journal-%s.log' "$LOOM_DATA" "$(project_slug)"; }
+eslint_cache_file() { printf '%s/eslint-%s.cache' "$LOOM_STATE" "$(project_slug)"; }
+ship_file() { printf '%s/ship-%s.md' "$LOOM_STATE" "$(project_slug)"; }
+commit_msg_file() { printf '%s/commit-msg-%s.txt' "$LOOM_STATE" "$(project_slug)"; }
+
+journal() {
+  local f
+  f=$(journal_file)
+  mkdir -p "$(dirname "$f")" 2>/dev/null || return 0
+  printf '%s\t%s\t%s\n' "$(date '+%Y-%m-%d %H:%M')" "$1" "${2:-}" \
+    >>"$f" 2>/dev/null || true
+}
+
+# ------------------------------------------------------------------ small facts
+
+require_repo() {
+  [ -d "$LOOM_PROJECT" ] || die "project directory not found: $LOOM_PROJECT (edit $LOOM_CFG)"
+  cd "$LOOM_PROJECT" || die "cannot enter $LOOM_PROJECT"
+  git rev-parse --is-inside-work-tree >/dev/null 2>&1 ||
+    die "not a git repository: $LOOM_PROJECT"
+  # Normalise to the worktree root: `loom --project src/` must still see (and
+  # ship) the whole repository, and its state must live under the root's slug.
+  local root
+  root=$(git rev-parse --show-toplevel 2>/dev/null) || die "cannot find the worktree root"
+  cd "$root" || die "cannot enter $root"
+  LOOM_PROJECT="$root"
+  git rev-parse --verify HEAD >/dev/null 2>&1 ||
+    die "the repository has no commits yet: $LOOM_PROJECT"
+}
+
+git_branch() { git symbolic-ref --short -q HEAD || printf '(detached)\n'; }
+
+git_dirty_count() {
+  local n
+  n=$(git status --porcelain 2>/dev/null | wc -l)
+  printf '%s' "${n// /}"
+}
+
+human_age() { # unix timestamp -> "3m ago"
+  local ts=$1 age
+  case "$ts" in '' | *[!0-9]*) printf 'unknown'; return 0 ;; esac
+  age=$(($(date +%s) - ts))
+  [ "$age" -lt 0 ] && age=0
+  if [ "$age" -lt 60 ]; then
+    printf '%ss ago' "$age"
+  elif [ "$age" -lt 3600 ]; then
+    printf '%sm ago' "$((age / 60))"
+  elif [ "$age" -lt 86400 ]; then
+    printf '%sh ago' "$((age / 3600))"
+  else
+    printf '%sd ago' "$((age / 86400))"
+  fi
+}
+
+human_size() { # kilobytes
+  awk -v k="${1:-0}" 'BEGIN {
+    if (k >= 1048576) printf "%.1f GB", k / 1048576;
+    else if (k >= 1024) printf "%.1f MB", k / 1024;
+    else printf "%d KB", k;
+  }'
+}
+
+port_in_use() { (exec 3<>"/dev/tcp/127.0.0.1/$1") >/dev/null 2>&1; }
+
+json_valid() { node -e 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))' "$1" >/dev/null 2>&1; }
+
+last_check_text() {
+  local f ts st cnt
+  f=$(last_check_file)
+  if [ -f "$f" ]; then
+    IFS=$'\t' read -r ts st cnt <"$f" || true
+    printf '%s %s (%s)' "${st:-?}" "${cnt:-?}" "$(human_age "${ts:-0}")"
+  else
+    printf 'never run'
+  fi
+}
+
+# -------------------------------------------------------------------- snapshots
+
+# Snapshots are namespaced per repository (see project_slug), so `loom --project
+# other` can never offer you a bundle from this one.
+
+snapshot_count() {
+  local n
+  n=$(ls -1 "$(snapshot_dir)"/*.bundle 2>/dev/null | wc -l)
+  printf '%s' "${n// /}"
+}
+
+latest_snapshot() { ls -1t "$(snapshot_dir)"/*.bundle 2>/dev/null | head -1; }
+
+snap_meta() { # bundle, 1-based field
+  local txt="${1%.bundle}.txt"
+  [ -f "$txt" ] || return 0
+  cut -d'|' -f"$2" "$txt" 2>/dev/null
+}
+
+find_bundle() {
+  local q=$1 dir m
+  dir=$(snapshot_dir)
+  [ -f "$q" ] && { printf '%s\n' "$q"; return 0; }
+  q="${q%.bundle}"
+  [ -f "$dir/$q.bundle" ] && { printf '%s\n' "$dir/$q.bundle"; return 0; }
+  m=$(ls -1 "$dir"/*"$q"*.bundle 2>/dev/null | head -1)
+  [ -n "$m" ] && { printf '%s\n' "$m"; return 0; }
+  return 1
+}
+
+snapshot_prune() {
+  local i=0 b
+  while IFS= read -r b; do
+    [ -n "$b" ] || continue
+    i=$((i + 1))
+    if [ "$i" -gt "$LOOM_SNAPSHOTS" ]; then
+      rm -f "$b" "${b%.bundle}.txt"
+    fi
+  done < <(ls -1t "$(snapshot_dir)"/*.bundle 2>/dev/null)
+}
+
+snapshot_create() {
+  local branch head dirty ts safe name bundle dir
+  branch=$(git_branch)
+  head=$(git rev-parse --short HEAD 2>/dev/null) || head="none"
+  dirty=$(git_dirty_count)
+  ts=$(date +%Y%m%d-%H%M%S)
+  safe=$(printf '%s' "$branch" | tr '/ ' '--' | tr -cd 'A-Za-z0-9._-')
+  dir=$(snapshot_dir)
+  name="$ts-${safe:-detached}-$head"
+  bundle="$dir/$name.bundle"
+
+  mkdir -p "$dir" || return 1
+  if ! git bundle create "$bundle.tmp" --all >/dev/null 2>&1; then
+    rm -f "$bundle.tmp"
+    return 1
+  fi
+  if ! git bundle verify "$bundle.tmp" >/dev/null 2>&1; then
+    rm -f "$bundle.tmp"
+    return 1
+  fi
+  mv "$bundle.tmp" "$bundle" || {
+    rm -f "$bundle.tmp"
+    return 1
+  }
+  printf '%s|%s|%s|%s\n' "$(date -Is)" "$branch" "$head" "$dirty" >"${bundle%.bundle}.txt"
+  snapshot_prune
+  journal snapshot "$name"
+  printf '%s\n' "$bundle"
+}
+
+# ------------------------------------------------------------------------- boot
+
+cmd_boot() {
+  local fresh=0 nosnap=0 dry=0 project="" extra=()
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --fresh) fresh=1 ;;
+      --no-snapshot) nosnap=1 ;;
+      --dry-run) dry=1 ;;
+      --project)
+        shift
+        project="${1:-}"
+        [ -n "$project" ] || die "--project needs a directory"
+        ;;
+      --project=*) project="${1#--project=}" ;;
+      --)
+        shift
+        extra=("$@")
+        break
+        ;;
+      -h | --help)
+        help_boot
+        return 0
+        ;;
+      -*)
+        die "unknown boot option: $1 (try: loom help boot)"
+        ;;
+      *)
+        [ -d "$1" ] || die "not a directory: $1"
+        project="$1"
+        ;;
+    esac
+    shift
+  done
+  if [ -n "$project" ]; then LOOM_PROJECT="$project"; fi
+
+  ensure_dirs
+  require_repo
+  have opencode || die "opencode is not on PATH (try: loom doctor)"
+
+  local branch head dirty
+  branch=$(git_branch)
+  head=$(git log -1 --pretty='%h %s')
+  dirty=$(git_dirty_count)
+
+  say ""
+  say "${c_bold}loom${c_reset} ${c_dim}${LOOM_VERSION}${c_reset} · ${LOOM_PROJECT}"
+  say "  ${c_dim}${branch}${c_reset} · ${head}"
+  if [ "$dirty" -gt 0 ]; then
+    warn "$dirty uncommitted file(s) — the pre-boot snapshot keeps them recoverable"
+  fi
+  if [ -d .git/rebase-merge ] || [ -d .git/rebase-apply ] ||
+    [ -f .git/MERGE_HEAD ] || [ -f .git/CHERRY_PICK_HEAD ]; then
+    warn "a merge or rebase is in progress — the agent will see the conflicted tree"
+  fi
+
+  local snap=""
+  if [ "$nosnap" -eq 0 ]; then
+    if [ "$dry" -eq 1 ]; then
+      say "  ${c_dim}would snapshot the repository with git bundle${c_reset}"
+    else
+      snap=$(snapshot_create)
+      if [ -n "$snap" ]; then
+        say "  ${c_dim}snapshot${c_reset} $(basename "${snap%.bundle}")"
+      else
+        warn "snapshot failed — continuing without one"
+      fi
+    fi
+  fi
+
+  local cont=() note=""
+  if [ "$fresh" -eq 0 ] && [ "$LOOM_CONTINUE" = "1" ] && [ "$(session_any)" = "1" ]; then
+    cont=(--continue)
+    note=" (continuing the last session)"
+  fi
+
+  local cmdline="opencode"
+  [ "${#cont[@]}" -gt 0 ] && cmdline+=" ${cont[*]}"
+  [ "${#extra[@]}" -gt 0 ] && cmdline+=" ${extra[*]}"
+
+  if [ "$dry" -eq 1 ]; then
+    say "  ${c_dim}would run${c_reset}  $cmdline"
+    return 0
+  fi
+
+  journal boot "$branch $head (${dirty} dirty)${snap:+ snapshot=$(basename "${snap%.bundle}")}"
+  say "  ${c_dim}opening opencode${note}…${c_reset}"
+  cd "$LOOM_PROJECT" || die "cannot enter $LOOM_PROJECT"
+  exec opencode "${cont[@]}" "${extra[@]}"
+}
+
+session_any() {
+  local json
+  json=$(timeout 15 opencode session list -n 1 --format json 2>/dev/null) || {
+    printf '0\n'
+    return 0
+  }
+  json=$(printf '%s' "$json" | tr -d '[:space:]')
+  case "$json" in
+    '' | '[]') printf '0\n' ;;
+    *) printf '1\n' ;;
+  esac
+}
+
+# ------------------------------------------------------------------------ check
+
+tsc_emit() {
+  if [ -x ./node_modules/.bin/tsc ]; then
+    ./node_modules/.bin/tsc "$@"
+  else
+    npx tsc "$@"
+  fi
+}
+
+step_typecheck() {
+  if [ -x ./node_modules/.bin/tsc ]; then
+    ./node_modules/.bin/tsc --noEmit
+  else
+    npx tsc --noEmit
+  fi
+}
+
+step_lint() {
+  local cache
+  cache=$(eslint_cache_file)
+  if [ -x ./node_modules/.bin/eslint ]; then
+    ./node_modules/.bin/eslint . --cache --cache-location "$cache"
+  else
+    npx eslint . --cache --cache-location "$cache"
+  fi
+}
+
+step_export() {
+  if [ -x ./node_modules/.bin/expo ]; then
+    ./node_modules/.bin/expo export --platform web
+  else
+    npx expo export --platform web
+  fi
+}
+
+step_selfcheck() {
+  local lib=$1 tmp js rc
+  tmp=$(mktemp -d) || return 1
+  if ! tsc_emit "src/lib/$lib/self-check.ts" \
+    --ignoreConfig --outDir "$tmp" --module commonjs --target es2022 \
+    --moduleResolution node10 --ignoreDeprecations 6.0 --skipLibCheck; then
+    rm -rf "$tmp"
+    return 1
+  fi
+  js=$(find "$tmp" -name 'self-check.js' -print -quit)
+  if [ -z "$js" ]; then
+    echo "compiled output not found under $tmp"
+    rm -rf "$tmp"
+    return 1
+  fi
+  node -e '
+    const results = require(process.argv[1]).runSelfCheck();
+    const failed = results.filter((r) => !r.pass);
+    for (const r of results) {
+      if (!r.pass) console.log("FAIL " + r.name + " — " + r.detail);
+    }
+    console.log((results.length - failed.length) + "/" + results.length + " checks passed");
+    process.exit(failed.length ? 1 : 0);
+  ' "$js"
+  rc=$?
+  rm -rf "$tmp"
+  return $rc
+}
+
+run_step() {
+  local label=$1 log=$2
+  shift 2
+  local start t0 t1 out rc tail1
+  start=$(wc -c <"$log")
+  start=${start// /}
+  t0=$(date +%s)
+  printf '  %s%-22s%s ' "$c_dim" "$label" "$c_reset"
+  {
+    printf '\n$ %s\n' "$label"
+    "$@"
+  } >>"$log" 2>&1
+  rc=$?
+  t1=$(date +%s)
+  out=$(tail -c "+$((start + 1))" "$log" 2>/dev/null)
+  out=$(printf '%s\n' "$out" | sed '/./,$!d')
+  if [ "$rc" -eq 0 ]; then
+    tail1=$(printf '%s\n' "$out" | tail -n 1)
+    case "$tail1" in
+      *"checks passed")
+        printf '%s✓%s  %ss · %s\n' "$c_green" "$c_reset" "$((t1 - t0))" "$tail1"
+        ;;
+      *)
+        printf '%s✓%s  %ss\n' "$c_green" "$c_reset" "$((t1 - t0))"
+        ;;
+    esac
+  else
+    printf '%s✗%s  %ss\n' "$c_red" "$c_reset" "$((t1 - t0))"
+    printf '%s\n' "$out" | tail -n 25 | sed 's/^/      /'
+  fi
+  return "$rc"
+}
+
+cmd_check() {
+  local web="$LOOM_CHECK_WEB" elapsed pass=0 total=0 rc=0
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --web) web=1 ;;
+      -h | --help)
+        help_check
+        return 0
+        ;;
+      *) die "unknown option for check: $1 (try: loom help check)" ;;
+    esac
+    shift
+  done
+
+  ensure_dirs
+  require_repo
+
+  local logdir log
+  logdir=$(check_log_dir)
+  mkdir -p "$logdir" || die "cannot create $logdir"
+  log="$logdir/$(date +%Y%m%d-%H%M%S).log"
+  : >"$log"
+
+  say ""
+  say "${c_bold}loom check${c_reset} ${c_dim}· $LOOM_PROJECT${c_reset}"
+
+  total=$((total + 1))
+  if run_step "typecheck" "$log" step_typecheck; then pass=$((pass + 1)); else rc=1; fi
+  total=$((total + 1))
+  if run_step "lint" "$log" step_lint; then pass=$((pass + 1)); else rc=1; fi
+  local lib
+  for lib in bench notes sentinel; do
+    total=$((total + 1))
+    if run_step "checks: $lib" "$log" step_selfcheck "$lib"; then pass=$((pass + 1)); else rc=1; fi
+  done
+  if [ "$web" = "1" ]; then
+    total=$((total + 1))
+    if run_step "web export" "$log" step_export; then pass=$((pass + 1)); else rc=1; fi
+  fi
+
+  elapsed=$(($(date +%s) - LOOM_STARTED_AT))
+  say "  ${c_dim}${pass}/${total} passed · ${elapsed}s${c_reset}"
+  say "  ${c_dim}log${c_reset}  $log"
+  local status="ok"
+  [ "$rc" -ne 0 ] && status="fail"
+  printf '%s\t%s\t%s\n' "$(date +%s)" "$status" "$pass/$total" >"$(last_check_file)"
+  journal check "$status $pass/$total (${elapsed}s)"
+  return "$rc"
+}
+
+# ----------------------------------------------------------------------- doctor
+
+cmd_doctor() {
+  local fix=0
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --fix) fix=1 ;;
+      -h | --help)
+        help_doctor
+        return 0
+        ;;
+      *) die "unknown option for doctor: $1 (try: loom help doctor)" ;;
+    esac
+    shift
+  done
+
+  ensure_dirs
+  local os arch
+  os=$(
+    . /etc/os-release 2>/dev/null && printf '%s' "${PRETTY_NAME:-unknown}"
+  ) || os="unknown"
+  arch=$(uname -m)
+
+  say ""
+  say "${c_bold}loom doctor${c_reset} ${c_dim}· ${os} · ${arch}${c_reset}"
+  say ""
+  say "  ${c_bold}System${c_reset}"
+  if have node; then row ok node "$(node -v 2>/dev/null)"; else row bad node "not installed"; fi
+  if have npm; then row ok npm "$(npm -v 2>/dev/null)"; else row bad npm "not installed"; fi
+  if have git; then row ok git "$(git --version | awk '{print $3}')"; else row bad git "not installed"; fi
+  if have opencode; then row ok opencode "$(opencode --version 2>/dev/null | head -1)"; else row bad opencode "not installed"; fi
+  if [ -x "$LOOM_PROJECT/node_modules/.bin/tsc" ]; then
+    row ok typescript "$("$LOOM_PROJECT/node_modules/.bin/tsc" --version | awk '{print $2}')"
+  else
+    row warn typescript "not installed in the project"
+  fi
+
+  say ""
+  say "  ${c_bold}Project${c_reset}"
+  if [ ! -d "$LOOM_PROJECT" ]; then
+    row bad project "missing: $LOOM_PROJECT"
+  else
+    row ok project "$LOOM_PROJECT"
+    if git -C "$LOOM_PROJECT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+      local br dirty remote
+      br=$(git -C "$LOOM_PROJECT" symbolic-ref --short -q HEAD || printf 'detached')
+      dirty=$(git -C "$LOOM_PROJECT" status --porcelain | wc -l)
+      dirty=${dirty// /}
+      row ok repository "$br · $dirty uncommitted"
+      remote=$(git -C "$LOOM_PROJECT" remote get-url origin 2>/dev/null || true)
+      if [ -n "$remote" ]; then row ok remote "$remote"; else row warn remote "no origin remote"; fi
+    else
+      row bad repository "not a git repository"
+    fi
+    if [ -d "$LOOM_PROJECT/node_modules" ]; then
+      row ok dependencies "node_modules present"
+    else
+      row warn dependencies "node_modules missing (npm install)"
+    fi
+    local ver
+    ver=$(cd "$LOOM_PROJECT" && node -p "require('./app.json').expo.version" 2>/dev/null)
+    if [ -n "$ver" ]; then row ok "app version" "$ver"; else row warn "app version" "app.json not readable"; fi
+    if [ -f "$LOOM_PROJECT/opencode.json" ]; then
+      if json_valid "$LOOM_PROJECT/opencode.json"; then
+        row ok "project file" "opencode.json (valid JSON)"
+      else
+        row bad "project file" "opencode.json is not valid JSON"
+      fi
+    else
+      row warn "project file" "opencode.json missing"
+    fi
+  fi
+
+  say ""
+  say "  ${c_bold}OpenCode${c_reset}"
+  local svc
+  svc=$(timeout 5 opencode service status 2>/dev/null | head -1)
+  if [ -n "$svc" ]; then row ok service "$svc"; else row warn service "not running (starts on boot)"; fi
+  local cfgdir
+  cfgdir=$(opencode debug paths 2>/dev/null | awk '$1 == "config" {print $2}')
+  if [ -n "$cfgdir" ]; then row ok config "$cfgdir"; else row warn config "opencode debug paths failed"; fi
+
+  say ""
+  say "  ${c_bold}Loom${c_reset}"
+  local sc latest
+  sc=$(snapshot_count)
+  latest=$(latest_snapshot)
+  if [ "$sc" -gt 0 ] && [ -n "$latest" ]; then
+    row ok snapshots "$sc kept · latest $(human_age "$(stat -c %Y "$latest")")"
+  else
+    row warn snapshots "none yet (created on the next boot)"
+  fi
+  row ok "last check" "$(last_check_text)"
+  row ok config "$LOOM_CFG"
+  if [ -f "$LOOM_PROJECT/docs/handoffs/latest.md" ]; then
+    row ok handoff "$(human_age "$(stat -c %Y "$LOOM_PROJECT/docs/handoffs/latest.md")")"
+  else
+    row warn handoff "missing (run: loom handoff)"
+  fi
+
+  say ""
+  say "  ${c_bold}Machine${c_reset}"
+  row ok memory "$(awk '/MemAvailable/ {printf "%.1f GB available of %.1f GB", $2 / 1048576, total / 1048576} /MemTotal/ {total = $2}' /proc/meminfo)"
+  row ok disk "$(df -Pk "$LOOM_PROJECT" 2>/dev/null | awk 'NR == 2 {printf "%.0f GB free of %.0f GB", $4 / 1048576, $2 / 1048576}')"
+  if port_in_use "$LOOM_DEV_PORT"; then
+    row warn "port $LOOM_DEV_PORT" "in use (Metro running?)"
+  else
+    row ok "port $LOOM_DEV_PORT" "free"
+  fi
+
+  if [ "$fix" -eq 1 ]; then
+    say ""
+    say "  ${c_bold}Fixing${c_reset}"
+    local before after logs
+    before=$(snapshot_count)
+    snapshot_prune
+    after=$(snapshot_count)
+    if [ "$before" -ne "$after" ]; then
+      ok "pruned $((before - after)) old snapshot(s)"
+    else
+      ok "snapshots within the limit (${LOOM_SNAPSHOTS})"
+    fi
+    logs=$(find "$LOOM_STATE/checks" -name '*.log' -mtime +30 2>/dev/null | wc -l)
+    logs=${logs// /}
+    if [ "$logs" -gt 0 ]; then
+      find "$LOOM_STATE/checks" -name '*.log' -mtime +30 -delete 2>/dev/null
+      ok "removed $logs check log(s) older than 30 days"
+    else
+      ok "check logs are recent"
+    fi
+    mkdir -p "$LOOM_DATA/snapshots" "$LOOM_STATE/checks" "$LOOM_PROJECT/docs/handoffs" 2>/dev/null || true
+    ok "directories are in place"
+  fi
+}
+
+# ----------------------------------------------------------------------- status
+
+cmd_status() {
+  case "${1:-}" in
+    -h | --help)
+      help_status
+      return 0
+      ;;
+    '') ;;
+    *) die "unknown option for status: $1" ;;
+  esac
+  ensure_dirs
+  local name branch="?" head="?" dirty=0
+  name=$(project_name)
+  if [ -d "$LOOM_PROJECT" ] &&
+    git -C "$LOOM_PROJECT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    branch=$(git -C "$LOOM_PROJECT" symbolic-ref --short -q HEAD || printf 'detached')
+    head=$(git -C "$LOOM_PROJECT" log -1 --pretty='%h %s' 2>/dev/null)
+    dirty=$(git -C "$LOOM_PROJECT" status --porcelain | wc -l)
+    dirty=${dirty// /}
+  fi
+
+  say ""
+  say "${c_bold}${name}${c_reset} ${c_dim}·${c_reset} ${branch} ${c_dim}·${c_reset} ${dirty} uncommitted"
+  say "  ${c_dim}head${c_reset}      ${head}"
+
+  local counts behind ahead up
+  counts=$(git -C "$LOOM_PROJECT" rev-list --left-right --count '@{u}...HEAD' 2>/dev/null || true)
+  if [ -n "$counts" ]; then
+    read -r behind ahead <<<"$counts"
+    up=$(git -C "$LOOM_PROJECT" rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null)
+    say "  ${c_dim}upstream${c_reset}  ${up} · ↓${behind} ↑${ahead}"
+  else
+    say "  ${c_dim}upstream${c_reset}  none"
+  fi
+
+  local sc latest
+  sc=$(snapshot_count)
+  latest=$(latest_snapshot)
+  if [ "$sc" -gt 0 ] && [ -n "$latest" ]; then
+    say "  ${c_dim}snapshot${c_reset}  $(basename "${latest%.bundle}") · $(human_age "$(stat -c %Y "$latest")") · ${sc} kept"
+  else
+    say "  ${c_dim}snapshot${c_reset}  none"
+  fi
+
+  local f
+  f=$(last_check_file)
+  if [ -f "$f" ]; then
+    local ts st cnt mark
+    IFS=$'\t' read -r ts st cnt <"$f" || true
+    if [ "${st:-}" = "ok" ]; then
+      mark="${c_green}✓${c_reset}"
+    else
+      mark="${c_red}✗${c_reset}"
+    fi
+    say "  ${c_dim}checks${c_reset}    ${mark} ${cnt:-?} · $(human_age "${ts:-0}")"
+  else
+    say "  ${c_dim}checks${c_reset}    never run (loom check)"
+  fi
+
+  local svc
+  svc=$(timeout 5 opencode service status 2>/dev/null | head -1)
+  say "  ${c_dim}opencode${c_reset}  ${svc:-not running}"
+  if port_in_use "$LOOM_DEV_PORT"; then
+    say "  ${c_dim}metro${c_reset}     port ${LOOM_DEV_PORT} in use"
+  else
+    say "  ${c_dim}metro${c_reset}     port ${LOOM_DEV_PORT} free"
+  fi
+  if [ -f "$LOOM_PROJECT/docs/handoffs/latest.md" ]; then
+    say "  ${c_dim}handoff${c_reset}   $(human_age "$(stat -c %Y "$LOOM_PROJECT/docs/handoffs/latest.md")")"
+  else
+    say "  ${c_dim}handoff${c_reset}   none (loom handoff)"
+  fi
+}
+
+# ---------------------------------------------------------------------- handoff
+
+is_skeleton() {
+  [ -f "$1" ] && grep -q 'loom:skeleton' "$1" &&
+    grep -q 'one paragraph a new engineer could use' "$1"
+}
+
+cmd_handoff() {
+  local print_only=0 force=0
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --print) print_only=1 ;;
+      --force) force=1 ;;
+      -h | --help)
+        help_handoff
+        return 0
+        ;;
+      *) die "unknown option for handoff: $1 (try: loom help handoff)" ;;
+    esac
+    shift
+  done
+
+  ensure_dirs
+  require_repo
+
+  local file="docs/handoffs/latest.md"
+
+  local branch head dirty tmp snap
+  branch=$(git_branch)
+  head=$(git log -1 --pretty='%h')
+  dirty=$(git_dirty_count)
+  snap=$(latest_snapshot)
+  [ -n "$snap" ] || snap="none"
+  tmp=$(mktemp "${TMPDIR:-/tmp}/loom-handoff.XXXXXX") || die "cannot create a temporary file"
+
+  {
+    cat <<'EOF'
+<!-- loom:skeleton -->
+# Handoff
+
+## Where things stand
+
+<!-- one paragraph a new engineer could use -->
+
+## Since the last handoff
+
+<!-- what changed, with commit hashes -->
+
+## Decisions made
+
+<!-- and why, not just what -->
+
+## Open questions
+
+<!-- anything unresolved, with the options you see -->
+
+## Next three steps
+
+1.
+2.
+3.
+
+## Machine facts
+
+EOF
+    printf -- '- %s · branch `%s` at `%s` · %s uncommitted file(s)\n' \
+      "$(date '+%Y-%m-%d %H:%M')" "$branch" "$head" "$dirty"
+    printf -- '- last commit: %s\n' "$(git log -1 --pretty='%s')"
+    printf -- '- last snapshot: %s\n' "$(basename "${snap%.bundle}")"
+    printf -- '- last check: %s\n' "$(last_check_text)"
+  } >"$tmp"
+
+  if [ "$print_only" -eq 1 ]; then
+    cat "$tmp"
+    rm -f "$tmp"
+    return 0
+  fi
+
+  if [ -f "$file" ] && [ "$force" -eq 0 ] && ! is_skeleton "$file"; then
+    rm -f "$tmp"
+    die "refusing to overwrite a handoff with content: $file — pass --force or edit it directly"
+  fi
+
+  mkdir -p "$(dirname "$file")" || die "cannot create $(dirname "$file")"
+  mv "$tmp" "$file" || {
+    rm -f "$tmp"
+    die "could not write $file"
+  }
+  journal handoff "$file"
+  say "  wrote $file"
+  say "  ${c_dim}next: run /handoff in the session so the agent fills it in${c_reset}"
+}
+
+# ------------------------------------------------------------------------ recap
+
+cmd_recap() {
+  local days=0
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --days)
+        shift
+        require_uint "${1:-}"
+        days=$1
+        ;;
+      -h | --help)
+        help_recap
+        return 0
+        ;;
+      *) die "unknown option for recap: $1 (try: loom help recap)" ;;
+    esac
+    shift
+  done
+
+  ensure_dirs
+  require_repo
+
+  local since="midnight"
+  [ "$days" -gt 0 ] && since="$days days ago"
+  local branch n changed dirty
+  branch=$(git_branch)
+  n=$(git rev-list --count --since="$since" HEAD 2>/dev/null || printf '0')
+  n=${n// /}
+
+  say ""
+  say "${c_bold}recap${c_reset} ${c_dim}· since ${since} · ${LOOM_PROJECT}${c_reset}"
+  say ""
+  say "  ${c_bold}${branch}${c_reset} · ${n} commit(s)"
+  if [ "$n" -gt 0 ]; then
+    git log --since="$since" --pretty='    %h %s' | head -20
+  fi
+  changed=$(git log --since="$since" --name-only --pretty=format: 2>/dev/null | sed '/^$/d' | sort -u | wc -l)
+  changed=${changed// /}
+  say "  ${changed} file(s) touched"
+
+  dirty=$(git_dirty_count)
+  if [ "$dirty" -gt 0 ]; then
+    say "  ${c_yellow}${dirty} uncommitted${c_reset}"
+    git status --short | sed 's/^/    /' | head -10
+  else
+    say "  working tree clean"
+  fi
+  say "  checks    $(last_check_text)"
+
+  local j today hits
+  j=$(journal_file)
+  today=$(date +%Y-%m-%d)
+  if [ -f "$j" ]; then
+    hits=$(grep -c "^$today" "$j" 2>/dev/null || true)
+    hits=${hits// /}
+    if [ "${hits:-0}" -gt 0 ]; then
+      say ""
+      say "  ${c_dim}loom today${c_reset}"
+      grep "^$today" "$j" | tail -8 |
+        awk -F'\t' '{printf "    %s  %s  %s\n", substr($1, 12), $2, $3}'
+    fi
+  fi
+
+  if [ -f docs/handoffs/latest.md ]; then
+    local next
+    next=$(awk '/^## Next three steps/ {f = 1; next} f && /^## / {exit} f && NF {print}' \
+      docs/handoffs/latest.md | head -6)
+    if [ -n "$next" ]; then
+      say ""
+      say "  ${c_dim}next${c_reset}"
+      printf '%s\n' "$next" | sed 's/^/    /'
+    fi
+  fi
+}
+
+# ------------------------------------------------------------------------- ship
+
+prepare_commit_message() { # writes this project's commit message file from msgs[]
+  local i=0 m f
+  f=$(commit_msg_file)
+  : >"$f"
+  for m in "${msgs[@]}"; do
+    [ "$i" -gt 0 ] && printf '\n' >>"$f"
+    printf '%s\n' "$m" >>"$f"
+    i=$((i + 1))
+  done
+}
+
+ship_prepare() {
+  local branch head dirty snap msg_note="" shipmd
+  branch=$(git_branch)
+  head=$(git log -1 --pretty='%h %s')
+  dirty=$(git_dirty_count)
+  if [ "$dirty" -eq 0 ]; then
+    say "  nothing to ship — the working tree is clean"
+    return 0
+  fi
+  snap=$(latest_snapshot)
+  [ -n "$snap" ] || snap="none"
+  shipmd=$(ship_file)
+
+  {
+    printf '# Ship — %s\n\n' "$(date '+%Y-%m-%d %H:%M')"
+    printf 'Branch `%s` · head %s · %s uncommitted file(s)\n\n' "$branch" "$head" "$dirty"
+    printf '## Changed\n\n```\n'
+    git status --short
+    printf '```\n\n## Diffstat\n\n```\n'
+    git diff --stat
+    git diff --cached --stat
+    printf '```\n\n## Untracked\n\n'
+    local untracked u
+    untracked=$(git ls-files --others --exclude-standard)
+    if [ -n "$untracked" ]; then
+      printf '%s\n' "$untracked" | while IFS= read -r u; do
+        printf -- '- %s (%s lines)\n' "$u" "$(wc -l <"$u" 2>/dev/null || printf '?')"
+      done
+    else
+      printf '(none)\n'
+    fi
+    printf '\n## Latest snapshot\n\n%s\n\n' "$(basename "${snap%.bundle}")"
+    printf '## Last check\n\n%s\n' "$(last_check_text)"
+    if [ "${#msgs[@]}" -gt 0 ]; then
+      printf '\n## Proposed message\n\n```\n'
+      local i=0 m
+      for m in "${msgs[@]}"; do
+        [ "$i" -gt 0 ] && printf '\n'
+        printf '%s\n' "$m"
+        i=$((i + 1))
+      done
+      printf '```\n'
+    fi
+  } >"$shipmd"
+  chmod 600 "$shipmd" 2>/dev/null || true
+
+  say ""
+  say "${c_bold}loom ship${c_reset} ${c_dim}· $branch · $dirty file(s)${c_reset}"
+  say ""
+  git status --short | sed 's/^/  /' | head -30
+  say ""
+  say "  ${c_dim}checks${c_reset}    $(last_check_text)"
+  say "  ${c_dim}snapshot${c_reset}  $(basename "${snap%.bundle}")"
+  if [ "${#msgs[@]}" -gt 0 ]; then
+    say "  ${c_dim}message${c_reset}   $(printf '%s' "${msgs[0]}" | head -1)"
+  else
+    msg_note="  ${c_dim}next${c_reset}      loom ship --yes -m \"area: subject\""
+  fi
+  say "  ${c_dim}prepared${c_reset}  $shipmd"
+  if [ -n "$msg_note" ]; then say "$msg_note"; fi
+}
+
+cmd_ship() {
+  local final=0 skip_checks=0 dry=0
+  msgs=()
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --prepare) final=0 ;;
+      --yes) final=1 ;;
+      -m | --message)
+        shift
+        [ $# -gt 0 ] || die "-m needs a message"
+        msgs+=("$1")
+        ;;
+      --message-file)
+        shift
+        [ -f "${1:-}" ] || die "--message-file needs a readable file"
+        mapfile -t msgs <"$1"
+        ;;
+      --skip-checks) skip_checks=1 ;;
+      --dry-run) dry=1 ;;
+      -h | --help)
+        help_ship
+        return 0
+        ;;
+      *) die "unknown option for ship: $1 (try: loom help ship)" ;;
+    esac
+    shift
+  done
+
+  ensure_dirs
+  require_repo
+
+  if [ "$final" -eq 0 ]; then
+    ship_prepare
+    return 0
+  fi
+
+  [ "${#msgs[@]}" -gt 0 ] || die "ship --yes needs -m \"subject\" (a second -m becomes the body)"
+  local branch dirty
+  branch=$(git_branch)
+  dirty=$(git_dirty_count)
+  [ "$branch" != "(detached)" ] || die "HEAD is detached — check out a branch first"
+  [ "$dirty" -gt 0 ] || die "nothing to commit"
+
+  local p bad=""
+  while IFS= read -r p; do
+    [ -n "$p" ] || continue
+    case "$p" in
+      *.env.example) continue ;;
+      .env | */.env | *.env | *.keystore | *.jks | *.p12 | id_rsa | */id_rsa | id_rsa.* | */id_rsa.*)
+        bad="$p"
+        break
+        ;;
+    esac
+  done < <(
+    {
+      git diff --name-only
+      git diff --cached --name-only
+      git ls-files --others --exclude-standard
+    } 2>/dev/null | sort -u
+  )
+  [ -z "$bad" ] || die "refusing to commit a secret-looking file: $bad (add an ignore rule first)"
+
+  if [ "$skip_checks" -eq 0 ]; then
+    cmd_check || die "checks failed — nothing was committed"
+  else
+    warn "skipping the verification gate (--skip-checks)"
+  fi
+
+  prepare_commit_message
+  local msgf
+  msgf=$(commit_msg_file)
+  if [ "$dry" -eq 1 ]; then
+    say "  would commit: $(head -n 1 "$msgf")"
+    say "  would push:   $branch"
+    rm -f "$msgf"
+    return 0
+  fi
+
+  git add -A || die "git add failed"
+  git commit -F "$msgf" >/dev/null || die "git commit failed"
+  local sha
+  sha=$(git rev-parse --short HEAD)
+  rm -f "$msgf"
+
+  if git rev-parse --abbrev-ref --symbolic-full-name '@{u}' >/dev/null 2>&1; then
+    git push || die "commit $sha is local; push failed (no force was attempted)"
+  else
+    git push -u origin "$branch" || die "commit $sha is local; push failed (no force was attempted)"
+  fi
+
+  say "  ${c_green}✓${c_reset} committed $sha and pushed $branch"
+  journal ship "$sha $branch"
+}
+
+# -------------------------------------------------------------------- snapshots
+
+cmd_snapshot() {
+  local sub="${1:-create}"
+  [ $# -gt 0 ] && shift
+  case "$sub" in
+    create)
+      ensure_dirs
+      require_repo
+      local b id
+      b=$(snapshot_create)
+      [ -n "$b" ] || die "could not create the snapshot (git bundle failed)"
+      id=$(basename "${b%.bundle}")
+      say "  created ${id}"
+      say "  ${c_dim}restore: loom snapshot restore ${id}${c_reset}"
+      ;;
+    list)
+      ensure_dirs
+      local any=0 name size branch head
+      printf '  %-42s %-10s %-9s %s\n' "id" "branch" "head" "size"
+      while IFS= read -r b; do
+        [ -n "$b" ] || continue
+        any=1
+        name=$(basename "${b%.bundle}")
+        size=$(human_size "$(du -sk "$b" | awk '{print $1}')")
+        branch=$(snap_meta "$b" 2)
+        head=$(snap_meta "$b" 3)
+        printf '  %-42s %-10s %-9s %s\n' "$name" "${branch:-?}" "${head:-?}" "$size"
+      done < <(ls -1t "$(snapshot_dir)"/*.bundle 2>/dev/null)
+      if [ "$any" -eq 0 ]; then warn "no snapshots yet — one is written on the next boot"; fi
+      ;;
+    verify)
+      ensure_dirs
+      [ -n "${1:-}" ] || die "usage: loom snapshot verify <id> (see: loom snapshot list)"
+      local b
+      b=$(find_bundle "$1") || die "no snapshot matches: $1 (see: loom snapshot list)"
+      git bundle verify "$b" || die "snapshot failed verification: $b"
+      ok "valid bundle: $(basename "$b")"
+      ;;
+    restore)
+      ensure_dirs
+      require_repo
+      local id="${1:-}"
+      [ -n "$id" ] || die "usage: loom snapshot restore <id> (see: loom snapshot list)"
+      local b
+      b=$(find_bundle "$id") || die "no snapshot matches: $id"
+      git bundle verify "$b" >/dev/null 2>&1 || die "not a valid bundle: $b"
+      [ -z "$(git status --porcelain)" ] ||
+        die "working tree is dirty — commit or stash first (restore never touches uncommitted work)"
+
+      local heads ref branch prev next cand
+      heads=$(git bundle list-heads "$b" | awk '{print $2}')
+      branch=$(snap_meta "$b" 2)
+      ref=""
+      for cand in "refs/heads/${branch:-master}" refs/heads/master refs/heads/main; do
+        if printf '%s\n' "$heads" | grep -qxF "$cand"; then
+          ref=$cand
+          break
+        fi
+      done
+      [ -n "$ref" ] || ref=$(printf '%s\n' "$heads" | head -1)
+      [ -n "$ref" ] || die "snapshot contains no refs"
+
+      prev=$(git_branch)
+      next="loom-restore-$(date +%Y%m%d-%H%M%S)"
+      while git rev-parse --verify "refs/heads/$next" >/dev/null 2>&1; do
+        next="$next-2"
+      done
+      git fetch "$b" "$ref:refs/heads/$next" >/dev/null 2>&1 ||
+        die "could not read $ref out of the snapshot"
+      git checkout "$next" >/dev/null 2>&1 || die "could not check out $next"
+      ok "restored $ref into a new branch: $next"
+      say "  ${c_dim}was on $prev — go back with: git checkout $prev${c_reset}"
+      ;;
+    prune)
+      ensure_dirs
+      local before after
+      before=$(snapshot_count)
+      snapshot_prune
+      after=$(snapshot_count)
+      ok "kept $after of $before (limit ${LOOM_SNAPSHOTS})"
+      ;;
+    -h | --help | help) help_snapshot ;;
+    *) die "unknown snapshot command: $sub (create|list|verify|restore|prune)" ;;
+  esac
+}
+
+# -------------------------------------------------------------------- dev / logs
+
+cmd_dev() {
+  local clear=0 dry=0
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --clear) clear=1 ;;
+      --dry-run) dry=1 ;;
+      -h | --help)
+        help_dev
+        return 0
+        ;;
+      *) die "unknown option for dev: $1 (try: loom help dev)" ;;
+    esac
+    shift
+  done
+
+  ensure_dirs
+  require_repo
+  [ -f app.json ] || die "no app.json in $LOOM_PROJECT — is this the Expo project?"
+  [ -x node_modules/.bin/expo ] || die "expo is not installed (run: npm install)"
+  if port_in_use "$LOOM_DEV_PORT"; then
+    die "port $LOOM_DEV_PORT is already in use — stop the other server or set LOOM_DEV_PORT"
+  fi
+
+  local args=(start --lan --port "$LOOM_DEV_PORT")
+  [ "$clear" -eq 1 ] && args+=(--clear)
+  if [ "$dry" -eq 1 ]; then
+    say "  would run: ./node_modules/.bin/expo ${args[*]}"
+    return 0
+  fi
+
+  journal dev "port $LOOM_DEV_PORT"
+  say ""
+  say "${c_bold}loom dev${c_reset} ${c_dim}· Metro on :${LOOM_DEV_PORT} · Ctrl-C to quit${c_reset}"
+  exec ./node_modules/.bin/expo "${args[@]}"
+}
+
+cmd_logs() {
+  local n=40 list=0
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --list | -l) list=1 ;;
+      -n)
+        shift
+        require_uint "${1:-}"
+        n=$1
+        ;;
+      -h | --help)
+        help_logs
+        return 0
+        ;;
+      *) die "unknown option for logs: $1 (try: loom help logs)" ;;
+    esac
+    shift
+  done
+
+  ensure_dirs
+  local dir f
+  dir=$(check_log_dir)
+  if [ "$list" -eq 1 ]; then
+    local any=0
+    while IFS= read -r f; do
+      [ -n "$f" ] || continue
+      any=1
+      printf '  %-28s %s\n' "$(basename "$f")" "$(human_size "$(du -sk "$f" | awk '{print $1}')")"
+    done < <(ls -1t "$dir"/*.log 2>/dev/null)
+    [ "$any" -eq 0 ] && warn "no check logs yet — run: loom check"
+    return 0
+  fi
+
+  f=$(ls -1t "$dir"/*.log 2>/dev/null | head -1)
+  [ -n "$f" ] || die "no check logs yet — run: loom check"
+  say "${c_dim}${f}${c_reset}"
+  tail -n "$n" "$f"
+}
+
+cmd_journal() {
+  local n=20
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -n)
+        shift
+        require_uint "${1:-}"
+        n=$1
+        ;;
+      -h | --help)
+        help_journal
+        return 0
+        ;;
+      *) die "unknown option for journal: $1" ;;
+    esac
+    shift
+  done
+  ensure_dirs
+  local j
+  j=$(journal_file)
+  [ -f "$j" ] || die "no journal yet — it is written on boot"
+  tail -n "$n" "$j" | awk -F'\t' '{printf "  %s  %-8s %s\n", $1, $2, $3}'
+}
+
+# ------------------------------------------------------------------ config / bye
+
+cmd_config() {
+  ensure_dirs
+  say "${c_bold}config${c_reset}  $LOOM_CFG"
+  sed 's/^/  /' "$LOOM_CFG"
+  say "${c_bold}data${c_reset}    $LOOM_DATA"
+  say "${c_bold}state${c_reset}   $LOOM_STATE"
+}
+
+cmd_uninstall() {
+  local yes=0 purge=0
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --yes) yes=1 ;;
+      --purge) purge=1 ;;
+      -h | --help)
+        help_uninstall
+        return 0
+        ;;
+      *) die "unknown option for uninstall: $1" ;;
+    esac
+    shift
+  done
+
+  local inner="/usr/local/bin/loom"
+  local host="/data/data/com.termux/files/usr/bin/loom"
+  say "this removes:"
+  say "  $inner"
+  [ -f "$host" ] && say "  $host"
+  if [ "$purge" -eq 1 ]; then
+    say "  $LOOM_CFG_DIR"
+    say "  $LOOM_DATA  (snapshots and journal included)"
+    say "  $LOOM_STATE"
+  fi
+  say "it leaves: opencode.json, .opencode/, docs/handoffs/, tools/ and your git history"
+  if [ "$yes" -eq 0 ]; then
+    say ""
+    say "nothing was removed — re-run with --yes"
+    return 0
+  fi
+
+  [ "$purge" -eq 1 ] && rm -rf "$LOOM_CFG_DIR" "$LOOM_DATA" "$LOOM_STATE"
+  [ -f "$host" ] && rm -f "$host"
+  say "loom removed"
+  rm -f "$inner"
+}
+
+# ------------------------------------------------------------------------- help
+
+usage() {
+  cat <<'EOF'
+loom 1.0.0 — one command for the Devlofy cockpit.
+
+USAGE
+  loom                        boot: preflight, snapshot, opencode (resume)
+  loom [options]              boot with options
+  loom <command> [options]    run one thing and exit
+
+BOOT
+  loom                        continue the last session in the project
+  loom --fresh                start a new session instead
+  loom --dry-run              show what boot would do, change nothing
+  loom --no-snapshot          skip the pre-boot git bundle snapshot
+  loom --project DIR          boot another project
+  loom -- <opencode args>     pass arguments through to opencode
+
+WORK
+  check                       typecheck + lint + the three self-check suites
+  check --web                 also run the static web export
+  dev                         Metro / Expo in this terminal (q quits)
+  status                      branch, snapshots, checks, service, Metro
+  handoff                     seed docs/handoffs/latest.md for the agent
+  handoff --print             print the skeleton instead of writing it
+  recap [--days N]            what changed since midnight (or N days ago)
+  ship --prepare              show the diff, the checks, a proposed message
+  ship --yes -m "subject"     commit and push (runs the checks first)
+
+MAINTENANCE
+  doctor [--fix]              environment report; --fix repairs safe things
+  snapshot [create|list|verify ID|restore ID|prune]
+  logs [--list] [-n N]        the newest check log
+  journal [-n N]              loom's own journal
+  config                      print settings and paths
+  uninstall [--yes] [--purge] remove loom (never touches the repo)
+  version                     print the version
+
+Try `loom help <command>` for one command in detail.
+EOF
+}
+
+help_boot() {
+  cat <<'EOF'
+loom — boot the cockpit
+
+USAGE
+  loom [--fresh] [--no-snapshot] [--dry-run] [--project DIR] [-- <opencode args>]
+
+WHAT IT DOES
+  1. prints the branch, the last commit and the number of uncommitted files
+  2. writes a git bundle snapshot to ~/.local/share/loom/snapshots (keep 10)
+  3. starts opencode in the project, continuing the last session when one exists
+
+Nothing is committed, pushed or discarded. The snapshot is read-only: restore
+it with `loom snapshot restore <id>` into a new branch.
+
+EXAMPLES
+  loom
+  loom --fresh
+  loom --project ~/other-repo
+  loom -- --model anthropic/claude-sonnet-4-5
+EOF
+}
+
+help_check() {
+  cat <<'EOF'
+loom check — the verification gate
+
+USAGE
+  loom check [--web]
+
+RUNS
+  tsc --noEmit
+  eslint .
+  src/lib/{bench,notes,sentinel}/self-check.ts  (compiled to a temp dir, then run)
+  expo export --platform web                    (only with --web)
+
+The log is kept in ~/.local/state/loom/checks/. The exit code is non-zero if
+any step fails. `loom ship --yes` runs this first.
+EOF
+}
+
+help_dev() {
+  cat <<'EOF'
+loom dev — Metro in this terminal
+
+USAGE
+  loom dev [--clear] [--dry-run]
+
+Reads LOOM_DEV_PORT (default 8081) from ~/.config/loom/config.sh. Refuses to
+start when the port is taken instead of silently choosing another one.
+EOF
+}
+
+help_status() {
+  cat <<'EOF'
+loom status — the one-screen state of the project
+
+USAGE
+  loom status
+
+Shows the branch and head, upstream drift, the newest snapshot, the last check,
+the opencode service URL, the Metro port, and the age of the handoff.
+EOF
+}
+
+help_handoff() {
+  cat <<'EOF'
+loom handoff — a starting point for the next session
+
+USAGE
+  loom handoff [--print] [--force]
+
+Writes docs/handoffs/latest.md with today's machine facts and empty sections.
+The file is declared in opencode.json under `instructions`, so the next session
+reads it automatically. In the session, run /handoff to have the agent fill it
+in.
+
+The file is local state and is git-ignored on purpose. `loom handoff` refuses
+to overwrite a handoff it did not write unless you pass --force.
+EOF
+}
+
+help_recap() {
+  cat <<'EOF'
+loom recap — what changed
+
+USAGE
+  loom recap [--days N]
+
+Prints commits since midnight (or N days ago), the files they touched, the
+uncommitted tree, the last check, today's loom journal, and the next steps from
+the handoff. No model is involved.
+EOF
+}
+
+help_ship() {
+  cat <<'EOF'
+loom ship — commit and push, behind one confirmation
+
+USAGE
+  loom ship --prepare [-m "subject"]
+  loom ship --yes -m "subject" [-m "body"] [--skip-checks] [--dry-run]
+
+`--prepare` writes the diff, diffstat, snapshot and check facts to
+~/.local/state/loom and prints a summary. Nothing is staged.
+
+`--yes` is the confirmation. It refuses a detached HEAD, a clean tree, or a
+secret-looking path (.env, *.keystore, *.jks, *.p12, id_rsa). It runs
+`loom check` unless --skip-checks, stages with `git add -A`, commits with the
+message, and pushes the current branch. It never force-pushes and never amends.
+
+EXAMPLES
+  loom ship --prepare
+  loom ship --yes -m "Notes: fix the caret after a merge" -m "Prevent the web
+  textarea from placing the caret one character late."
+EOF
+}
+
+help_doctor() {
+  cat <<'EOF'
+loom doctor — the environment report
+
+USAGE
+  loom doctor [--fix]
+
+Checks the toolchain, the project, opencode's service and config, loom's
+snapshots and checks, memory, disk and the Metro port.
+
+--fix only does safe repairs: create loom's directories, prune snapshots past
+the keep limit, and delete check logs older than 30 days. It never kills a
+process, edits the repo, or touches opencode's data.
+EOF
+}
+
+help_snapshot() {
+  cat <<'EOF'
+loom snapshot — git bundles, not stashes
+
+USAGE
+  loom snapshot [create]
+  loom snapshot list
+  loom snapshot verify <id>
+  loom snapshot restore <id>
+  loom snapshot prune
+
+A snapshot is a `git bundle` of every ref, verified after writing, kept in
+~/.local/share/loom/snapshots (10 by default). It includes the committed
+history only; uncommitted files are not in the bundle.
+
+`restore` requires a clean working tree and fetches the snapshot into a new
+branch named loom-restore-<timestamp>. It does not delete anything.
+EOF
+}
+
+help_logs() {
+  cat <<'EOF'
+loom logs — the newest verification log
+
+USAGE
+  loom logs [-n N] [--list]
+
+Without options, prints the last 40 lines of the newest `loom check` log.
+--list shows every kept log with its size.
+EOF
+}
+
+help_journal() {
+  cat <<'EOF'
+loom journal — what loom did
+
+USAGE
+  loom journal [-n N]
+
+One line per event (boot, check, snapshot, handoff, ship, dev), newest last.
+EOF
+}
+
+help_config() {
+  cat <<'EOF'
+loom config — settings and paths
+
+USAGE
+  loom config
+
+Prints ~/.config/loom/config.sh and the data/state directories. Edit the file
+directly; loom never overwrites it.
+EOF
+}
+
+help_uninstall() {
+  cat <<'EOF'
+loom uninstall — remove loom
+
+USAGE
+  loom uninstall [--yes] [--purge]
+
+Without --yes it only prints what it would remove. --purge also deletes the
+config, the journal and every snapshot. The project files (opencode.json,
+.opencode/, docs/handoffs/, tools/) and your git history are never touched.
+EOF
+}
+
+help_topic() {
+  case "${1:-}" in
+    boot) help_boot ;;
+    check) help_check ;;
+    dev) help_dev ;;
+    status) help_status ;;
+    handoff) help_handoff ;;
+    recap) help_recap ;;
+    ship) help_ship ;;
+    doctor) help_doctor ;;
+    snapshot) help_snapshot ;;
+    logs) help_logs ;;
+    journal) help_journal ;;
+    config) help_config ;;
+    uninstall) help_uninstall ;;
+    version) say "loom version — print the version"; say ""; say "USAGE"; say "  loom version" ;;
+    "") usage ;;
+    *) die "no help for '$1' — try: loom help" ;;
+  esac
+}
+
+# ------------------------------------------------------------------------- main
+
+main() {
+  local cmd="${1:-}"
+  if [ -z "$cmd" ]; then
+    cmd_boot
+    return $?
+  fi
+
+  case "$cmd" in
+    -h | --help)
+      usage
+      return 0
+      ;;
+    -v | --version)
+      say "loom $LOOM_VERSION"
+      return 0
+      ;;
+    -*)
+      cmd_boot "$@"
+      return $?
+      ;;
+  esac
+
+  shift
+
+  case "$cmd" in
+    boot) cmd_boot "$@" ;;
+    check) cmd_check "$@" ;;
+    dev) cmd_dev "$@" ;;
+    status) cmd_status "$@" ;;
+    handoff) cmd_handoff "$@" ;;
+    recap) cmd_recap "$@" ;;
+    ship) cmd_ship "$@" ;;
+    doctor) cmd_doctor "$@" ;;
+    snapshot) cmd_snapshot "$@" ;;
+    logs) cmd_logs "$@" ;;
+    journal) cmd_journal "$@" ;;
+    config) cmd_config "$@" ;;
+    uninstall) cmd_uninstall "$@" ;;
+    version | --version | -v) say "loom $LOOM_VERSION" ;;
+    help)
+      if [ $# -eq 0 ]; then
+        usage
+      else
+        help_topic "$1"
+      fi
+      ;;
+    *)
+      if [ -d "$cmd" ]; then
+        cmd_boot "$cmd" "$@"
+      else
+        printf 'loom: unknown command: %s\n\n' "$cmd" >&2
+        usage >&2
+        exit 2
+      fi
+      ;;
+  esac
+}
+
+main "$@"
+exit $?
