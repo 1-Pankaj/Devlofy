@@ -1,75 +1,84 @@
 # Security policy
 
-Devlofy is local-first: there is no server, no account and no telemetry. That removes most of the attack surface a hosted product has, and it leaves a short, specific list of things that *can* go wrong. This file says what they are, which versions get fixes, and how to report one privately.
+Devlofy runs on your device with no server and no account, so the list of things that can go wrong is short. This page covers which versions get fixes, how to report a problem, and what the app does about the obvious risks.
 
 ## Supported versions
 
-The latest release on `master` is the only supported version. Fixes ship as a new release rather than as patches to old tags.
+Only the latest release on `master` gets fixes. Older versions do not receive patches.
 
 | Version | Supported |
-|---|---|
-| 0.8.x | ✅ |
-| < 0.8 | ❌ |
+| --- | --- |
+| 0.8.x | yes |
+| older | no |
 
-## Reporting a vulnerability
+## Reporting a problem
 
-**Do not open a public issue for a vulnerability.** Use GitHub's private reporting: [Security → Report a vulnerability](https://github.com/1-Pankaj/Devlofy/security/advisories/new). If that is unavailable, email **pankajisrani17@gmail.com** with `SECURITY` in the subject.
+Do not open a public issue for a security problem. Use GitHub private reporting: [Report a vulnerability](https://github.com/1-Pankaj/Devlofy/security/advisories/new). If that does not work, email **pankajisrani17@gmail.com** with `SECURITY` in the subject.
 
-Please include the platform (Android version, or browser and OS), the version shown in the app's **More** screen, what you expected, what happened, and — if the issue involves data — whether it survives a reinstall. A reproduction is worth more than a severity guess.
+Please include:
 
-You can expect an acknowledgement within a few days. This is a single-maintainer project, so please allow reasonable time before disclosure; credit in the release notes is offered unless you prefer otherwise.
+- the platform (Android version, or browser and OS)
+- the app version shown in **More**
+- what you expected and what happened
+- whether the problem survives a reinstall, if data is involved
 
-## What is actually in scope
+This is a one-person project, so expect a reply within a few days. Please give reasonable time before publishing. Credit is offered in the changelog unless you prefer to stay anonymous.
 
-The app has exactly two networked features and one credential, and most of the threat model is about those.
+## What is in scope
 
-**1. The GitHub token**
+The app has one credential and two networked features. Most reports concern those.
 
-A user's GitHub token is the only secret the app ever holds. It is proved against `GET /user` before being stored, then kept in the app's KV store — `expo-sqlite/kv-store` on native, `localStorage` on web — never in the app's SQLite tables, and never in `exportAll()`'s JSON dump.
+### The GitHub token
 
-In scope:
+A user's GitHub token is the only secret the app stores. It is checked against `GET /user` before it is saved, and it is kept in the app's key-value store: `expo-sqlite/kv-store` on native, `localStorage` on web. It is never written to the SQLite tables and never included in the JSON export.
 
-- A path where the token reaches the export dump, a log, an intent extra, a clipboard write, or a URL
-- A token rendered in the UI (screen, share text, error message, notification)
-- A write path that exceeds the design: commits landing on the **default branch**, force-updating a ref, deleting a branch or repository, or a diff being committed without being shown first
-- A stale blob `sha` being silently ignored instead of surfaced as GitHub's `409`
+We want to hear about:
 
-**2. Sentinel's probes**
+- a token leaking into the export file, a log, a URL, the clipboard, or a share sheet
+- a token shown on screen in any way
+- a write that goes further than intended: a commit to the default branch, a forced ref update, a deleted branch or repository, or a commit that was never shown as a diff
+- an out-of-date file version being ignored instead of reported as a conflict
 
-Sentinel makes HTTP requests to URLs the user supplies, and only when the user opens the board or presses check. Out of scope by design: a URL that returns an unexpected status (that is the feature), and the browser's inability to read cross-origin status codes (documented, and labelled *reachable* rather than "up").
+### Sentinel checks
 
-In scope:
+Sentinel sends requests to URLs the user enters, and only when the user opens the board or presses check. A URL returning an unexpected status is not a bug; that is what the feature reports. The browser cannot read cross-origin status codes, so web checks report "reachable", not "up".
 
-- A probe that follows a redirect to `file:`, `javascript:` or another scheme
-- A response body or header that is executed, injected into the UI, or rendered as markup
-- Unbounded storage: checks are pruned to the newest 500 per target, and that bound failing
+We want to hear about:
 
-**3. Local data handling**
+- a redirect that leads to a `file:`, `javascript:`, or other non-HTTP scheme
+- a response body or header that ends up being executed or rendered as markup
+- storage growing without a limit (checks are trimmed to the newest 500 per site)
 
-- SQL injection through a user-supplied string in any query (`LIKE` patterns must escape `%` and `_`)
-- Notes' markdown and `[[wikilinks]]` rendering script or markup from a note body
-- The JSON export writing somewhere it should not, or omitting a table the user owns
-- A schema migration that loses or reorders existing rows
+### Local data
 
-**4. Web build specifics**
+- SQL injection through user input, including `LIKE` patterns that do not escape `%` and `_`
+- script or markup injection through a note body
+- the export writing outside the app folder, or leaving out a table the user owns
+- a migration that loses or reorders rows
 
-The web build runs SQLite as wasm and requires cross-origin isolation (COOP/COEP). In scope: a way for third-party content to reach the database or the KV store, and any place where the app trusts `window` state a page could have set.
+### Web build
+
+The web build uses SQLite in WebAssembly and needs cross-origin isolation (COOP and COEP headers). We want to hear about any way for third-party content to reach the database or the key-value store.
 
 ## Out of scope
 
-- A rooted or compromised device — the app cannot defend a database from root, and neither can any other local-only app
-- Physical access to an unlocked device (there is no app lock, by design — see the backlog)
-- Abuse of a token the user has already granted broad scopes on GitHub itself; that is GitHub's permission model, not the app's
-- Rate limits, GitHub API outages, or a target URL being genuinely down
-- Vulnerabilities in Expo, React Native, or a dependency that the upstream project has not yet fixed — report those upstream, but do tell us so the version can be pinned
+- a rooted or otherwise compromised device
+- someone with physical access to an unlocked device (there is no app lock; it is on the backlog)
+- broad permissions the user granted on GitHub itself
+- rate limits, GitHub downtime, or a monitored site that is genuinely down
+- problems in Expo, React Native or other dependencies that upstream has not fixed yet. Report those upstream, but tell us so we can pin the version.
 
-## How this project handles the obvious hazards
+## How the code handles common risks
 
-- **No `eval`**, no `new Function`, no `dangerouslySetInnerHTML`, no shelling out from app code
-- **No arbitrary file paths** from user input: the app writes to app-private storage, and the only filenames it chooses are its own
-- **No secrets in the repository**: the committed GitHub OAuth **client ID** is public by design (device flow never needs a client secret), and history was scanned for credentials before the first public push
-- **No dependency without a reason**: the app ships no test runner, no network client wrapper and no state library beyond what the stack already had
+- no `eval`, no `new Function`, no `dangerouslySetInnerHTML`, no shell commands from app code
+- file paths are chosen by the app, not by user input
+- no secrets in the repository. The GitHub client ID in `app.json` is a public identifier; device flow needs no client secret. The git history was scanned for tokens before the first public push.
+- the app adds no test runner, no HTTP wrapper library and no extra state library
 
-## Acknowledgements
+## Dependencies
 
-Thanks to everyone who reports responsibly. Fixes that come from a report are credited in [`CHANGELOG.md`](CHANGELOG.md) and the release notes.
+`npm audit` reports high-severity advisories in transitive dependencies of the Expo CLI (for example `zod` and `node-forge`). The fix npm suggests is a downgrade to Expo SDK 44, which would break the project. These packages run at build time, not inside the shipped app. We track them and update when Expo updates.
+
+## Credit
+
+Reports that lead to a fix are credited in [CHANGELOG.md](CHANGELOG.md) and in the release notes, unless you ask us not to.

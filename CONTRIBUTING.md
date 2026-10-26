@@ -1,56 +1,63 @@
 # Contributing
 
-Thanks for looking. Devlofy is a personal-first app built in the open, and it holds opinions on purpose — so the fastest path to a merged change is to match the ones it already holds.
+Thanks for taking a look. Devlofy is a small, opinionated app, so the fastest way to get a change merged is to follow the rules it already uses.
 
-## Before you start
+## Read first
 
-Read [`AGENTS.md`](AGENTS.md). It is the real contributor guide: product context, architecture rules, and the conventions reviews enforce. [`docs/07-decisions.md`](docs/07-decisions.md) explains why the architecture is what it is — if a change contradicts an ADR, say so in the pull request and argue it, don't route around it.
+- [AGENTS.md](AGENTS.md): product context, architecture rules, and the style reviews check.
+- [docs/07-decisions.md](docs/07-decisions.md): why the app is built this way. If your change contradicts a decision, say so in the pull request and explain why.
+
+`opencode.json` points some agent tooling at `docs/handoffs/latest.md`. That file is gitignored on purpose (it is local session notes), so a missing file there is normal.
 
 ## Setup
 
 ```bash
+git clone https://github.com/1-Pankaj/Devlofy.git
+cd Devlofy
 npm install
-npx expo start        # a → Android, w → web
+npx expo start
 ```
 
-Node 22+. Dependencies are installed with `npx expo install <package>`, never a bare `npm install <package>`, because Expo resolves the SDK-compatible version.
+Use Node 22 or newer. When you add a package, use `npx expo install <package>` so Expo picks the version that matches the SDK.
 
-## Must pass before you push
+## Before you push
 
 ```bash
 npm run check
 ```
 
-That is typecheck + lint + the four known-answer suites (482 checks). CI runs the same command and will refuse a red pull request. If you touch a pure module — `src/lib/bench`, `src/lib/notes`, `src/lib/sentinel`, `src/lib/engine` — add the case that would have caught your change to the folder's `self-check.ts`.
+This runs the type check, the linter, and 482 tests. Pull requests that fail it will not be merged.
 
-Touch the 3D kit? Then also run the GPU-less renderer, which asserts the geometry invariants and writes a contact sheet:
+If you change a pure module (`src/lib/bench`, `src/lib/notes`, `src/lib/sentinel`, `src/lib/engine`), add a case to that folder's `self-check.ts` for the bug you fixed.
+
+If you change 3D geometry, also run the renderer. It checks the model rules and writes an image:
 
 ```bash
 NODE_PATH=$PWD/node_modules node tools/preview/render.js
 ```
 
-## The rules that get a change sent back
+## Rules the app follows
 
-- **Tokens only.** No hardcoded colors, spacing, type or motion — they come from `src/theme/`.
-- **Adapters for platform code.** `x.ts` (type anchor) + `x.native.ts` + `x.web.ts`. Core never imports a platform-only library.
-- **A failed read is never an empty screen.** An error with no data gets `ErrorState` with the query's `refresh`; "empty" requires a successful read that came back empty.
-- **Motion never overshoots.** There is no spring anywhere in the app — a duration against one of the two curves in `theme/motion`.
-- **All SQL lives in `src/lib/db/repo.ts`.** Migrations are append-only, and the same change updates `docs/06-data-model.md`.
-- **Every table you create goes into `exportAll()`** in the same change. The user owns their data; the export dump carries a version.
-- **Feature budget.** A new feature displaces one or waits in [`docs/08-backlog.md`](docs/08-backlog.md).
-- **One filled action per screen** — the FAB. Accent (indigo) is the brand; ember (amber) is time and focus only.
+- **Use design tokens.** Colors, spacing, text styles and motion values come from `src/theme/`. Do not hardcode them in components.
+- **Platform code goes in adapters.** A feature is `x.ts` plus `x.native.ts` and `x.web.ts`. Shared code does not import a library that only works on one platform.
+- **Handle all four states.** Loading, error, empty and ready. A failed read shows an error with a retry, not an empty screen.
+- **No springs.** Motion uses a duration and one of the two curves in `theme/motion`. Nothing bounces.
+- **SQL lives in `src/lib/db/repo.ts`.** Migrations are append-only, and `docs/06-data-model.md` is updated in the same change.
+- **New tables go into `exportAll()`.** Users must be able to export every table the app creates.
+- **One main button per screen.** The floating action button is the only filled action. Indigo is the brand color; amber is used only for time and focus.
+- **Add one feature, remove one.** If the app does not lose something, the feature waits in [docs/08-backlog.md](docs/08-backlog.md).
 
 ## Pull requests
 
-- Keep one change to one thing; a fix and a refactor in one diff is two reviews.
-- Say what you ran. `npm run check` green plus anything else you exercised is enough.
-- Screenshots help for UI work — Android and web, compact and expanded widths.
-- No new dependency without a note on why the standard library or an existing one won't do. The app has no backend and no cloud AI, and it would like to keep both records.
+- One change per pull request.
+- Say what you ran. `npm run check` passing is usually enough.
+- For UI changes, add screenshots from Android and web, at a phone width and a wide width.
+- New dependencies need a short note on why an existing one does not work. The app has no backend and no cloud AI, and it would like to keep it that way.
 
-## Reporting a bug
+## Bugs
 
-Open an issue with the platform (Android version or browser), what you expected, what happened, and whether the screen was showing stale or empty data — that last one is its own class of bug here.
+Open an issue with the form. Include your platform, the app version from **More**, and whether the screen was empty or showed an error. Those are different bugs in this app.
 
 ## License
 
-By contributing you agree your work is licensed under the MIT license in [`LICENSE`](LICENSE).
+By contributing, you agree that your work is licensed under the MIT license in [LICENSE](LICENSE).

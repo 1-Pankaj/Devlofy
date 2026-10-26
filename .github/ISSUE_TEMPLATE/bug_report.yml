@@ -1,17 +1,17 @@
 name: Bug report
-description: Something is broken, wrong, or empty when it should not be
+description: Something is broken or shows the wrong data
 labels: [bug]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for the report. Two questions in this form matter more than the rest: the platform, and whether a screen showed **empty** or **failed** — in this app those are different states on purpose.
+        Thanks for the report. Two answers matter most: your platform, and whether the screen was empty or showed an error. In this app those are different bugs.
 
   - type: input
     id: version
     attributes:
-      label: Version
-      description: The version on the app's **More** screen.
+      label: App version
+      description: Shown at the top of the More screen.
       placeholder: 0.8.0
     validations:
       required: true
@@ -21,19 +21,19 @@ body:
     attributes:
       label: Platform
       options:
-        - Android (phone)
-        - Android (tablet / desktop mode)
-        - Web (Chromium)
-        - Web (Firefox)
-        - Web (Safari)
+        - Android phone
+        - Android tablet
+        - Web on Chromium
+        - Web on Firefox
+        - Web on Safari
     validations:
       required: true
 
   - type: input
     id: environment
     attributes:
-      label: OS / browser version
-      placeholder: Android 15 · Lenovo TB320FC, or macOS 15 · Safari 18.2
+      label: OS and browser version
+      placeholder: Android 15 on a Lenovo TB320FC, or macOS 15 with Safari 18.2
     validations:
       required: true
 
@@ -43,8 +43,8 @@ body:
       label: Steps to reproduce
       placeholder: |
         1. Open Today
-        2. Add "write the changelog 45m #Devlofy"
-        3. …
+        2. Add the task "write the changelog 45m #Devlofy"
+        3. ...
     validations:
       required: true
 
@@ -59,19 +59,19 @@ body:
     id: actual
     attributes:
       label: What happened
-      description: A screenshot helps. If text is missing or wrong, quote it.
+      description: A screenshot helps. If text was wrong, quote it.
     validations:
       required: true
 
   - type: dropdown
     id: state
     attributes:
-      label: Was the screen empty, or showing an error?
-      description: An **empty** screen means a read succeeded and returned nothing; a failed read must render as an error with a retry. If you saw an empty screen when something existed, that is the bug.
+      label: Was the screen empty, or did it show an error?
+      description: An empty screen means the data loaded and there was nothing to show. A failed load must show an error with a retry button. If data existed but the screen looked empty, that is the bug.
       options:
-        - Data was there, the screen showed it empty
-        - The screen showed an error / retry
-        - The screen looked correct, the action did nothing
+        - Data existed but the screen looked empty
+        - The screen showed an error or retry button
+        - The screen looked right, but the action did nothing
         - Not applicable
     validations:
       required: true
@@ -79,17 +79,16 @@ body:
   - type: textarea
     id: data
     attributes:
-      label: Data context
-      description: |
-        Only if relevant and only in general terms — this app has no server and no logs to fetch. For example "first launch", "after an import", "a project with no rate", "a GitHub token pasted on web".
-      placeholder: First launch on a fresh install
+      label: Anything else about your data
+      description: Only if it matters. There is no server and no log to fetch. For example "first launch", "after importing a backup", or "project with no hourly rate".
+      placeholder: Fresh install, first launch
     validations:
       required: false
 
   - type: checkboxes
     id: confirm
     attributes:
-      label: Before submitting
+      label: Before you submit
       options:
-        - label: I checked the issue is not already reported, and is not a security vulnerability (those go to SECURITY.md, never a public issue)
+        - label: This is not a security issue (those go through SECURITY.md, never a public issue)
           required: true

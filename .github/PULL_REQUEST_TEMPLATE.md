@@ -1,31 +1,31 @@
-## What this changes
+## What changed
 
-<!-- One or two sentences. If it fixes an issue: "Closes #123". -->
+<!-- One or two sentences. Use "Closes #123" if this fixes an issue. -->
 
 ## Why
 
-<!-- The problem, or the reason the current behaviour is wrong. If it contradicts
-an ADR in docs/07-decisions.md, say so and argue it rather than routing around it. -->
+<!-- What was wrong, or what the change is for. If it conflicts with a decision in
+docs/07-decisions.md, say so and explain why. -->
 
-## How I checked it
+## How I tested it
 
-- [ ] `npm run check` — types, lint, 482 known-answer checks
-- [ ] Exercised it on: <!-- Android / web / both -->
-- [ ] Expanded width (side rail) and compact width, if this touches layout
-- [ ] Screenshots or a short clip, if this is user-visible
-- [ ] If a pure module changed: the case that would have caught it is in that folder's `self-check.ts`
-- [ ] If geometry changed: `NODE_PATH=$PWD/node_modules node tools/preview/render.js`
+- [ ] `npm run check` passes (types, lint, 482 tests)
+- [ ] Tried it on: <!-- Android / web / both -->
+- [ ] Checked a phone width and a wide width, if this touches layout
+- [ ] Added screenshots, if this is visible in the UI
+- [ ] Added a test in `self-check.ts`, if a pure module changed
+- [ ] Ran `NODE_PATH=$PWD/node_modules node tools/preview/render.js`, if 3D changed
 
-## House rules this change keeps
+## Project rules
 
-- [ ] Tokens only — no hardcoded colour, spacing, type or motion outside `src/theme/`
-- [ ] Platform code behind an adapter (`x.ts` + `x.native.ts` + `x.web.ts`); core imports no platform-only library
-- [ ] Every state handled: loading / error / empty / ready — and a failed read is never rendered as an empty one
-- [ ] No spring, no overshoot; haptics on native only
-- [ ] All SQL in `src/lib/db/repo.ts`; migrations append-only; new tables added to `exportAll()` in the same change
-- [ ] No new dependency — or a paragraph in this PR on why the alternative was worse
-- [ ] Feature budget respected: what this displaces, or why it is a fix
+- [ ] Colors, spacing, text styles and motion come from `src/theme/`
+- [ ] Platform code is in `x.native.ts` / `x.web.ts`; shared code imports no platform-only library
+- [ ] All four states handled: loading, error, empty, ready. A failed read shows an error, not an empty screen
+- [ ] No springs, no overshoot; haptics on native only
+- [ ] SQL is in `src/lib/db/repo.ts`; migrations are append-only; new tables added to `exportAll()`
+- [ ] No new dependency, or a note here on why an existing one does not work
+- [ ] Feature budget respected: this replaces something, or it is a fix
 
 ## Notes for the reviewer
 
-<!-- Anything that is deliberately unfinished, or that you are unsure about. -->
+<!-- Anything unfinished, or anything you are unsure about. -->

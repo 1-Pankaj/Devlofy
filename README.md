@@ -1,85 +1,116 @@
 # Devlofy
 
-**The offline-first command center for solo developers.** Plan your day, run your clients, ship your projects, get paid, and watch it grow — with a 3D focus garden for the time you actually spend.
+[![MIT license](https://img.shields.io/badge/license-MIT-4B5AA0)](LICENSE)
+[![release](https://img.shields.io/github/v/release/1-Pankaj/Devlofy?color=4B5AA0)](https://github.com/1-Pankaj/Devlofy/releases)
+![platforms](https://img.shields.io/badge/platforms-Android%20%7C%20web-4B5AA0)
 
-All data lives on your device. No account, no backend, no cloud AI, no telemetry. Local SQLite is the product.
+**The offline-first command center for solo developers.** One app for tasks, focus time, client work, invoices and markdown notes. All data stays in a local SQLite database on your device.
 
-Targets: **Android native (phones and tablets) and web**, as equal partners. iOS comes later; the code stays iOS-safe in the meantime. Desktop mode ships from day one — expanded widths get a side rail, compact widths keep the floating tab bar.
+No account, no backend, no cloud AI, no telemetry. Android and web are equal targets. iOS is planned. Current version: 0.8.
 
-## What's in it — v0.8
+## Features
 
 | Screen | What it does |
-|---|---|
-| **Today** | Greeting, one live focus session, streak strip, today's tasks. Quick-add reads `!3` (priority), `45m` (estimate), `tomorrow` (due) and `#Project`, and the preview chips state exactly what will be created before you commit |
-| **Garden** | A 3D tree that grows from your real focus data — Blender-authored GLBs, with a code-authored prop kit behind them so the clearing is never empty |
-| **Work** | Projects and milestones, clients, rates → billable blocks → an invoice draft you can copy. Money is a view over the session log, never a stored document |
-| **Engine** | No model, no network: pure functions over your own rows for what to do next (every score carries a reason the UI shows), when you actually work, and how far your estimates drift |
-| **Notes** | Blocks that are a view over the markdown lines already on disk — markdown input rules, `[[wikilinks]]` with backlinks, to-dos that become real tasks, focus-on-this-note |
-| **Bench** | The offline dev toolbox: JSON, SQL, Diff, Regex, Text, Encode, JWT, Hash, Epoch, Cron, Colour. Eleven tools that compute as you type; your tokens, configs and diffs never leave the device |
-| **Sentinel** | Is anything of mine down? Status, latency, incidents and uptime over the URLs you own. Checks run when you look, never on a timer — and a browser run says *reachable*, never "up" |
-| **GitHub** | Two-way but branch-bounded: browse and edit files, commit to a branch (never the default one), review, merge, triage issues, watch Actions, read the inbox |
-| **Search** | One search over projects, clients, notes, tasks and watch targets — plus the Bench tools, so `sha256` opens the tool. `⌘K` / `Ctrl-K` on web |
-| **More** | Theme (System / Ink / Paper), desktop mode, data stats, and a full JSON export of everything you own |
+| --- | --- |
+| **Today** | Daily task list, one running focus timer, streaks, and a quick-add box that understands `!3`, `45m`, `tomorrow` and `#Project` |
+| **Garden** | A 3D tree that grows from your real focus time. Blender models plus a code-built prop kit, so it renders on any device |
+| **Work** | Projects, milestones, clients, hourly rates, billable time, and an invoice draft you can copy |
+| **Notes** | Markdown notes in blocks, with `[[wikilinks]]`, backlinks, tickable to-dos, and to-dos that become real tasks |
+| **Bench** | 11 offline developer tools: JSON, SQL, Diff, Regex, Text, Encode, JWT, Hash, Epoch, Cron and Colour |
+| **Sentinel** | Uptime and latency checks for your own URLs, with incidents and history stored locally |
+| **GitHub** | Read notifications, issues and pull requests; edit files, commit to a branch, review and merge |
+| **Search** | One search across projects, clients, notes, tasks, watched sites and Bench tools (`Ctrl/Cmd + K` on web) |
+| **Engine** | Local rules that suggest what to do next, when you usually work, and how far your estimates drift |
 
-Bench and Sentinel are reached as cards on the More shelf rather than extra tabs, and Sentinel's standing also surfaces as a strip on Today.
+Bench and Sentinel open from cards in **More**, not from extra tabs. Desktop mode is built in: wide screens get a side rail, phones keep the bottom tab bar.
 
-## Run it
+## Requirements
 
-Node 22+ and Expo SDK 58.
+- Node.js 22 or newer
+- npm
+- Android for the native app (Expo Go or a development build), or a modern browser with WebAssembly support for web
+
+## Getting started
 
 ```bash
+git clone https://github.com/1-Pankaj/Devlofy.git
+cd Devlofy
 npm install
-npx expo start        # then: a → Android, w → web
+npx expo start
 ```
 
-The web build runs SQLite as wasm, which needs cross-origin isolation. The dev server sets COOP/COEP itself; `app.json` carries the same headers for deployment. Details in [`docs/03-architecture.md`](docs/03-architecture.md).
+Then press `a` to open Android, or `w` to open web.
+
+The web build runs SQLite as WebAssembly, which needs cross-origin isolation. The dev server sets the COOP and COEP headers for you; `app.json` has the same headers for deployment. More detail in [docs/03-architecture.md](docs/03-architecture.md).
 
 ## Checks
 
 ```bash
-npm run check                    # typecheck + lint + the four known-answer suites (482 checks)
-npx expo export --platform web   # the full web bundle (validates wasm and the 3D runtime)
+npm run check                    # typecheck, lint, and 482 known-answer checks
+npx expo export --platform web   # full web build, validates wasm and 3D
 ```
 
-`npm run check` is what CI runs, and it must be clean before any commit. The pure modules are verified by known-answer checks that live beside them rather than by a test runner — hashes against published vectors, RFC semantics for base64/URL/JWT, every Sentinel verdict, every block edit Notes can make, and the whole of the Engine's ranking, including the reason string each weight produces. Recipe: [`docs/03-architecture.md`](docs/03-architecture.md#checking-the-pure-modules-without-a-test-runner).
+`npm run check` must pass before any commit. It runs `tsc --noEmit`, `eslint .`, and four small test suites that live next to the code they test.
 
-## Stack
+## Tech stack
 
-Expo SDK 58 · React 19 · expo-router · expo-sqlite (native SQLite, wasm + OPFS on web) · three + react-three-fiber (expo-gl on native, WebGL on web) · reanimated 4 · zustand · Phosphor icons · Geist + Space Grotesk + JetBrains Mono.
+- Expo SDK 58, React 19, React Native 0.88, TypeScript
+- expo-router for navigation, expo-sqlite for storage (SQLite on native, wasm + OPFS on web)
+- three.js and react-three-fiber for the garden, expo-gl on native and WebGL on web
+- Reanimated 4 for motion, Zustand for small state, Phosphor for icons
+
+## Project structure
+
+```
+src/app/          screens and navigators (file-based routes)
+src/components/   UI, grouped by feature; ui/ holds shared components
+src/lib/          app logic: db, engine, notes, bench, sentinel, github, garden, three
+src/theme/        design tokens (color, spacing, type, motion)
+assets/models/    Blender GLB files
+docs/             full documentation, decisions and roadmap
+tools/            Blender scripts, 3D preview renderer, check runner
+```
+
+## Data and privacy
+
+- Everything you create stays in SQLite on the device. The JSON export in **More** dumps all of it.
+- Two features use the network: GitHub (only when you connect an account) and Sentinel (only when you open the board or press check).
+- A GitHub token is checked against GitHub before it is saved. It is kept out of the export file.
+- The app has no analytics and no crash reporting service.
+
+Security reporting instructions are in [SECURITY.md](SECURITY.md).
 
 ## Documentation
 
-Everything lives in [`docs/`](docs/index.md) — an Obsidian vault, so `[[wikilinks]]` render as a graph:
+The full docs are in [`docs/`](docs/index.md), written as an Obsidian vault:
 
-- [Vision](docs/01-vision.md) · [Scope](docs/02-scope.md) · [Architecture](docs/03-architecture.md)
-- [Design language](docs/04-design-language.md) · [Blender pipeline](docs/05-blender-pipeline.md)
-- [Data model](docs/06-data-model.md) · [Decision log](docs/07-decisions.md) · [Backlog](docs/08-backlog.md)
+- [Vision](docs/01-vision.md), [Scope](docs/02-scope.md), [Architecture](docs/03-architecture.md)
+- [Design language](docs/04-design-language.md), [Blender pipeline](docs/05-blender-pipeline.md)
+- [Data model](docs/06-data-model.md), [Decision log](docs/07-decisions.md), [Backlog](docs/08-backlog.md)
 
-The decision log is the interesting one: it records *why* the app has no backend, why a focus block is a session row, and why a GitHub write is bounded to a branch.
+The decision log explains why the app has no backend, how focus sessions are stored, and why GitHub writes are limited to branches.
 
 ## Contributing
 
-Read [`AGENTS.md`](AGENTS.md) first — it is the contributor guide, and it is enforced in review: tokens only, platform code behind adapters, motion that never overshoots, a failed read is never rendered as an empty one. [`CONTRIBUTING.md`](CONTRIBUTING.md) has the short version and the commands.
-
-- **Bugs**: [open an issue](https://github.com/1-Pankaj/Devlofy/issues/new/choose) — the form asks whether a screen was *empty* or *failed*, because in this app those are different states.
-- **Security**: never a public issue. [`SECURITY.md`](SECURITY.md) has the private channel and the actual threat model.
-- **Ideas**: a feature has to fit a budget, so start with the [decision log](docs/07-decisions.md) — several obviously-good ideas are recorded there as declined, with reasons.
-- **Conduct**: [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
-- **History**: [`CHANGELOG.md`](CHANGELOG.md), one entry per release.
-
-## Repo map
-
-```
-src/app/          routes only — every screen and its navigator
-src/components/   UI by feature (ui/ is the design system)
-src/lib/          the product's logic: db/, engine/, notes/, bench/, sentinel/, github/, garden/, three/
-src/theme/        tokens — colour, spacing, type, motion. Nothing else may hardcode these
-assets/models/    the Blender-authored GLBs, and the code kit that answers when one is missing
-docs/             the Obsidian vault: vision, scope, architecture, design language, data model, ADRs
-tools/            everything that is not the app: Blender scripts, the GPU-less 3D renderer, the checks
-.agents/skills/   vendored development tooling (not imported by src/ — see NOTICE)
-```
+Start with [CONTRIBUTING.md](CONTRIBUTING.md) and [AGENTS.md](AGENTS.md). Bug reports use the issue form; security issues go through [SECURITY.md](SECURITY.md), never a public issue.
 
 ## License
 
-MIT — see [`LICENSE`](LICENSE). Third-party attributions: [`NOTICE`](NOTICE).
+MIT. See [LICENSE](LICENSE). Third-party credits are in [NOTICE](NOTICE).
+
+## FAQ
+
+**Is there a server or an account?**
+No. There is no backend, no sign-in, and no sync service. Data is local, and the JSON export is the backup.
+
+**Does it work offline?**
+Yes. Only GitHub and Sentinel make network requests, and both need you to open them first.
+
+**Which platforms are supported?**
+Android (phones and tablets) and the web. iOS is planned; the code is kept iOS-safe in the meantime.
+
+**Does it use AI?**
+No. The "Engine" that suggests what to do next is a fixed set of local rules over your own data, and it shows the reason for every suggestion.
+
+**How do I back up my data?**
+Open **More**, then **Export**. It writes a JSON file with every table the app owns.

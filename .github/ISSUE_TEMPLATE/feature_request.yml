@@ -1,36 +1,36 @@
 name: Feature request
-description: Propose something Devlofy should do — inside its budget
+description: Suggest something the app should do
 labels: [enhancement]
 body:
   - type: markdown
     attributes:
       value: |
-        This project runs a **feature budget**: a new feature displaces one or waits in [`docs/08-backlog.md`](https://github.com/1-Pankaj/Devlofy/blob/master/docs/08-backlog.md). That is not gatekeeping for its own sake — an offline-first app with no server has to stay small enough to be understood by one person.
+        This project keeps a feature budget: a new feature replaces an existing one, or it waits in [`docs/08-backlog.md`](https://github.com/1-Pankaj/Devlofy/blob/master/docs/08-backlog.md). That keeps an offline app small enough for one person to maintain.
 
-        Read [`docs/01-vision.md`](https://github.com/1-Pankaj/Devlofy/blob/master/docs/01-vision.md) and [`docs/07-decisions.md`](https://github.com/1-Pankaj/Devlofy/blob/master/docs/07-decisions.md) first: several obviously-good ideas are already recorded as declined, with reasons.
+        Check [`docs/07-decisions.md`](https://github.com/1-Pankaj/Devlofy/blob/master/docs/07-decisions.md) first. Some good ideas are already declined there, with reasons.
 
   - type: textarea
     id: problem
     attributes:
-      label: The problem
-      description: What are you trying to do that the app makes hard today? Describe the moment, not the feature.
-      placeholder: I want to know which client owes me money without opening three screens.
+      label: What problem are you trying to solve?
+      description: Describe the situation, not the feature.
+      placeholder: I want to see which client owes me money without opening three screens.
     validations:
       required: true
 
   - type: textarea
     id: proposal
     attributes:
-      label: What you would build
-      description: The smallest version that fixes the problem.
+      label: What would you build?
+      description: The smallest version that solves the problem.
     validations:
       required: true
 
   - type: textarea
     id: budget
     attributes:
-      label: What it displaces
-      description: Which existing feature loses its slot, or why this is a fix rather than an addition? "Nothing" is an honest answer — say why it is worth breaking the budget.
+      label: What does it replace?
+      description: Which existing feature gives up its place, or why is this worth breaking the budget? "Nothing" is a fair answer if you explain why.
     validations:
       required: true
 
@@ -43,11 +43,11 @@ body:
         - Garden
         - Work
         - Notes
-        - More (a category card)
+        - More (as a card)
         - Bench
         - Sentinel
         - GitHub
-        - Somewhere new
+        - A new screen
     validations:
       required: true
 
@@ -55,19 +55,19 @@ body:
     id: constraints
     attributes:
       label: Project constraints
-      description: These are not negotiable in this project — they are why it exists.
+      description: These are fixed, and they are the reason this project exists.
       options:
         - label: It works with no backend, no account and no cloud AI
           required: true
-        - label: It works offline, and any network use is explicit and user-initiated
+        - label: It works offline, and any network use is started by the user
           required: true
-        - label: The user's data stays theirs — exportable, and a view over SQLite rather than a stored copy
+        - label: User data stays exportable, and stored once rather than copied
           required: true
 
   - type: checkboxes
     id: confirm
     attributes:
-      label: Before submitting
+      label: Before you submit
       options:
-        - label: I checked the backlog and the decision log for a declined version of this
+        - label: I checked the backlog and the decision log for this idea
           required: true
