@@ -1,9 +1,8 @@
 /**
  * Web-only document tweaks (see `web-reset.ts` for the why).
  *
- * Injected once at boot, from the root layout, because `+html.tsx` is only
- * applied when the web bundle is exported — not by the dev server — and dev and
- * production must look the same. Idempotent.
+ * Injected once at boot, from the root layout, so the dev server and the
+ * exported bundle apply the same document tweaks. Idempotent.
  *
  * Focus policy: **fields own their focus state** (the app draws the accent
  * indicator), so the browser ring is removed from inputs. Everything else that

@@ -24,12 +24,24 @@ export function useLiveQuery<T>(
   const stateRef = useRef(state);
   stateRef.current = state;
 
+  /**
+   * Every read takes a ticket, and only the newest ticket may write. Without
+   * this, a slow initial read or an in-flight focus refresh can resolve *after*
+   * a newer deps change and put the old result on top of it — changing the
+   * invoice period while a refresh was running could render the previous
+   * period's rows in the new window.
+   */
+  const ticketRef = useRef(0);
+
   const load = useCallback(
     async () => {
+      const ticket = ++ticketRef.current;
       try {
         const data = await loader(db);
+        if (ticket !== ticketRef.current) return;
         setState({ status: 'ready', data, error: null });
       } catch (error) {
+        if (ticket !== ticketRef.current) return;
         setState((prev) => ({
           status: prev.data === null ? 'error' : 'ready',
           data: prev.data,
@@ -42,26 +54,16 @@ export function useLiveQuery<T>(
   );
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const data = await loader(db);
-        if (!cancelled) setState({ status: 'ready', data, error: null });
-      } catch (error) {
-        if (!cancelled) {
-          setState((prev) => ({
-            status: prev.data === null ? 'error' : 'ready',
-            data: prev.data,
-            error: String(error),
-          }));
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [db, ...deps]);
+    load();
+  }, [load]);
+
+  // Drop anything still in flight when the screen goes away.
+  useEffect(
+    () => () => {
+      ticketRef.current += 1;
+    },
+    [],
+  );
 
   // Silent refresh when the screen regains focus (edits made elsewhere show up).
   useFocusEffect(

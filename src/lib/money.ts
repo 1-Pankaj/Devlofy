@@ -46,11 +46,37 @@ export function periodRange(period: Period, now: Date = new Date()): { from: Dat
 /**
  * Parse a typed rate. Returns null for anything that is not a positive number,
  * so an empty field clears the rate instead of silently becoming zero.
+ *
+ * Both conventions are accepted, because a typed `1,500` means fifteen hundred
+ * and a typed `1.500,25` means fifteen hundred and a quarter. The rule is the
+ * last separator wins as the decimal point; a single separator followed by
+ * exactly three digits is grouping, except after a leading zero.
  */
 export function parseRate(text: string): number | null {
-  const cleaned = text.replace(/[^0-9.,]/g, '').replace(',', '.');
-  if (!cleaned) return null;
-  const value = Number.parseFloat(cleaned);
+  const raw = text.replace(/[^\d.,]/g, '');
+  if (!raw) return null;
+
+  const lastDot = raw.lastIndexOf('.');
+  const lastComma = raw.lastIndexOf(',');
+  let normalised: string;
+
+  if (lastDot !== -1 && lastComma !== -1) {
+    const decimal = lastDot > lastComma ? '.' : ',';
+    const grouping = decimal === '.' ? ',' : '.';
+    normalised = raw.split(grouping).join('');
+    if (decimal === ',') normalised = normalised.replace(',', '.');
+  } else if (lastDot !== -1 || lastComma !== -1) {
+    const separator = lastDot !== -1 ? '.' : ',';
+    const parts = raw.split(separator);
+    const isGrouping =
+      parts.length > 2 ||
+      (parts.length === 2 && parts[1].length === 3 && parts[0].length > 0 && parts[0] !== '0');
+    normalised = parts.join(isGrouping ? '' : '.');
+  } else {
+    normalised = raw;
+  }
+
+  const value = Number.parseFloat(normalised);
   if (!Number.isFinite(value) || value <= 0) return null;
   return Math.round(value * 100) / 100;
 }

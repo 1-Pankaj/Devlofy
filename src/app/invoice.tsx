@@ -51,6 +51,7 @@ import {
   type Period,
 } from '@/lib/money';
 import { shareText } from '@/lib/share';
+import { messageOf } from '@/lib/use-async-data';
 import { CURRENCY_OPTIONS, useSettings } from '@/state/settings';
 import { radius, spacing, useTheme } from '@/theme';
 
@@ -65,6 +66,7 @@ export default function InvoiceScreen() {
 
   const [period, setPeriod] = useState<Period>('month');
   const [note, setNote] = useState<string | null>(null);
+  const [problem, setProblem] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const range = useMemo(() => periodRange(period), [period]);
@@ -82,13 +84,19 @@ export default function InvoiceScreen() {
   const periodLabel = PERIODS.find((option) => option.value === period)?.label ?? '';
 
   const handleToggle = async (sessionId: string, billable: boolean) => {
-    await setSessionBillable(db, sessionId, billable);
-    await sessions.refresh();
+    setProblem(null);
+    try {
+      await setSessionBillable(db, sessionId, billable);
+      await sessions.refresh();
+    } catch (error) {
+      setProblem(messageOf(error));
+    }
   };
 
   const handleShare = async () => {
     if (busy) return;
     setBusy(true);
+    setProblem(null);
     try {
       const text = invoiceText(lines, totals, {
         symbol: currency,
@@ -103,6 +111,10 @@ export default function InvoiceScreen() {
             ? 'Sent the draft to the share sheet.'
             : 'Clipboard unavailable in this browser.',
       );
+    } catch (error) {
+      // A refused clipboard is the common case on plain http — say so instead
+      // of leaving the button looking like it did nothing.
+      setProblem(messageOf(error));
     } finally {
       setBusy(false);
     }
@@ -206,6 +218,11 @@ export default function InvoiceScreen() {
               {note ? (
                 <AppText variant="caption" tone="secondary">
                   {note}
+                </AppText>
+              ) : null}
+              {problem ? (
+                <AppText variant="caption" tone="danger">
+                  {problem}
                 </AppText>
               ) : null}
             </View>

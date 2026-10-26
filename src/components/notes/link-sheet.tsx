@@ -43,6 +43,10 @@ export function LinkSheet({
   const { colors } = useTheme();
   const [query, setQuery] = useState('');
   const [href, setHref] = useState('');
+  // The document removes the browser ring from every input (web-reset), so each
+  // field must draw its own — the same accent border `TextField` uses.
+  const [queryFocused, setQueryFocused] = useState(false);
+  const [hrefFocused, setHrefFocused] = useState(false);
 
   const options = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -89,12 +93,14 @@ export function LinkSheet({
                 borderCurve: 'continuous',
                 backgroundColor: colors.surfaceElevated,
                 borderWidth: 1,
-                borderColor: colors.hairline,
+                borderColor: queryFocused ? colors.accent : colors.hairline,
               }}>
               <MagnifyingGlass size={16} color={colors.textTertiary} weight="light" />
               <TextInput
                 value={query}
                 onChangeText={setQuery}
+                onFocus={() => setQueryFocused(true)}
+                onBlur={() => setQueryFocused(false)}
                 placeholder="Find a note"
                 placeholderTextColor={colors.textTertiary}
                 selectionColor={colors.accent}
@@ -154,6 +160,8 @@ export function LinkSheet({
           <TextInput
             value={href}
             onChangeText={setHref}
+            onFocus={() => setHrefFocused(true)}
+            onBlur={() => setHrefFocused(false)}
             placeholder="https://…"
             placeholderTextColor={colors.textTertiary}
             selectionColor={colors.accent}
@@ -168,7 +176,7 @@ export function LinkSheet({
               borderCurve: 'continuous',
               backgroundColor: colors.surfaceElevated,
               borderWidth: 1,
-              borderColor: colors.hairline,
+              borderColor: hrefFocused ? colors.accent : colors.hairline,
               color: colors.text,
               fontFamily: fonts.bodyRegular,
               fontSize: 16,

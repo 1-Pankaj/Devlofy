@@ -20,6 +20,7 @@ import { useLiveQuery } from '@/lib/db/hooks';
 import { createProject, getProject, listClients, updateProject } from '@/lib/db/repo';
 import { formatDayLabel } from '@/lib/format';
 import { parseRate } from '@/lib/money';
+import { useAction } from '@/lib/use-action';
 import { useSettings } from '@/state/settings';
 import { spacing, useTheme } from '@/theme';
 
@@ -78,7 +79,7 @@ export default function ProjectFormScreen() {
   const [stack, setStack] = useState('');
   const [rate, setRate] = useState('');
   const [dueWindow, setDueWindow] = useState<DueWindow>('none');
-  const [saving, setSaving] = useState(false);
+  const action = useAction();
   const hydratedRef = useRef(false);
 
   useEffect(() => {
@@ -103,9 +104,8 @@ export default function ProjectFormScreen() {
   };
 
   const handleSave = async () => {
-    if (!name.trim() || saving) return;
-    setSaving(true);
-    try {
+    if (!name.trim() || action.busy) return;
+    const outcome = await action.run(async () => {
       if (editing && id) {
         await updateProject(db, id, {
           name,
@@ -129,10 +129,9 @@ export default function ProjectFormScreen() {
           hourlyRate: parseRate(rate),
         });
       }
-      router.back();
-    } finally {
-      setSaving(false);
-    }
+    });
+    // Stay on the form when the write failed, with the reason above the button.
+    if (outcome.ok) router.back();
   };
 
   if (editing && existing.status === 'loading' && !existing.data) {
@@ -286,10 +285,16 @@ export default function ProjectFormScreen() {
           </View>
         </Panel>
 
+        {action.error ? (
+          <AppText variant="caption" tone="danger">
+            {action.error}
+          </AppText>
+        ) : null}
+
         <AppButton
           label={editing ? 'Save changes' : 'Create project'}
           size="lg"
-          disabled={!name.trim() || saving}
+          disabled={!name.trim() || action.busy}
           onPress={handleSave}
           style={{ alignSelf: 'stretch' }}
         />

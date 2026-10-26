@@ -24,6 +24,7 @@ import { exportAll, countSnippets, getDataStats } from '@/lib/db/repo';
 import { BENCH_TOOLS } from '@/lib/bench/tools';
 import { standingLine } from '@/lib/sentinel/status';
 import { useSentinelStanding } from '@/lib/sentinel/use-sentinel';
+import { messageOf } from '@/lib/use-async-data';
 import { APP_VERSION } from '@/lib/version';
 import { GOAL_OPTIONS, useSettings, type DesktopMode, type ThemeMode } from '@/state/settings';
 import { radius, spacing, useTheme } from '@/theme';
@@ -81,21 +82,35 @@ export default function MoreScreen() {
   const sentinelTone =
     standing.status === 'error' || !sentinelLine ? 'neutral' : sentinelLine.tone;
   const [exportNote, setExportNote] = useState<string | null>(null);
+  const [exportProblem, setExportProblem] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   const handleExport = async () => {
-    const dump = await exportAll(db);
-    const text = JSON.stringify(dump.data, null, 2);
-    if (process.env.EXPO_OS === 'web') {
-      const nav = (globalThis as { navigator?: { clipboard?: { writeText?: (t: string) => Promise<void> } } }).navigator;
-      if (nav?.clipboard?.writeText) {
-        await nav.clipboard.writeText(text);
-        setExportNote('Copied the full JSON to your clipboard.');
+    if (exporting) return;
+    setExporting(true);
+    setExportNote(null);
+    setExportProblem(null);
+    try {
+      const dump = await exportAll(db);
+      const text = JSON.stringify(dump.data, null, 2);
+      if (process.env.EXPO_OS === 'web') {
+        const nav = (globalThis as { navigator?: { clipboard?: { writeText?: (t: string) => Promise<void> } } }).navigator;
+        if (nav?.clipboard?.writeText) {
+          await nav.clipboard.writeText(text);
+          setExportNote('Copied the full JSON to your clipboard.');
+        } else {
+          setExportNote('Clipboard unavailable in this browser.');
+        }
       } else {
-        setExportNote('Clipboard unavailable in this browser.');
+        await Share.share({ message: text, title: 'Devlofy export' });
+        setExportNote('Export handed to the share sheet.');
       }
-    } else {
-      await Share.share({ message: text, title: 'Devlofy export' });
-      setExportNote('Export handed to the share sheet.');
+    } catch (error) {
+      // A browser on plain http, or a denied clipboard permission, rejects here.
+      // Say so — a button that quietly does nothing reads as broken.
+      setExportProblem(messageOf(error));
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -242,12 +257,17 @@ export default function MoreScreen() {
 
           <Panel coreStyle={{ gap: spacing.lg }}>
             <AppButton
-              label="Export JSON"
+              label={exporting ? 'Exporting…' : 'Export JSON'}
               icon={DownloadSimple}
               variant="tonal"
+              disabled={exporting}
               onPress={handleExport}
             />
-            {exportNote ? (
+            {exportProblem ? (
+              <AppText variant="caption" tone="danger">
+                {exportProblem}
+              </AppText>
+            ) : exportNote ? (
               <AppText variant="caption" tone="accent">
                 {exportNote}
               </AppText>

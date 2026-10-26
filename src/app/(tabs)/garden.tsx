@@ -46,6 +46,7 @@ import { hashString } from '@/lib/garden/model';
 import { stageFromStats } from '@/lib/garden/models';
 import { useEngine } from '@/lib/engine';
 import { formatClock, formatDayLabel, formatMinutes, formatTimer } from '@/lib/format';
+import { messageOf } from '@/lib/use-async-data';
 import { useSettings } from '@/state/settings';
 import { radius, spacing, useTheme } from '@/theme';
 
@@ -97,6 +98,7 @@ export default function GardenScreen() {
   const [nowTick, setNowTick] = useState(() => Date.now());
   const [starting, setStarting] = useState(false);
   const [ending, setEnding] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
   const autoEndingRef = useRef(false);
 
   const active = session.data ?? null;
@@ -133,10 +135,13 @@ export default function GardenScreen() {
   const handleStart = useCallback(async () => {
     if (starting || active) return;
     setStarting(true);
+    setProblem(null);
     try {
       await startFocusSession(db, focusProjectId);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
       await refreshAll();
+    } catch (error) {
+      setProblem(messageOf(error));
     } finally {
       setStarting(false);
     }
@@ -145,10 +150,13 @@ export default function GardenScreen() {
   const handleEnd = useCallback(async () => {
     if (!active || ending) return;
     setEnding(true);
+    setProblem(null);
     try {
       await endFocusSession(db, active.id);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       await refreshAll();
+    } catch (error) {
+      setProblem(messageOf(error));
     } finally {
       setEnding(false);
     }
@@ -163,6 +171,8 @@ export default function GardenScreen() {
         await endFocusSession(db, active.id);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
         await refreshAll();
+      } catch (error) {
+        setProblem(messageOf(error));
       } finally {
         autoEndingRef.current = false;
       }
@@ -188,6 +198,12 @@ export default function GardenScreen() {
           disabled={active ? ending : starting}
         />
       }>
+      {problem ? (
+        <AppText variant="caption" tone="danger">
+          {problem}
+        </AppText>
+      ) : null}
+
       {/* The tree and the session controls */}
       <FadeUp index={0}>
         <Panel rounding="xl" coreStyle={{ padding: 0, overflow: 'hidden' }}>

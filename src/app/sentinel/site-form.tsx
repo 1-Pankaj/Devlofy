@@ -24,6 +24,7 @@ import { TextField } from '@/components/ui/text-field';
 import { useLiveQuery } from '@/lib/db/hooks';
 import { getWatchSite, saveWatchSite } from '@/lib/db/repo';
 import { labelFromUrl, normalizeUrl } from '@/lib/sentinel/status';
+import { messageOf } from '@/lib/use-async-data';
 import { spacing, useTheme } from '@/theme';
 
 /** An empty field means "no expectation", never 0. */
@@ -87,6 +88,10 @@ export default function TargetFormScreen() {
         note: note.trim() || null,
       });
       router.back();
+    } catch (error) {
+      // The URL was valid, so the write itself is what refused — say why and
+      // stay on the form rather than closing as if it had saved.
+      setProblem(messageOf(error));
     } finally {
       setSaving(false);
     }

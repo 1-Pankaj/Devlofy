@@ -32,6 +32,7 @@ import { useLiveQuery } from '@/lib/db/hooks';
 import { createNote, listExistingTags, listNotes, type NoteListRow } from '@/lib/db/repo';
 import { formatDayLabel } from '@/lib/format';
 import { plainPreview } from '@/lib/notes/blocks';
+import { messageOf } from '@/lib/use-async-data';
 import { splitTags } from '@/lib/tags';
 import { radius, spacing, useTheme } from '@/theme';
 
@@ -42,6 +43,7 @@ export default function NotesScreen() {
   const [search, setSearch] = useState('');
   const [tag, setTag] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [createProblem, setCreateProblem] = useState<string | null>(null);
   const deferredSearch = useDeferredValue(search);
 
   const notes = useLiveQuery((d) => listNotes(d, deferredSearch), { deps: [deferredSearch] });
@@ -53,9 +55,13 @@ export default function NotesScreen() {
   const handleCreate = async () => {
     if (creating) return;
     setCreating(true);
+    setCreateProblem(null);
     try {
       const id = await createNote(db);
       router.push({ pathname: '/note/[id]', params: { id } });
+    } catch (error) {
+      // The FAB stopped spinning and nothing opened: say why.
+      setCreateProblem(messageOf(error));
     } finally {
       setCreating(false);
     }
@@ -89,6 +95,12 @@ export default function NotesScreen() {
               inputStyle={{ paddingLeft: 42, minHeight: 48 }}
             />
           </View>
+
+          {createProblem ? (
+            <AppText variant="caption" tone="danger">
+              {createProblem}
+            </AppText>
+          ) : null}
 
           {tags.length > 0 ? (
             <ScrollView

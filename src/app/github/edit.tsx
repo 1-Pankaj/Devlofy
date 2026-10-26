@@ -253,6 +253,7 @@ function EditorBody({
             branch,
             message: trimmedMessage,
             files: [{ path: resolvedPath, content: currentText }],
+            defaultBranch: data.detail.defaultBranch,
           })
         : // An existing file: the Contents API, guarded by the sha we read.
           await commitFile(token, {
@@ -262,6 +263,7 @@ function EditorBody({
             message: trimmedMessage,
             branch,
             sha: sha ?? undefined,
+            defaultBranch: data.detail.defaultBranch,
           });
 
       let pull: PullSummary | null = null;

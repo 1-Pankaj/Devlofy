@@ -19,6 +19,7 @@ import { TextField } from '@/components/ui/text-field';
 import { useLiveQuery } from '@/lib/db/hooks';
 import { createClient, getClient, updateClient } from '@/lib/db/repo';
 import { parseRate } from '@/lib/money';
+import { useAction } from '@/lib/use-action';
 import { useSettings } from '@/state/settings';
 import { spacing, useTheme } from '@/theme';
 
@@ -47,7 +48,7 @@ export default function ClientFormScreen() {
   const [notes, setNotes] = useState('');
   const [status, setStatus] = useState<string>('lead');
   const [rate, setRate] = useState('');
-  const [saving, setSaving] = useState(false);
+  const action = useAction();
   const hydratedRef = useRef(false);
 
   const currency = useSettings((s) => s.currency);
@@ -65,9 +66,8 @@ export default function ClientFormScreen() {
   }, [editing, existing.data]);
 
   const handleSave = async () => {
-    if (!name.trim() || saving) return;
-    setSaving(true);
-    try {
+    if (!name.trim() || action.busy) return;
+    const outcome = await action.run(async () => {
       if (editing && id) {
         await updateClient(db, id, {
           name,
@@ -89,10 +89,9 @@ export default function ClientFormScreen() {
           hourlyRate: parseRate(rate),
         });
       }
-      router.back();
-    } finally {
-      setSaving(false);
-    }
+    });
+    // Stay on the form when the write failed, with the reason above the button.
+    if (outcome.ok) router.back();
   };
 
   if (editing && existing.status === 'loading' && !existing.data) {
@@ -214,10 +213,16 @@ export default function ClientFormScreen() {
           />
         </Panel>
 
+        {action.error ? (
+          <AppText variant="caption" tone="danger">
+            {action.error}
+          </AppText>
+        ) : null}
+
         <AppButton
           label={editing ? 'Save changes' : 'Create client'}
           size="lg"
-          disabled={!name.trim() || saving}
+          disabled={!name.trim() || action.busy}
           onPress={handleSave}
           style={{ alignSelf: 'stretch' }}
         />

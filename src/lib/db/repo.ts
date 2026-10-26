@@ -36,7 +36,9 @@ export type Note = {
 };
 
 export async function listNotes(db: SQLiteDatabase, search?: string): Promise<NoteListRow[]> {
-  const query = search?.trim();
+  // LIKE wildcards typed by the user would change the meaning of the query —
+  // same rule as `searchEverything`.
+  const query = search?.trim().replace(/[%_]/g, '');
   if (query) {
     const like = `%${query}%`;
     return db.getAllAsync<NoteListRow>(
@@ -694,11 +696,38 @@ export async function createTask(
   return id;
 }
 
+// ─────────────────────────── Local time ───────────────────────────
+
+/**
+ * The calendar day a moment falls in, on *this device's* clock, as YYYY-MM-DD.
+ *
+ * Every "today" question goes through here. SQLite's `date()` is UTC, which is
+ * a different day from the user's for part of every day — long enough for the
+ * hero number and the week bars to disagree, and for work done late at night to
+ * land on the previous day. `06-data-model` states rhythm is local on purpose;
+ * this is that rule in code.
+ */
+export function localDayKey(date: Date): string {
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
+}
+
+/** `[from, to)` ISO bounds of the local day containing `date`. */
+export function localDayRange(date: Date = new Date()): { from: string; to: string } {
+  const start = new Date(date);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 1);
+  return { from: start.toISOString(), to: end.toISOString() };
+}
+
 export async function countDoneToday(db: SQLiteDatabase): Promise<number> {
+  const { from, to } = localDayRange();
   const row = await db.getFirstAsync<{ count: number }>(
     `SELECT COUNT(*) AS count FROM tasks
      WHERE deleted_at IS NULL AND status = 'done'
-       AND date(completed_at) = date('now')`,
+       AND completed_at >= ? AND completed_at < ?`,
+    [from, to],
   );
   return row?.count ?? 0;
 }
@@ -770,13 +799,24 @@ async function resolveProjectRate(
   return row?.rate ?? null;
 }
 
+/**
+ * The longest a single block may run. A session is ended by a tap; if the app
+ * is closed or the phone sleeps first, `getActiveSession` hands the block back
+ * on the next launch and the elapsed wall-clock time becomes the length. Left
+ * overnight that is a two-thousand-minute "block" in the session log, priced on
+ * the invoice and grown in the garden. A ceiling keeps a forgotten timer from
+ * becoming data; it is a limit on one block, not on a day.
+ */
+const MAX_SESSION_MINUTES = 12 * 60;
+
 export async function endFocusSession(db: SQLiteDatabase, id: string): Promise<number> {
   const row = await db.getFirstAsync<{ started_at: string }>(
     'SELECT started_at FROM sessions WHERE id = ?',
     [id],
   );
   const startedAt = row ? new Date(row.started_at).getTime() : Date.now();
-  const minutes = Math.max(1, Math.round((Date.now() - startedAt) / 60000));
+  const elapsed = Math.max(1, Math.round((Date.now() - startedAt) / 60000));
+  const minutes = Math.min(MAX_SESSION_MINUTES, elapsed);
   const now = nowIso();
   await db.runAsync(
     'UPDATE sessions SET ended_at = ?, minutes = ?, updated_at = ? WHERE id = ?',
@@ -795,9 +835,11 @@ export async function getActiveSession(db: SQLiteDatabase): Promise<SessionRow |
 }
 
 export async function todayFocusMinutes(db: SQLiteDatabase): Promise<number> {
+  const { from, to } = localDayRange();
   const row = await db.getFirstAsync<{ total: number | null }>(
     `SELECT SUM(minutes) AS total FROM sessions
-     WHERE kind = 'focus' AND deleted_at IS NULL AND date(started_at) = date('now')`,
+     WHERE kind = 'focus' AND deleted_at IS NULL AND started_at >= ? AND started_at < ?`,
+    [from, to],
   );
   return row?.total ?? 0;
 }
@@ -821,26 +863,26 @@ export async function listRecentSessions(db: SQLiteDatabase, limit = 6): Promise
 }
 
 export async function getFocusStreakDays(db: SQLiteDatabase): Promise<number> {
-  const rows = await db.getAllAsync<{ d: string }>(
-    `SELECT DISTINCT date(started_at) AS d FROM sessions
+  // The timestamps, not `date(started_at)`: SQLite would hand back UTC days,
+  // and comparing those to the local days below is how a streak ends up
+  // anchored one day off. One row per finished block, so this stays small.
+  const rows = await db.getAllAsync<{ started_at: string }>(
+    `SELECT started_at FROM sessions
      WHERE kind = 'focus' AND deleted_at IS NULL AND minutes IS NOT NULL
-     ORDER BY d DESC`,
+     ORDER BY started_at DESC`,
   );
   if (rows.length === 0) return 0;
 
-  const dayKey = (date: Date) => {
-    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-    return local.toISOString().slice(0, 10);
-  };
+  const days = new Set(rows.map((row) => localDayKey(new Date(row.started_at))));
 
-  const days = new Set(rows.map((r) => r.d));
-  const today = new Date();
-  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
   let streak = 0;
-  let cursor = days.has(dayKey(today)) ? today : days.has(dayKey(yesterday)) ? yesterday : null;
-  while (cursor && days.has(dayKey(cursor))) {
+  const cursor = new Date();
+  cursor.setHours(0, 0, 0, 0);
+  // A run that ended yesterday still counts; one that ended two days ago does not.
+  if (!days.has(localDayKey(cursor))) cursor.setDate(cursor.getDate() - 1);
+  while (days.has(localDayKey(cursor))) {
     streak += 1;
-    cursor = new Date(cursor.getTime() - 24 * 60 * 60 * 1000);
+    cursor.setDate(cursor.getDate() - 1);
   }
   return streak;
 }
@@ -849,11 +891,6 @@ export type DayFocus = { day: string; minutes: number; isToday: boolean };
 
 /** Focus minutes per local day for the trailing window, zero-filled. */
 export async function focusMinutesByDay(db: SQLiteDatabase, days = 7): Promise<DayFocus[]> {
-  const dayKey = (date: Date) => {
-    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-    return local.toISOString().slice(0, 10);
-  };
-
   const start = new Date();
   start.setHours(0, 0, 0, 0);
   start.setDate(start.getDate() - (days - 1));
@@ -866,14 +903,14 @@ export async function focusMinutesByDay(db: SQLiteDatabase, days = 7): Promise<D
 
   const buckets = new Map<string, number>();
   for (const row of rows) {
-    const key = dayKey(new Date(row.started_at));
+    const key = localDayKey(new Date(row.started_at));
     buckets.set(key, (buckets.get(key) ?? 0) + (row.minutes ?? 0));
   }
 
   return Array.from({ length: days }, (_, index) => {
     const date = new Date(start);
     date.setDate(start.getDate() + index);
-    const key = dayKey(date);
+    const key = localDayKey(date);
     return { day: key, minutes: buckets.get(key) ?? 0, isToday: index === days - 1 };
   });
 }

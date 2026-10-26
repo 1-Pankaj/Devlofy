@@ -73,6 +73,7 @@ import { hashString } from '@/lib/garden/model';
 import { stageFromStats } from '@/lib/garden/models';
 import { useEngine, type RankedTask } from '@/lib/engine';
 import { parseTaskInput } from '@/lib/parse-task';
+import { messageOf } from '@/lib/use-async-data';
 import { useSettings } from '@/state/settings';
 import {
   dateEyebrow,
@@ -220,6 +221,9 @@ export default function TodayScreen() {
   const [ending, setEnding] = useState(false);
   const [title, setTitle] = useState('');
   const [adding, setAdding] = useState(false);
+  // One line for every write on this screen. A tap that failed used to look
+  // exactly like a tap that worked.
+  const [writeProblem, setWriteProblem] = useState<string | null>(null);
   const [taskFocused, setTaskFocused] = useState(false);
 
   useEffect(() => {
@@ -255,10 +259,13 @@ export default function TodayScreen() {
   const handleStart = useCallback(async () => {
     if (starting || active) return;
     setStarting(true);
+    setWriteProblem(null);
     try {
       await startFocusSession(db, focusProjectId);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
       await session.refresh();
+    } catch (error) {
+      setWriteProblem(messageOf(error));
     } finally {
       setStarting(false);
     }
@@ -274,6 +281,7 @@ export default function TodayScreen() {
     async (ranked: RankedTask) => {
       if (starting || active) return;
       setStarting(true);
+      setWriteProblem(null);
       try {
         await startFocusSession(db, ranked.task.project_id ?? focusProjectId, ranked.task.id);
         if (ranked.task.project_id && ranked.task.project_id !== focusProjectId) {
@@ -281,6 +289,8 @@ export default function TodayScreen() {
         }
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
         await session.refresh();
+      } catch (error) {
+        setWriteProblem(messageOf(error));
       } finally {
         setStarting(false);
       }
@@ -291,6 +301,7 @@ export default function TodayScreen() {
   const handleEnd = useCallback(async () => {
     if (!active || ending) return;
     setEnding(true);
+    setWriteProblem(null);
     try {
       await endFocusSession(db, active.id);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
@@ -303,6 +314,8 @@ export default function TodayScreen() {
         recent.refresh(),
       ]);
       refreshEngine();
+    } catch (error) {
+      setWriteProblem(messageOf(error));
     } finally {
       setEnding(false);
     }
@@ -316,6 +329,7 @@ export default function TodayScreen() {
   const handleAddTask = useCallback(async () => {
     if (!parsed.title || adding) return;
     setAdding(true);
+    setWriteProblem(null);
     try {
       await createTask(db, {
         title: parsed.title,
@@ -328,6 +342,9 @@ export default function TodayScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
       await tasks.refresh();
       refreshEngine();
+    } catch (error) {
+      // Keep what was typed: the title stays in the field so the add can be retried.
+      setWriteProblem(messageOf(error));
     } finally {
       setAdding(false);
     }
@@ -335,10 +352,15 @@ export default function TodayScreen() {
 
   const handleComplete = useCallback(
     async (taskId: string) => {
-      await setTaskDone(db, taskId, true);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-      await Promise.all([tasks.refresh(), doneToday.refresh()]);
-      refreshEngine();
+      setWriteProblem(null);
+      try {
+        await setTaskDone(db, taskId, true);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+        await Promise.all([tasks.refresh(), doneToday.refresh()]);
+        refreshEngine();
+      } catch (error) {
+        setWriteProblem(messageOf(error));
+      }
     },
     [db, doneToday, refreshEngine, tasks],
   );
@@ -384,6 +406,12 @@ export default function TodayScreen() {
           disabled={active ? ending : starting}
         />
       }>
+      {writeProblem ? (
+        <AppText variant="caption" tone="danger">
+          {writeProblem}
+        </AppText>
+      ) : null}
+
       {/* Hero: the timer on a tonal block */}
       <FadeUp index={0}>
         <View

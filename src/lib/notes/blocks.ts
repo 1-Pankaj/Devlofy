@@ -575,7 +575,7 @@ export function applyInputRules(
   text: string,
   type: BlockType,
   hashes: number,
-): { type: BlockType; hashes: number; text: string } | null {
+): { type: BlockType; hashes: number; text: string; checked?: boolean } | null {
   if (type !== 'paragraph' && type !== 'bullet') return null;
 
   const heading = /^(#{1,6})\s$/.exec(text);
@@ -589,7 +589,8 @@ export function applyInputRules(
 
   const task = /^\[([ xX]?)\]\s$/.exec(text);
   if (task) {
-    return { type: 'task', hashes, text: '' };
+    // `[x] ` is shorthand for a task that is already done; `[] ` for an open one.
+    return { type: 'task', hashes, text: '', checked: task[1].toLowerCase() === 'x' };
   }
 
   const quote = /^>\s$/.exec(text);
@@ -624,7 +625,9 @@ export function commitBlockText(body: string, index: number, value: string): Foc
   if (!value.includes('\n')) {
     const rule = applyInputRules(value, block.type, block.hashes);
     if (rule) {
-      rows[index] = rewrite(block, { type: rule.type, hashes: rule.hashes, text: rule.text });
+      const patch: Partial<Block> = { type: rule.type, hashes: rule.hashes, text: rule.text };
+      if (rule.checked !== undefined) patch.checked = rule.checked;
+      rows[index] = rewrite(block, patch);
       return { body: writeRows(renumber(rows)), focus: index, caret: 0 };
     }
     rows[index] = rewrite(block, { text: value });

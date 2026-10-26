@@ -385,8 +385,20 @@ export async function commitFile(
     branch: string;
     /** Current blob sha for an update; omit for a new file. */
     sha?: string;
+    /**
+     * The repository's default branch. Passing it turns the "never commit to
+     * the default branch" rule into a refusal here rather than a rule the
+     * editor screen happens to hide — a second caller cannot opt out of it.
+     */
+    defaultBranch?: string;
   },
 ): Promise<CommitResult> {
+  if (options.defaultBranch && options.branch === options.defaultBranch) {
+    throw new GithubError(
+      'validation',
+      `Refusing to commit to ${options.branch}: it is the default branch.`,
+    );
+  }
   const { value } = await githubRequest<{
     commit?: { sha?: string; html_url?: string };
     content?: { html_url?: string };
@@ -424,9 +436,17 @@ export async function commitFiles(
     files: { path: string; content: string }[];
     /** Paths to remove in the same commit. */
     deletes?: string[];
+    /** See `commitFile`: turns the default-branch rule into a refusal. */
+    defaultBranch?: string;
   },
 ): Promise<CommitResult> {
   const { files, deletes = [], repo, branch, message } = options;
+  if (options.defaultBranch && branch === options.defaultBranch) {
+    throw new GithubError(
+      'validation',
+      `Refusing to commit to ${branch}: it is the default branch.`,
+    );
+  }
   if (files.length === 0 && deletes.length === 0) {
     throw new GithubError('validation', 'There is nothing to commit.');
   }
