@@ -57,3 +57,7 @@ __pycache__/
 
 # loom: the live session handoff is local state, not project history
 docs/handoffs/latest.md
+
+# tsc emits beside the source when a single file is compiled without --outDir;
+# src/ is TypeScript only, so any .js there is an artifact, never a source file
+/src/**/*.js

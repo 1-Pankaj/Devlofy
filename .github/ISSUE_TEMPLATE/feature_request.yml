@@ -1,0 +1,73 @@
+name: Feature request
+description: Propose something Devlofy should do — inside its budget
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This project runs a **feature budget**: a new feature displaces one or waits in [`docs/08-backlog.md`](https://github.com/1-Pankaj/Devlofy/blob/master/docs/08-backlog.md). That is not gatekeeping for its own sake — an offline-first app with no server has to stay small enough to be understood by one person.
+
+        Read [`docs/01-vision.md`](https://github.com/1-Pankaj/Devlofy/blob/master/docs/01-vision.md) and [`docs/07-decisions.md`](https://github.com/1-Pankaj/Devlofy/blob/master/docs/07-decisions.md) first: several obviously-good ideas are already recorded as declined, with reasons.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do that the app makes hard today? Describe the moment, not the feature.
+      placeholder: I want to know which client owes me money without opening three screens.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you would build
+      description: The smallest version that fixes the problem.
+    validations:
+      required: true
+
+  - type: textarea
+    id: budget
+    attributes:
+      label: What it displaces
+      description: Which existing feature loses its slot, or why this is a fix rather than an addition? "Nothing" is an honest answer — say why it is worth breaking the budget.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: surfaces
+    attributes:
+      label: Where would it live?
+      options:
+        - Today
+        - Garden
+        - Work
+        - Notes
+        - More (a category card)
+        - Bench
+        - Sentinel
+        - GitHub
+        - Somewhere new
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: constraints
+    attributes:
+      label: Project constraints
+      description: These are not negotiable in this project — they are why it exists.
+      options:
+        - label: It works with no backend, no account and no cloud AI
+          required: true
+        - label: It works offline, and any network use is explicit and user-initiated
+          required: true
+        - label: The user's data stays theirs — exportable, and a view over SQLite rather than a stored copy
+          required: true
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Before submitting
+      options:
+        - label: I checked the backlog and the decision log for a declined version of this
+          required: true

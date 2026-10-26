@@ -1,0 +1,38 @@
+version: 2
+updates:
+  # Expo SDK packages must move together — `npx expo install --fix` is the
+  # tool that knows the compatible set, so dependency PRs are grouped and
+  # reviewed rather than merged blindly.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    versioning-strategy: increase
+    groups:
+      expo-sdk:
+        patterns:
+          - expo
+          - expo-*
+          - react-native*
+          - react-native-*
+          - "@expo/*"
+      tooling:
+        patterns:
+          - typescript
+          - eslint*
+          - "@types/*"
+    commit-message:
+      prefix: deps
+    labels:
+      - dependencies
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: ci
+    labels:
+      - ci

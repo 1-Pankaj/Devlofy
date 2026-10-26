@@ -1,0 +1,95 @@
+name: Bug report
+description: Something is broken, wrong, or empty when it should not be
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Two questions in this form matter more than the rest: the platform, and whether a screen showed **empty** or **failed** — in this app those are different states on purpose.
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The version on the app's **More** screen.
+      placeholder: 0.8.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Android (phone)
+        - Android (tablet / desktop mode)
+        - Web (Chromium)
+        - Web (Firefox)
+        - Web (Safari)
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: OS / browser version
+      placeholder: Android 15 · Lenovo TB320FC, or macOS 15 · Safari 18.2
+    validations:
+      required: true
+
+  - type: textarea
+    id: step
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open Today
+        2. Add "write the changelog 45m #Devlofy"
+        3. …
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened
+      description: A screenshot helps. If text is missing or wrong, quote it.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: state
+    attributes:
+      label: Was the screen empty, or showing an error?
+      description: An **empty** screen means a read succeeded and returned nothing; a failed read must render as an error with a retry. If you saw an empty screen when something existed, that is the bug.
+      options:
+        - Data was there, the screen showed it empty
+        - The screen showed an error / retry
+        - The screen looked correct, the action did nothing
+        - Not applicable
+    validations:
+      required: true
+
+  - type: textarea
+    id: data
+    attributes:
+      label: Data context
+      description: |
+        Only if relevant and only in general terms — this app has no server and no logs to fetch. For example "first launch", "after an import", "a project with no rate", "a GitHub token pasted on web".
+      placeholder: First launch on a fresh install
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Before submitting
+      options:
+        - label: I checked the issue is not already reported, and is not a security vulnerability (those go to SECURITY.md, never a public issue)
+          required: true

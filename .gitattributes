@@ -1,0 +1,26 @@
+# Everything is LF. The repo is developed on Android/Termux and Linux and
+# consumed on web, and a CRLF checkout breaks the shell tooling in tools/.
+* text=auto eol=lf
+
+*.sh    text eol=lf
+*.json  text eol=lf
+
+# Binary assets — never diffed, never re-encoded.
+*.glb   binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.ico   binary
+*.ttf   binary
+*.otf   binary
+
+# Vendored agent skills are development tooling, not this project's source:
+# keep them out of the language stats and out of diffs by default.
+.agents/**            linguist-vendored
+.claude/**            linguist-vendored
+docs/**               linguist-documentation
+*.md                  linguist-documentation
+
+# The renderer and check runner are real code — say so.
+tools/**/*.js         linguist-language=JavaScript
+tools/**/*.sh         linguist-language=Shell
