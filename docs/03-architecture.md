@@ -118,6 +118,8 @@ src/
 
 Beside `src/`: `tools/blender/` holds the re-runnable scripts that `assets/models/*.glb` were generated from (trees *and* props — the code kit is the exception, it has no Blender source), and `tools/preview/` is the GPU-less renderer and invariant check for the 3D kit below.
 
+The app icon is generated, not hand-cut: `tools/brand/make-icons.py` reads the one source mark (`assets/brand/devlofy-logo.png`) and writes the four files `app.json` names, un-mixing each pixel back to its flat colour so edges keep no white halo. It asserts the things the stores and launchers actually check — no alpha channel on the 1024 icon, every pixel inside Android's 72/108 dp mask circle, one-colour monochrome — and fails the run if one slips. Re-run it after changing the logo; never edit the derived PNGs.
+
 ## Commands
 
 ```bash

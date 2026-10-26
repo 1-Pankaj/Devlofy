@@ -9,16 +9,14 @@
     "userInterfaceStyle": "automatic",
     "backgroundColor": "#F5F2FB",
     "ios": {
-      "icon": "./assets/expo.icon",
       "infoPlist": {
         "CADisableMinimumFrameDurationOnPhone": true
       }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#4B5AA0",
+        "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false
