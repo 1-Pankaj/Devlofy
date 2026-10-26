@@ -142,17 +142,26 @@ Known-answer checks live beside the pure modules they cover — one file per fol
 - `src/lib/bench/self-check.ts` — **80** checks (hashes against published vectors, RFC semantics for base64/URL/JWT, cron against real timestamps, WCAG contrast, diff/patch round-trips).
 - `src/lib/sentinel/self-check.ts` — **90** checks (the verdict every set of facts produces, uptime windows, incident runs, the latency spread, URL parsing, every label the board shows, and — since ADR-024 — the standing that the More card and the Today strip render, including that a paused target cannot raise an alarm).
 - `src/lib/notes/self-check.ts` — **190** checks (what Enter does to every kind of block — a list continues, an empty list item *leaves* the list, a heading at the end starts a paragraph, a fence takes a line instead of splitting; what Backspace merges and where the caret lands; what the input rules eat as you type; inline marks, `[[wikilinks]]` and escapes; and the round-trip that keeps a note the app half-understands byte-identical).
+- `src/lib/engine/self-check.ts` — **122** checks (every weight in next-up's table and every reason string it can produce, the overdue decay and its floor, the priority clamp, the three-reason cap and its ordering, each tie-break in `rankTasks`, that ranking does not reorder the caller's array, the hourly/weekday totals, the peak band including one that wraps past midnight, the sentences rhythm is allowed to say *and* the ones it must not say below six blocks, and estimate drift's ratio, median, sample floor and both ±15% sentence boundaries). [[08-backlog]] asked for this one by name: the ranking is the app's only hidden opinion, so it is now pinned rather than asserted.
 
-All three are plain TypeScript returning a result list, so they run anywhere TypeScript does. Node 22 here is not built with TS support, so the route is an explicit emit — and note `--target es2022` (the app's own lib level; `es2020` rejects `Array.prototype.at`) and `--ignoreDeprecations 6.0` (TypeScript 6 still accepts `--moduleResolution node10`, but only if you say you know):
+All four are plain TypeScript returning a result list, so they run anywhere TypeScript does. `tools/checks/self-check.sh` compiles each one and runs it — Node 22 here is not built with TS support, so the route is an explicit emit — and it generates a small tsconfig per suite because a suite may name a type through the `@/…` alias, which a bare `npx tsc file.ts` cannot resolve. The app's own tsconfig cannot simply be extended either: `expo/tsconfig.base` sets `customConditions`, which TypeScript refuses alongside commonjs output.
 
 ```bash
-npx tsc src/lib/sentinel/self-check.ts --ignoreConfig --outDir /tmp/sv \
-  --module commonjs --target es2022 --moduleResolution node10 --ignoreDeprecations 6.0 --skipLibCheck
-node -e "const r = require('/tmp/sv/self-check.js').runSelfCheck(); \
+bash tools/checks/self-check.sh      # all four suites, one line each
+npm run check                        # typecheck + lint + the suites — what CI runs
+```
+
+If you need one suite on its own, point the same generated config at it:
+
+```bash
+npx tsc -p /tmp/sv-tsconfig.json     # compilerOptions: baseUrl ., paths {"@/*":["src/*"]},
+                                     #   outDir /tmp/sv, module commonjs, target es2022,
+                                     #   moduleResolution node10, ignoreDeprecations "6.0", skipLibCheck
+node -e "const r = require('/tmp/sv/src/lib/engine/self-check.js').runSelfCheck(); \
   console.log(r.length, 'checks ·', r.filter(c => !c.pass).length, 'failing')"
 ```
 
-The result shape (`{ name, pass, detail }[]`) is identical in all three files, so one snippet formats any of them. When a pure module changes, add the case that would have caught the change: this habit is the reason a hand-written SHA-1 can be trusted next to `git` ([[07-decisions]] ADR-021), the reason Sentinel's verdicts can be trusted without a server ([[07-decisions]] ADR-023), and the reason "pressing Enter on an empty bullet leaves the list" is a fact rather than an opinion ([[07-decisions]] ADR-025). The intent in [[08-backlog]] is to extend it to the Engine and the GitHub parsers rather than introduce vitest.
+The result shape (`{ name, pass, detail }[]`) is identical in all four files, so one snippet formats any of them. When a pure module changes, add the case that would have caught the change: this habit is the reason a hand-written SHA-1 can be trusted next to `git` ([[07-decisions]] ADR-021), the reason Sentinel's verdicts can be trusted without a server ([[07-decisions]] ADR-023), the reason "pressing Enter on an empty bullet leaves the list" is a fact rather than an opinion ([[07-decisions]] ADR-025), and the reason "next up" can say *why* ([[07-decisions]] ADR-016). What is still uncovered is the GitHub parsers — `api.ts` narrowing every field with `??` — which is the remaining item in [[08-backlog]] rather than a reason to introduce vitest.
 
 ## Checking 3D without a GPU
 

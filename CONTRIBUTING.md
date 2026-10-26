@@ -21,7 +21,7 @@ Node 22+. Dependencies are installed with `npx expo install <package>`, never a 
 npm run check
 ```
 
-That is typecheck + lint + the three known-answer suites (360 checks). CI runs the same command and will refuse a red pull request. If you touch a pure module — `src/lib/bench`, `src/lib/notes`, `src/lib/sentinel`, `src/lib/engine` — add the case that would have caught your change to the folder's `self-check.ts`.
+That is typecheck + lint + the four known-answer suites (482 checks). CI runs the same command and will refuse a red pull request. If you touch a pure module — `src/lib/bench`, `src/lib/notes`, `src/lib/sentinel`, `src/lib/engine` — add the case that would have caught your change to the folder's `self-check.ts`.
 
 Touch the 3D kit? Then also run the GPU-less renderer, which asserts the geometry invariants and writes a contact sheet:
 

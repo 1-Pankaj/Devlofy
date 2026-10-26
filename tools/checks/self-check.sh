@@ -2,19 +2,20 @@
 # Run every known-answer suite: src/lib/<folder>/self-check.ts, one per folder.
 #
 # The suites are plain TypeScript returning `{ name, pass, detail }[]`, so they
-# need no test runner — just an emit and a `node -e`. These are the exact flags
-# from docs/03-architecture.md: `--target es2022` because the app's own lib level
-# uses `Array.prototype.at`, and `--ignoreDeprecations 6.0` because TypeScript 6
-# still accepts `--moduleResolution node10` only if you say you know.
+# need no test runner — just an emit and a `node -e`. Each suite is compiled
+# through a generated tsconfig that repeats the project's path aliases (`@/…`),
+# because a suite may import a module that names a type by alias and the app's
+# own tsconfig cannot be reused directly: `expo/tsconfig.base` sets
+# `customConditions`, which TypeScript refuses alongside commonjs output.
 #
-# Run it directly (`bash tools/checks/self-check.sh`) or through `npm run check`,
-# which is what CI runs. Exits 1 if any suite fails to compile, fails to run, or
-# reports a failing check.
+# Run it directly (`bash tools/checks/self-check.sh`) or through `npm run check`.
+# Exits 1 if any suite fails to compile, fails to run, or reports a failure.
 set -uo pipefail
 
 cd "$(dirname "$0")/../.." || exit 1
+ROOT=$(pwd)
 
-SUITES=(bench notes sentinel)
+SUITES=(bench engine notes sentinel)
 TSC=./node_modules/.bin/tsc
 [ -x "$TSC" ] || TSC=npx\ tsc
 
@@ -23,17 +24,35 @@ failing=0
 broken=0
 
 for lib in "${SUITES[@]}"; do
-  src="src/lib/$lib/self-check.ts"
+  src="$ROOT/src/lib/$lib/self-check.ts"
   if [ ! -f "$src" ]; then
-    printf 'skip  %-9s no %s\n' "$lib" "$src"
+    printf 'skip  %-9s no %s\n' "$lib" "src/lib/$lib/self-check.ts"
     continue
   fi
 
   out=$(mktemp -d)
 
-  if ! eval "$TSC" "$src" --ignoreConfig --outDir "$out" \
-        --module commonjs --target es2022 --moduleResolution node10 \
-        --ignoreDeprecations 6.0 --skipLibCheck >"$out/tsc.log" 2>&1; then
+  cat >"$out/tsconfig.json" <<JSON
+{
+  "compilerOptions": {
+    "baseUrl": "$ROOT",
+    "paths": { "@/*": ["src/*"], "@/assets/*": ["assets/*"] },
+    "noEmit": false,
+    "rootDir": "$ROOT",
+    "outDir": "$out/js",
+    "module": "commonjs",
+    "moduleResolution": "node10",
+    "target": "es2022",
+    "jsx": "react-jsx",
+    "ignoreDeprecations": "6.0",
+    "skipLibCheck": true,
+    "types": []
+  },
+  "include": ["$src"]
+}
+JSON
+
+  if ! eval "$TSC" -p "$out/tsconfig.json" >"$out/tsc.log" 2>&1; then
     printf 'FAIL  %-9s does not compile\n' "$lib"
     sed 's/^/        /' "$out/tsc.log" | head -20
     broken=$((broken + 1))
@@ -41,7 +60,7 @@ for lib in "${SUITES[@]}"; do
     continue
   fi
 
-  js=$(find "$out" -name 'self-check.js' -print -quit)
+  js=$(find "$out/js" -name 'self-check.js' -print -quit)
   report=$(node -e '
     const r = require(process.argv[1]).runSelfCheck();
     const bad = r.filter((c) => !c.pass);
@@ -57,7 +76,9 @@ for lib in "${SUITES[@]}"; do
   fi
 
   summary=$(printf '%s\n' "$report" | tail -1)
-  n=${summary#SUMMARY }; bad=${n#* }; n=${n%% *}
+  counts=${summary#SUMMARY }
+  bad=${counts#* }
+  n=${counts%% *}
   printf '%s\n' "$report" | sed '$d'
 
   total=$((total + n))

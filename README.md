@@ -37,11 +37,11 @@ The web build runs SQLite as wasm, which needs cross-origin isolation. The dev s
 ## Checks
 
 ```bash
-npm run check                    # typecheck + lint + the three known-answer suites (360 checks)
+npm run check                    # typecheck + lint + the four known-answer suites (482 checks)
 npx expo export --platform web   # the full web bundle (validates wasm and the 3D runtime)
 ```
 
-`npm run check` is what CI runs, and it must be clean before any commit. The pure modules are verified by known-answer checks that live beside them rather than by a test runner — hashes against published vectors, RFC semantics for base64/URL/JWT, every Sentinel verdict, and every block edit Notes can make. Recipe: [`docs/03-architecture.md`](docs/03-architecture.md#checking-the-pure-modules-without-a-test-runner).
+`npm run check` is what CI runs, and it must be clean before any commit. The pure modules are verified by known-answer checks that live beside them rather than by a test runner — hashes against published vectors, RFC semantics for base64/URL/JWT, every Sentinel verdict, every block edit Notes can make, and the whole of the Engine's ranking, including the reason string each weight produces. Recipe: [`docs/03-architecture.md`](docs/03-architecture.md#checking-the-pure-modules-without-a-test-runner).
 
 ## Stack
 
@@ -60,6 +60,25 @@ The decision log is the interesting one: it records *why* the app has no backend
 ## Contributing
 
 Read [`AGENTS.md`](AGENTS.md) first — it is the contributor guide, and it is enforced in review: tokens only, platform code behind adapters, motion that never overshoots, a failed read is never rendered as an empty one. [`CONTRIBUTING.md`](CONTRIBUTING.md) has the short version and the commands.
+
+- **Bugs**: [open an issue](https://github.com/1-Pankaj/Devlofy/issues/new/choose) — the form asks whether a screen was *empty* or *failed*, because in this app those are different states.
+- **Security**: never a public issue. [`SECURITY.md`](SECURITY.md) has the private channel and the actual threat model.
+- **Ideas**: a feature has to fit a budget, so start with the [decision log](docs/07-decisions.md) — several obviously-good ideas are recorded there as declined, with reasons.
+- **Conduct**: [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
+- **History**: [`CHANGELOG.md`](CHANGELOG.md), one entry per release.
+
+## Repo map
+
+```
+src/app/          routes only — every screen and its navigator
+src/components/   UI by feature (ui/ is the design system)
+src/lib/          the product's logic: db/, engine/, notes/, bench/, sentinel/, github/, garden/, three/
+src/theme/        tokens — colour, spacing, type, motion. Nothing else may hardcode these
+assets/models/    the Blender-authored GLBs, and the code kit that answers when one is missing
+docs/             the Obsidian vault: vision, scope, architecture, design language, data model, ADRs
+tools/            everything that is not the app: Blender scripts, the GPU-less 3D renderer, the checks
+.agents/skills/   vendored development tooling (not imported by src/ — see NOTICE)
+```
 
 ## License
 
