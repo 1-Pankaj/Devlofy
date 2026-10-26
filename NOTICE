@@ -1,0 +1,19 @@
+Devlofy
+Copyright (c) 2026 Pankaj Israni
+Licensed under the MIT License — see LICENSE.
+
+Third-party notices
+
+Portions of the project scaffolding were generated from the Expo project
+templates (https://github.com/expo/expo), which are:
+
+    Copyright (c) 2015-present 650 Industries, Inc. (aka Expo)
+    Licensed under the MIT License.
+
+The agent skills under `.agents/skills/` are vendored from the Expo skills
+repository and the taste-skill projects, each under its own license as stated
+in that skill's own directory. They are development tooling: nothing under
+`src/` imports them, and they are not part of the shipped app.
+
+Runtime dependencies keep their own licenses; run `npm ls --all` for the
+authoritative list per package.

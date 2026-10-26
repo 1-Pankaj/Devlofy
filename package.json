@@ -1,6 +1,8 @@
 {
   "name": "devlofy",
-  "version": "1.0.0",
+  "version": "0.8.0",
+  "description": "The offline-first command center for solo developers — Android and web, local SQLite, no backend.",
+  "license": "MIT",
   "main": "expo-router/entry",
   "dependencies": {
     "@expo-google-fonts/geist": "^0.4.2",
@@ -50,7 +52,10 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "self-check": "bash tools/checks/self-check.sh",
+    "check": "npm run typecheck && npm run lint && npm run self-check"
   },
   "private": true
 }

@@ -123,11 +123,15 @@ Beside `src/`: `tools/blender/` holds the re-runnable scripts that `assets/model
 ```bash
 npx expo start                 # dev server (a for Android, w for web)
 npx expo start --android       # Android device via Expo Go / dev client
-npx tsc --noEmit               # typecheck — must be clean
-npx eslint .                   # lint — must be clean
+npm run check                  # typecheck + lint + the three known-answer suites — must be clean
+npx tsc --noEmit               # typecheck alone
+npx eslint .                   # lint alone
+bash tools/checks/self-check.sh # the pure-module suites alone (360 checks)
 npx expo export --platform web # deployable web build (dist/)
 npx expo-doctor                # dependency health
 ```
+
+`npm run check` is the one command CI runs (`.github/workflows/ci.yml`: typecheck, lint, then `tools/checks/self-check.sh`), so a green local run is the same guarantee a pull request gets.
 
 Press `Shift+M` in the Expo CLI to browse the SQLite database with the dev tool.
 

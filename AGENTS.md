@@ -20,6 +20,7 @@ Expo changes every SDK. This project is **SDK 58** (react 19.3, RN 0.88, reanima
 ```bash
 npx expo start                 # dev server (a=Android, w=web)
 npx expo install <package>     # ALWAYS for deps — resolves SDK versions
+npm run check                  # typecheck + lint + 360 known-answer checks — must be clean
 npx tsc --noEmit               # typecheck — must be clean
 npx eslint .                   # lint — must be clean
 npx expo export --platform web # validates the full web bundle (wasm, r3f)
