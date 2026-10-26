@@ -15,7 +15,7 @@ from pathlib import Path
 import bpy
 from mathutils import Vector
 
-REPO = Path(r"D:\Codeloom\Internal Projects\Devlofy")
+REPO = Path(__file__).resolve().parents[2]
 OUT_DIR = REPO / "assets" / "images" / "empty"
 
 STILLS = {

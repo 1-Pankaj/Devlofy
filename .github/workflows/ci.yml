@@ -1,0 +1,61 @@
+name: CI
+
+# The gates AGENTS.md asks for before a change is "done": types, lint, the
+# known-answer suites, and a real web bundle. It exists because none of those
+# were enforced anywhere but the maintainer's machine.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  EXPO_NO_TELEMETRY: '1'
+
+jobs:
+  check:
+    name: types · lint · known answers
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npx eslint .
+
+      - name: Known-answer suites
+        run: npm run self-check
+
+  web-bundle:
+    name: web export
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      # The wasm SQLite build and the three/r3f bundles are the part a type
+      # check cannot prove; this is the command that catches them.
+      - name: Export
+        run: npx expo export --platform web

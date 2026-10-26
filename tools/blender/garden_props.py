@@ -16,7 +16,7 @@ import bmesh
 import bpy
 from mathutils import Euler, Matrix, Vector, noise
 
-REPO = Path(r"D:\Codeloom\Internal Projects\Devlofy")
+REPO = Path(__file__).resolve().parents[2]
 EXPORT_DIR = REPO / "assets" / "models" / "props"
 COLLECTION_NAME = "Devlofy"
 

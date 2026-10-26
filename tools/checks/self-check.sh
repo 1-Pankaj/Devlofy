@@ -15,9 +15,22 @@ set -uo pipefail
 cd "$(dirname "$0")/../.." || exit 1
 ROOT=$(pwd)
 
+# Windows runs a Windows `tsc` and a Windows `node`; neither can read an MSYS
+# shell path (`/d/…`, `/tmp/…`). Anything handed to them goes through
+# `cfg_path`, which asks cygpath for the mixed form (`D:/…`) — valid inside the
+# generated tsconfig JSON and for both binaries. Elsewhere it is a no-op.
+cfg_path() {
+  if command -v cygpath >/dev/null 2>&1; then
+    cygpath -m "$1"
+  else
+    printf '%s' "$1"
+  fi
+}
+
 SUITES=(bench engine notes sentinel)
 TSC=./node_modules/.bin/tsc
-[ -x "$TSC" ] || TSC=npx\ tsc
+# -f, not -x: npm's Windows install does not always carry an executable bit.
+[ -f "$TSC" ] || TSC=npx\ tsc
 
 total=0
 failing=0
@@ -35,11 +48,11 @@ for lib in "${SUITES[@]}"; do
   cat >"$out/tsconfig.json" <<JSON
 {
   "compilerOptions": {
-    "baseUrl": "$ROOT",
+    "baseUrl": "$(cfg_path "$ROOT")",
     "paths": { "@/*": ["src/*"], "@/assets/*": ["assets/*"] },
     "noEmit": false,
-    "rootDir": "$ROOT",
-    "outDir": "$out/js",
+    "rootDir": "$(cfg_path "$ROOT")",
+    "outDir": "$(cfg_path "$out/js")",
     "module": "commonjs",
     "moduleResolution": "node10",
     "target": "es2022",
@@ -48,7 +61,7 @@ for lib in "${SUITES[@]}"; do
     "skipLibCheck": true,
     "types": []
   },
-  "include": ["$src"]
+  "include": ["$(cfg_path "$src")"]
 }
 JSON
 
@@ -66,7 +79,7 @@ JSON
     const bad = r.filter((c) => !c.pass);
     for (const c of bad) console.log("        · " + c.name + (c.detail ? " — " + c.detail : ""));
     console.log("SUMMARY " + r.length + " " + bad.length);
-  ' "$js" 2>&1)
+  ' "$(cfg_path "$js")" 2>&1)
   if [ $? -ne 0 ]; then
     printf 'FAIL  %-9s did not run\n' "$lib"
     printf '%s\n' "$report" | sed 's/^/        /' | head -20

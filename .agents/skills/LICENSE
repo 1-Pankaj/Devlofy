@@ -1,0 +1,105 @@
+Third-party agent skills vendored under `.agents/skills/`
+
+This directory is development tooling. Nothing under `src/` imports it and it is
+not part of the shipped app. It is kept in the repository so a contributor's
+coding agent sees the same instructions the maintainer used.
+
+The skills are third-party works, redistributed here unmodified under their own
+licences. `skills-lock.json` records the upstream repository, path and content
+hash for each one. The mapping and notices below are the authoritative licence
+statement for this directory.
+
+
+Expo skills — https://github.com/expo/skills
+-----------------------------------------------------------------------------
+
+Copyright (c) 2025-present 650 Industries, Inc. (aka Expo)
+
+MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+Skills covered:
+
+    eas-app-stores          expo-migrate-module      expo-ui
+    eas-hosting             expo-module              expo-upgrade
+    eas-observe             expo-native-ui           expo-web-to-native
+    eas-simulator           expo-overview
+    eas-update              expo-project-structure
+    eas-update-insights     expo-router
+    eas-workflows           expo-skill-eval
+    expo-app-clip           expo-skill-feedback
+    expo-brownfield         expo-data-fetching
+    expo-design-system      expo-dev-client
+    expo-dom                expo-examples
+
+
+Taste skills — https://github.com/Leonxlnx/taste-skill
+-----------------------------------------------------------------------------
+
+Copyright (c) 2026 Leonxlnx
+
+MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+Skills covered:
+
+    brandkit                       image-to-code
+    design-taste-frontend          imagegen-frontend-mobile
+    design-taste-frontend-v1       imagegen-frontend-web
+    design-taste-frontend-v2-      industrial-brutalist-ui
+      experimental                 minimalist-ui
+    full-output-enforcement        redesign-existing-projects
+    gpt-taste                      stitch-design-taste
+    high-end-visual-design
+
+
+expo-animation
+-----------------------------------------------------------------------------
+
+This skill bundles its own licence, kept beside it at
+`.agents/skills/expo-animation/LICENSE`. That file governs that skill; the Expo
+notice above applies to the rest of the Expo skills.
+
+
+graphify
+-----------------------------------------------------------------------------
+
+`graphify` (reported version 0.9.92 in `.graphify_version`) is vendored, but its
+upstream repository and licence were never recorded in `skills-lock.json`.
+
+It is NOT covered by either notice above. Establish its provenance and licence
+before publishing this repository, or remove `.agents/skills/graphify/`.

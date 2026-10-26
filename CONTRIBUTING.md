@@ -33,7 +33,7 @@ If you change a pure module (`src/lib/bench`, `src/lib/notes`, `src/lib/sentinel
 If you change 3D geometry, also run the renderer. It checks the model rules and writes an image:
 
 ```bash
-NODE_PATH=$PWD/node_modules node tools/preview/render.js
+node tools/preview/render.js
 ```
 
 ## Rules the app follows
