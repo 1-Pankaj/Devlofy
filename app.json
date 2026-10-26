@@ -47,7 +47,6 @@
         }
       ],
       "expo-sqlite",
-      "expo-image",
       "expo-status-bar"
     ],
     "experiments": {
