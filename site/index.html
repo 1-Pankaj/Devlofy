@@ -1,0 +1,1228 @@
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Devlofy · The command center for solo developers</title>
+    <meta
+      name="description"
+      content="Plan the day, time the work, price it, write it down and watch the garden grow. One local SQLite file, no backend, no sign-up, no cloud AI."
+    />
+    <meta name="theme-color" content="#08090c" />
+    <meta name="color-scheme" content="light" />
+    <link rel="icon" href="assets/brand/favicon.png" type="image/png" />
+    <link rel="apple-touch-icon" href="assets/brand/favicon.png" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Devlofy" />
+    <meta property="og:title" content="Devlofy · The command center for solo developers" />
+    <meta
+      property="og:description"
+      content="Tasks, time, invoices, notes, a dev toolbox and a 3D garden. One local SQLite file. No backend, no sign-up, no cloud AI."
+    />
+    <meta property="og:url" content="https://1-pankaj.github.io/Devlofy/" />
+    <meta property="og:image" content="https://1-pankaj.github.io/Devlofy/assets/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Devlofy, the command center for solo developers: 482 known-answer checks, 11 offline Bench tools, 0 backend services." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Devlofy · The command center for solo developers" />
+    <meta
+      name="twitter:description"
+      content="Tasks, time, invoices, notes, a dev toolbox and a 3D garden. One local SQLite file."
+    />
+    <meta name="twitter:image" content="https://1-pankaj.github.io/Devlofy/assets/og.png" />
+    <meta name="twitter:image:alt" content="Devlofy, the command center for solo developers: 482 known-answer checks, 11 offline Bench tools, 0 backend services." />
+    <link rel="canonical" href="https://1-pankaj.github.io/Devlofy/" />
+
+    <link
+      rel="preload"
+      href="assets/fonts/mona-sans-variable.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="assets/fonts/mona-sans-mono-variable.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script>
+      document.documentElement.classList.replace('no-js', 'js');
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <svg class="sprite" aria-hidden="true" focusable="false" width="0" height="0">
+  <symbol id="i-github" viewBox="0 0 256 256"><path d="M208.31,75.68A59.78,59.78,0,0,0,202.93,28,8,8,0,0,0,196,24a59.75,59.75,0,0,0-48,24H124A59.75,59.75,0,0,0,76,24a8,8,0,0,0-6.93,4,59.78,59.78,0,0,0-5.38,47.68A58.14,58.14,0,0,0,56,104v8a56.06,56.06,0,0,0,48.44,55.47A39.8,39.8,0,0,0,96,192v8H72a24,24,0,0,1-24-24A40,40,0,0,0,8,136a8,8,0,0,0,0,16,24,24,0,0,1,24,24,40,40,0,0,0,40,40H96v16a8,8,0,0,0,16,0V192a24,24,0,0,1,48,0v40a8,8,0,0,0,16,0V192a39.8,39.8,0,0,0-8.44-24.53A56.06,56.06,0,0,0,216,112v-8A58.14,58.14,0,0,0,208.31,75.68ZM200,112a40,40,0,0,1-40,40H112a40,40,0,0,1-40-40v-8a41.74,41.74,0,0,1,6.9-22.48A8,8,0,0,0,80,73.83a43.81,43.81,0,0,1,.79-33.58,43.88,43.88,0,0,1,32.32,20.06A8,8,0,0,0,119.82,64h32.35a8,8,0,0,0,6.74-3.69,43.87,43.87,0,0,1,32.32-20.06A43.81,43.81,0,0,1,192,73.83a8.09,8.09,0,0,0,1,7.65A41.72,41.72,0,0,1,200,104Z"/></symbol>
+  <symbol id="i-arrow-right" viewBox="0 0 256 256"><path d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69L138.34,61.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"/></symbol>
+  <symbol id="i-arrow-down" viewBox="0 0 256 256"><path d="M205.66,149.66l-72,72a8,8,0,0,1-11.32,0l-72-72a8,8,0,0,1,11.32-11.32L120,196.69V40a8,8,0,0,1,16,0V196.69l58.34-58.35a8,8,0,0,1,11.32,11.32Z"/></symbol>
+  <symbol id="i-arrow-up-right" viewBox="0 0 256 256"><path d="M200,64V168a8,8,0,0,1-16,0V83.31L69.66,197.66a8,8,0,0,1-11.32-11.32L172.69,72H88a8,8,0,0,1,0-16H192A8,8,0,0,1,200,64Z"/></symbol>
+  <symbol id="i-arrow-square-out" viewBox="0 0 256 256"><path d="M224,104a8,8,0,0,1-16,0V59.32l-66.33,66.34a8,8,0,0,1-11.32-11.32L196.68,48H152a8,8,0,0,1,0-16h64a8,8,0,0,1,8,8Zm-40,24a8,8,0,0,0-8,8v72H48V80h72a8,8,0,0,0,0-16H48A16,16,0,0,0,32,80V208a16,16,0,0,0,16,16H176a16,16,0,0,0,16-16V136A8,8,0,0,0,184,128Z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 256 256"><path d="M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z"/></symbol>
+  <symbol id="i-check-circle" viewBox="0 0 256 256"><path d="M173.66,98.34a8,8,0,0,1,0,11.32l-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35A8,8,0,0,1,173.66,98.34ZM232,128A104,104,0,1,1,128,24,104.11,104.11,0,0,1,232,128Zm-16,0a88,88,0,1,0-88,88A88.1,88.1,0,0,0,216,128Z"/></symbol>
+  <symbol id="i-caret-down" viewBox="0 0 256 256"><path d="M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 256 256"><path d="M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 256 256"><path d="M216,32H88a8,8,0,0,0-8,8V80H40a8,8,0,0,0-8,8V216a8,8,0,0,0,8,8H168a8,8,0,0,0,8-8V176h40a8,8,0,0,0,8-8V40A8,8,0,0,0,216,32ZM160,208H48V96H160Zm48-48H176V88a8,8,0,0,0-8-8H96V48H208Z"/></symbol>
+  <symbol id="i-sparkle" viewBox="0 0 256 256"><path d="M197.58,129.06,146,110l-19-51.62a15.92,15.92,0,0,0-29.88,0L78,110l-51.62,19a15.92,15.92,0,0,0,0,29.88L78,178l19,51.62a15.92,15.92,0,0,0,29.88,0L146,178l51.62-19a15.92,15.92,0,0,0,0-29.88ZM137,164.22a8,8,0,0,0-4.74,4.74L112,223.85,91.78,169A8,8,0,0,0,87,164.22L32.15,144,87,123.78A8,8,0,0,0,91.78,119L112,64.15,132.22,119a8,8,0,0,0,4.74,4.74L191.85,144ZM144,40a8,8,0,0,1,8-8h16V16a8,8,0,0,1,16,0V32h16a8,8,0,0,1,0,16H184V64a8,8,0,0,1-16,0V48H152A8,8,0,0,1,144,40ZM248,88a8,8,0,0,1-8,8h-8v8a8,8,0,0,1-16,0V96h-8a8,8,0,0,1,0-16h8V72a8,8,0,0,1,16,0v8h8A8,8,0,0,1,248,88Z"/></symbol>
+  <symbol id="i-coins" viewBox="0 0 256 256"><path d="M184,89.57V84c0-25.08-37.83-44-88-44S8,58.92,8,84v40c0,20.89,26.25,37.49,64,42.46V172c0,25.08,37.83,44,88,44s88-18.92,88-44V132C248,111.3,222.58,94.68,184,89.57ZM232,132c0,13.22-30.79,28-72,28-3.73,0-7.43-.13-11.08-.37C170.49,151.77,184,139,184,124V105.74C213.87,110.19,232,122.27,232,132ZM72,150.25V126.46A183.74,183.74,0,0,0,96,128a183.74,183.74,0,0,0,24-1.54v23.79A163,163,0,0,1,96,152,163,163,0,0,1,72,150.25Zm96-40.32V124c0,8.39-12.41,17.4-32,22.87V123.5C148.91,120.37,159.84,115.71,168,109.93ZM96,56c41.21,0,72,14.78,72,28s-30.79,28-72,28S24,97.22,24,84,54.79,56,96,56ZM24,124V109.93c8.16,5.78,19.09,10.44,32,13.57v23.37C36.41,141.4,24,132.39,24,124Zm64,48v-4.17c2.63.1,5.29.17,8,.17,3.88,0,7.67-.13,11.39-.35A121.92,121.92,0,0,0,120,171.41v23.46C100.41,189.4,88,180.39,88,172Zm48,26.25V174.4a179.48,179.48,0,0,0,24,1.6,183.74,183.74,0,0,0,24-1.54v23.79a165.45,165.45,0,0,1-48,0Zm64-3.38V171.5c12.91-3.13,23.84-7.79,32-13.57V172C232,180.39,219.59,189.4,200,194.87Z"/></symbol>
+  <symbol id="i-file-text" viewBox="0 0 256 256"><path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Zm-32-80a8,8,0,0,1-8,8H96a8,8,0,0,1,0-16h64A8,8,0,0,1,168,136Zm0,32a8,8,0,0,1-8,8H96a8,8,0,0,1,0-16h64A8,8,0,0,1,168,168Z"/></symbol>
+  <symbol id="i-shield-check" viewBox="0 0 256 256"><path d="M208,40H48A16,16,0,0,0,32,56v56c0,52.72,25.52,84.67,46.93,102.19,23.06,18.86,46,25.26,47,25.53a8,8,0,0,0,4.2,0c1-.27,23.91-6.67,47-25.53C198.48,196.67,224,164.72,224,112V56A16,16,0,0,0,208,40Zm0,72c0,37.07-13.66,67.16-40.6,89.42A129.3,129.3,0,0,1,128,223.62a128.25,128.25,0,0,1-38.92-21.81C61.82,179.51,48,149.3,48,112l0-56,160,0ZM82.34,141.66a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32l-56,56a8,8,0,0,1-11.32,0Z"/></symbol>
+  <symbol id="i-magnifying-glass" viewBox="0 0 256 256"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"/></symbol>
+  <symbol id="i-leaf" viewBox="0 0 256 256"><path d="M223.45,40.07a8,8,0,0,0-7.52-7.52C139.8,28.08,78.82,51,52.82,94a87.09,87.09,0,0,0-12.76,49c.57,15.92,5.21,32,13.79,47.85l-19.51,19.5a8,8,0,0,0,11.32,11.32l19.5-19.51C81,210.73,97.09,215.37,113,215.94q1.67.06,3.33.06A86.93,86.93,0,0,0,162,203.18C205,177.18,227.93,116.21,223.45,40.07ZM153.75,189.5c-22.75,13.78-49.68,14-76.71.77l88.63-88.62a8,8,0,0,0-11.32-11.32L65.73,179c-13.19-27-13-54,.77-76.71,22.09-36.47,74.6-56.44,141.31-54.06C210.2,114.89,190.22,167.41,153.75,189.5Z"/></symbol>
+  <symbol id="i-tree-structure" viewBox="0 0 256 256"><path d="M160,112h48a16,16,0,0,0,16-16V48a16,16,0,0,0-16-16H160a16,16,0,0,0-16,16V64H128a24,24,0,0,0-24,24v32H72v-8A16,16,0,0,0,56,96H24A16,16,0,0,0,8,112v32a16,16,0,0,0,16,16H56a16,16,0,0,0,16-16v-8h32v32a24,24,0,0,0,24,24h16v16a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V160a16,16,0,0,0-16-16H160a16,16,0,0,0-16,16v16H128a8,8,0,0,1-8-8V88a8,8,0,0,1,8-8h16V96A16,16,0,0,0,160,112ZM56,144H24V112H56v32Zm104,16h48v48H160Zm0-112h48V96H160Z"/></symbol>
+  <symbol id="i-database" viewBox="0 0 256 256"><path d="M128,24C74.17,24,32,48.6,32,80v96c0,31.4,42.17,56,96,56s96-24.6,96-56V80C224,48.6,181.83,24,128,24Zm80,104c0,9.62-7.88,19.43-21.61,26.92C170.93,163.35,150.19,168,128,168s-42.93-4.65-58.39-13.08C55.88,147.43,48,137.62,48,128V111.36c17.06,15,46.23,24.64,80,24.64s62.94-9.68,80-24.64ZM69.61,53.08C85.07,44.65,105.81,40,128,40s42.93,4.65,58.39,13.08C200.12,60.57,208,70.38,208,80s-7.88,19.43-21.61,26.92C170.93,115.35,150.19,120,128,120s-42.93-4.65-58.39-13.08C55.88,99.43,48,89.62,48,80S55.88,60.57,69.61,53.08ZM186.39,202.92C170.93,211.35,150.19,216,128,216s-42.93-4.65-58.39-13.08C55.88,195.43,48,185.62,48,176V159.36c17.06,15,46.23,24.64,80,24.64s62.94-9.68,80-24.64V176C208,185.62,200.12,195.43,186.39,202.92Z"/></symbol>
+</svg>
+
+    <header class="site-header" data-header>
+      <div class="shell header__inner">
+        <a class="brand" href="#top" aria-label="Devlofy, back to top">
+          <img class="brand__mark" src="assets/brand/mark-night.png" alt="" width="30" height="30" />
+          <span class="brand__name">Devlofy</span>
+          <span class="brand__version">v0.8.0</span>
+        </a>
+
+        <nav class="site-nav" aria-label="Sections">
+          <a href="#product" data-nav>Product</a>
+          <a href="#features" data-nav>Features</a>
+          <a href="#garden" data-nav>Garden</a>
+          <a href="#checks" data-nav>Checks</a>
+          <a href="#install" data-nav>Install</a>
+          <a href="#faq" data-nav>FAQ</a>
+        </nav>
+
+        <div class="header__actions">
+          <a
+            class="btn btn--outline btn--sm header__github"
+            href="https://github.com/1-Pankaj/Devlofy"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <svg class="icon" aria-hidden="true"><use href="#i-github"></use></svg>
+            GitHub
+            <span class="sr-only">(opens in a new tab)</span>
+          </a>
+          <button
+            class="menu-toggle"
+            type="button"
+            aria-label="Open menu"
+            aria-expanded="false"
+            aria-controls="menu"
+            data-menu-open
+          >
+            <span></span><span></span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <dialog class="menu" id="menu" aria-label="Site menu" data-menu>
+      <div class="menu__top">
+        <span class="menu__title">Menu</span>
+        <button class="menu__close" type="button" aria-label="Close menu" data-menu-close>
+          <svg class="icon icon--close" aria-hidden="true"><use href="#i-plus"></use></svg>
+        </button>
+      </div>
+      <nav class="menu__nav" aria-label="Sections">
+        <a href="#product" data-menu-close>Product</a>
+        <a href="#features" data-menu-close>Features</a>
+        <a href="#garden" data-menu-close>Garden</a>
+        <a href="#checks" data-menu-close>Checks</a>
+        <a href="#install" data-menu-close>Install</a>
+        <a href="#faq" data-menu-close>FAQ</a>
+      </nav>
+      <a class="btn btn--primary btn--block" href="#install" data-menu-close>
+        Start from source
+        <svg class="icon" aria-hidden="true"><use href="#i-arrow-right"></use></svg>
+      </a>
+      <a
+        class="menu__github"
+        href="https://github.com/1-Pankaj/Devlofy"
+        target="_blank"
+        rel="noreferrer"
+      >
+        <svg class="icon" aria-hidden="true"><use href="#i-github"></use></svg>
+        github.com/1-Pankaj/Devlofy
+        <span class="sr-only">(opens in a new tab)</span>
+      </a>
+      <p class="menu__meta">v0.8.0 · MIT · Android + web</p>
+    </dialog>
+
+    <main id="main">
+      <!-- ================================================================ -->
+      <!-- Hero                                                             -->
+      <!-- ================================================================ -->
+      <section class="hero" id="top" aria-labelledby="hero-title">
+        <div class="hero__field" aria-hidden="true"></div>
+
+        <div class="shell hero__inner">
+          <p class="pill hero__pill">
+            <span class="status-dot" aria-hidden="true"></span>
+            Offline-first · Android + web · MIT
+          </p>
+
+          <h1 class="hero__title" id="hero-title">
+            <span class="hero__line"><span>The command center</span></span>
+            <span class="hero__line"><span>for <em>solo developers.</em></span></span>
+          </h1>
+
+          <p class="hero__lede">
+            Plan the day, time the work, price it, write it down, and watch the garden grow.
+            One SQLite file on your own device. No backend, no sign-up, no chat box.
+          </p>
+
+          <div class="hero__actions">
+            <a class="btn btn--primary" href="#install">
+              Start from source
+              <svg class="icon" aria-hidden="true"><use href="#i-arrow-right"></use></svg>
+            </a>
+            <a class="btn btn--quiet" href="#product">
+              Take the tour
+              <svg class="icon" aria-hidden="true"><use href="#i-arrow-down"></use></svg>
+            </a>
+          </div>
+
+          <p class="hero__meta">
+            <span><svg class="icon" aria-hidden="true"><use href="#i-check-circle"></use></svg>482 checks green</span>
+            <span aria-hidden="true">·</span>
+            <span>Expo SDK 58</span>
+            <span aria-hidden="true">·</span>
+            <span>React Native 0.88</span>
+          </p>
+
+          <div class="hero__stage" data-parallax>
+            <div class="hero__halo" aria-hidden="true"></div>
+
+            <figure class="window" data-depth="1">
+              <div class="window__bar">
+                <span class="window__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+                <span class="window__url">devlofy · today</span>
+                <span class="window__tag">local</span>
+              </div>
+              <img
+                src="assets/app/today.webp"
+                width="2320"
+                height="1450"
+                alt="The Today screen: a focus timer, a next-up list with reasons, and the project shelf."
+                fetchpriority="high"
+                decoding="async"
+              />
+            </figure>
+
+            <figure class="device hero__device" data-depth="2">
+              <div class="device__frame">
+                <span class="device__notch" aria-hidden="true"></span>
+                <img
+                  src="assets/app/phone-today.webp"
+                  width="960"
+                  height="1800"
+                  alt="Devlofy Today on a phone, with the same tasks and focus block."
+                  decoding="async"
+                />
+              </div>
+            </figure>
+
+            <p class="hero__caption">
+              The seeded demo week, captured from the running app. No mockups.
+            </p>
+          </div>
+        </div>
+
+        <div class="ticker" aria-hidden="true">
+          <div class="ticker__track" data-ticker>
+            <span>No sign-up</span><i></i>
+            <span>No backend</span><i></i>
+            <span>One SQLite file</span><i></i>
+            <span>Android + web</span><i></i>
+            <span>MIT licensed</span><i></i>
+            <span>482 known-answer checks</span><i></i>
+            <span>Offline by default</span><i></i>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================ -->
+      <!-- Product: stacking tour                                           -->
+      <!-- ================================================================ -->
+      <section class="section product" id="product" aria-labelledby="product-title">
+        <div class="shell">
+          <header class="section-head" data-reveal>
+            <p class="label"><span>01</span> The product</p>
+            <h2 id="product-title">Three rooms,<br />one desk.</h2>
+            <p class="lede">
+              Every screen reads the same database. No sync step, no export dance, no second copy
+              to keep in step with the first.
+            </p>
+          </header>
+
+          <div class="stack" data-stack>
+            <article class="stack__item">
+              <div class="tour" data-spotlight>
+                <div class="tour__copy">
+                  <p class="tour__kicker"><span>01</span> Today</p>
+                  <h3>The day, already sorted.</h3>
+                  <p>
+                    Type one line: <code>Ship the invoice fix !3 45m tomorrow #Northwind</code>.
+                    The tokens become priority, estimate, due date and project. The rest stays the
+                    title. Today shows the task it will create before you commit to it, then ranks
+                    what is left and prints the reason for every score.
+                  </p>
+                  <ul class="bullets">
+                    <li>
+                      <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
+                      Quick add parses as you type, with a preview of the saved task.
+                    </li>
+                    <li>
+                      <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
+                      Next-up weighs overdue, due today, priority and effort. It says why.
+                    </li>
+                    <li>
+                      <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
+                      A focus block writes to the session log, attributed to its project.
+                    </li>
+                  </ul>
+                  <a
+                    class="text-link"
+                    href="https://github.com/1-Pankaj/Devlofy/blob/master/src/lib/parse-task.ts"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Read the parser
+                    <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"></use></svg>
+                    <span class="sr-only">(opens in a new tab)</span>
+                  </a>
+                </div>
+                <div class="tour__media">
+                  <div class="shot">
+                    <img
+                      src="assets/app/today.webp"
+                      width="2320"
+                      height="1450"
+                      alt="Today: a running focus block, the next task with its reason, and the week's focus time."
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="stack__item">
+              <div class="tour tour--flip" data-spotlight>
+                <div class="tour__copy">
+                  <p class="tour__kicker"><span>02</span> The ledger</p>
+                  <h3>The invoice was already written.</h3>
+                  <p>
+                    A block is marked billable when it starts, at the project's rate, falling back
+                    to the client's. The invoice is a view over the session log, never a stored
+                    document. Change a rate and the total follows. Delete a block and its line goes
+                    with it. 2h 40m at ₹2,500/h is ₹6,666.67, and every rupee traces to a session.
+                  </p>
+                  <ul class="bullets">
+                    <li>
+                      <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
+                      The rate lives on the project, with the client as the fallback.
+                    </li>
+                    <li>
+                      <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
+                      Billable at the start of a block, not reconstructed afterwards.
+                    </li>
+                    <li>
+                      <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
+                      Totals are a query. There is no second invoice to keep in sync.
+                    </li>
+                  </ul>
+                  <a
+                    class="text-link"
+                    href="https://github.com/1-Pankaj/Devlofy/blob/master/src/lib/money.ts"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Read the money module
+                    <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"></use></svg>
+                    <span class="sr-only">(opens in a new tab)</span>
+                  </a>
+                </div>
+                <div class="tour__media">
+                  <div class="shot">
+                    <img
+                      src="assets/app/invoice.webp"
+                      width="1700"
+                      height="1577"
+                      alt="Invoice draft: ₹6,666.67 from 2.67 billable hours, with line items and the unpriced time called out."
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="stack__item">
+              <div class="tour" data-spotlight>
+                <div class="tour__copy">
+                  <p class="tour__kicker"><span>03</span> Bench</p>
+                  <h3>Eleven tools. No tab.</h3>
+                  <p>
+                    JSON, SQL, diff, regex, text, base64, JWT, SHA-256, timestamps, cron and colour.
+                    Each one computes while you type, offline, with no Run button and no stale
+                    result to read. The hash tool is checked against the published vectors, and the
+                    diff renderer is the same one the GitHub editor uses.
+                  </p>
+                  <ul class="bullets">
+                    <li>
+                      <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
+                      Eleven tools across data, text, security, time and design.
+                    </li>
+                    <li>
+                      <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
+                      No network, no dependency, and no half-parsed YAML.
+                    </li>
+                    <li>
+                      <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
+                      A kept snippet reopens inside the tool that made it.
+                    </li>
+                  </ul>
+                  <a
+                    class="text-link"
+                    href="https://github.com/1-Pankaj/Devlofy/blob/master/src/lib/bench/tools.ts"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Browse the tool registry
+                    <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"></use></svg>
+                    <span class="sr-only">(opens in a new tab)</span>
+                  </a>
+                </div>
+                <div class="tour__media">
+                  <div class="shot">
+                    <img
+                      src="assets/app/bench.webp"
+                      width="1700"
+                      height="1553"
+                      alt="Bench running the JSON tool: input, indent options, and formatted output computed as you type."
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </div>
+                </div>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================ -->
+      <!-- Quick-add grammar                                                -->
+      <!-- ================================================================ -->
+      <section class="section grammar-section" id="grammar" aria-labelledby="grammar-title">
+        <div class="shell">
+          <header class="section-head section-head--split" data-reveal>
+            <div>
+              <p class="label"><span>02</span> The grammar</p>
+              <h2 id="grammar-title">Type less.<br />Mean more.</h2>
+            </div>
+            <p class="lede">
+              Quick add is real grammar, not a search box. It reads priority, estimate, due date
+              and project from one line, and leaves everything else alone. This is the same parser
+              the app ships, running on this page.
+            </p>
+          </header>
+
+          <div class="grammar" data-demo>
+            <div class="composer">
+              <div class="composer__bar">
+                <span class="composer__label">Quick add</span>
+                <span class="composer__hint">one line, then Enter</span>
+              </div>
+
+              <label class="sr-only" for="quick-add">Try the quick-add grammar</label>
+              <input
+                class="composer__input"
+                id="quick-add"
+                name="quick-add"
+                type="text"
+                autocomplete="off"
+                autocapitalize="off"
+                spellcheck="false"
+                value="Ship the invoice fix !3 45m tomorrow #Northwind"
+              />
+
+              <div class="composer__tokens" id="demo-chips" aria-label="Parsed tokens">
+                <span class="chip chip--ember">high</span>
+                <span class="chip">45m</span>
+                <span class="chip">tomorrow</span>
+                <span class="chip chip--accent">Northwind Portal</span>
+              </div>
+
+              <p class="composer__note" id="demo-note" hidden></p>
+
+              <div class="composer__result">
+                <p class="composer__result-label">What gets saved</p>
+                <p class="composer__title" id="demo-title">Ship the invoice fix</p>
+                <dl class="composer__fields" id="demo-fields">
+                  <div>
+                    <dt>priority</dt>
+                    <dd>high</dd>
+                  </div>
+                  <div>
+                    <dt>estimate</dt>
+                    <dd>45 min</dd>
+                  </div>
+                  <div>
+                    <dt>due</dt>
+                    <dd>tomorrow</dd>
+                  </div>
+                  <div>
+                    <dt>project</dt>
+                    <dd>Northwind Portal</dd>
+                  </div>
+                </dl>
+              </div>
+
+              <p class="composer__fine" id="grammar-note">
+                Tokens are only removed when they parse. An unmatched
+                <code>#tag</code> stays in the title.
+              </p>
+            </div>
+
+            <aside class="grammar__side" aria-label="Grammar rules and examples">
+              <p class="grammar__side-label">Try an example</p>
+              <div class="examples">
+                <button
+                  type="button"
+                  data-example="Ship the invoice fix !3 45m tomorrow #Northwind"
+                >
+                  <span>Ship the invoice fix</span>
+                  <code>!3 45m tomorrow #Northwind</code>
+                </button>
+                <button type="button" data-example="Draft the changelog 20m fri #Devlofy">
+                  <span>Draft the changelog</span>
+                  <code>20m fri #Devlofy</code>
+                </button>
+                <button type="button" data-example="Plan the boss fight 1.5h +3d #Starlight">
+                  <span>Plan the boss fight</span>
+                  <code>1.5h +3d #Starlight</code>
+                </button>
+                <button type="button" data-example="Read the docs #Archive">
+                  <span>Read the docs</span>
+                  <code>#Archive</code>
+                  <em>unmatched tag</em>
+                </button>
+              </div>
+
+              <dl class="rules">
+                <div>
+                  <dt><code>!3</code> <code>!2</code> <code>!1</code></dt>
+                  <dd>High, normal, someday. The default is normal.</dd>
+                </div>
+                <div>
+                  <dt><code>45m</code> <code>1.5h</code></dt>
+                  <dd>Estimate in minutes or hours. Five minutes is the floor.</dd>
+                </div>
+                <div>
+                  <dt><code>today</code> <code>tomorrow</code></dt>
+                  <dd>Also <code>fri</code>, or <code>+3d</code> for a relative day.</dd>
+                </div>
+                <div>
+                  <dt><code>#Northwind</code></dt>
+                  <dd>
+                    Matches a project by name or prefix. No match means it stays in the title.
+                  </dd>
+                </div>
+              </dl>
+            </aside>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================ -->
+      <!-- Bento features                                                   -->
+      <!-- ================================================================ -->
+      <section class="section features" id="features" aria-labelledby="features-title">
+        <div class="shell">
+          <header class="section-head section-head--split" data-reveal>
+            <div>
+              <p class="label"><span>03</span> Everything else</p>
+              <h2 id="features-title">Small machine.<br />Sharp edges.</h2>
+            </div>
+            <p class="lede">
+              Six more parts under the same roof, all reading the same rows. No sync engine, no
+              message queue, no service to keep alive.
+            </p>
+          </header>
+
+          <div class="bento">
+            <article class="feature" data-spotlight data-reveal>
+              <div class="feature__icon feature__icon--violet">
+                <svg class="icon" aria-hidden="true"><use href="#i-sparkle"></use></svg>
+              </div>
+              <h3>Next up, with a reason</h3>
+              <p>
+                A documented weight table ranks what is overdue, due today, high priority or nearly
+                done. Every score prints its reason on the row, so the order is arguable instead of
+                mysterious.
+              </p>
+              <p class="feature__foot">
+                <span>122 checks pin it</span>
+                <a
+                  class="text-link"
+                  href="https://github.com/1-Pankaj/Devlofy/blob/master/src/lib/engine/next-up.ts"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Source
+                  <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"></use></svg>
+                  <span class="sr-only">(opens in a new tab)</span>
+                </a>
+              </p>
+            </article>
+
+            <article class="feature" data-spotlight data-reveal style="--reveal-delay: 60ms">
+              <div class="feature__icon feature__icon--ember">
+                <svg class="icon" aria-hidden="true"><use href="#i-coins"></use></svg>
+              </div>
+              <h3>A rate, not a spreadsheet</h3>
+              <p>
+                Project rate, client fallback, billable at the start of a block. 2h 40m at ₹2,500/h
+                is ₹6,666.67, and every rupee traces back to a session you can open and read.
+              </p>
+              <p class="feature__foot">
+                <span>Money is a view</span>
+                <a
+                  class="text-link"
+                  href="https://github.com/1-Pankaj/Devlofy/blob/master/src/lib/money.ts"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Source
+                  <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"></use></svg>
+                  <span class="sr-only">(opens in a new tab)</span>
+                </a>
+              </p>
+            </article>
+
+            <article class="feature" data-spotlight data-reveal style="--reveal-delay: 120ms">
+              <div class="feature__icon feature__icon--violet">
+                <svg class="icon" aria-hidden="true"><use href="#i-file-text"></use></svg>
+              </div>
+              <h3>Notes that stay markdown</h3>
+              <p>
+                Headings, lists, to-dos, quotes and code, saved as the lines you typed. One input is
+                mounted at a time. <code>[[Links]]</code> become backlinks through one escaped
+                query, and a note from v0.1 still opens.
+              </p>
+              <p class="feature__foot">
+                <span>190 note checks</span>
+                <a
+                  class="text-link"
+                  href="https://github.com/1-Pankaj/Devlofy/blob/master/src/lib/notes/blocks.ts"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Source
+                  <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"></use></svg>
+                  <span class="sr-only">(opens in a new tab)</span>
+                </a>
+              </p>
+            </article>
+
+            <article class="feature" data-spotlight data-reveal>
+              <div class="feature__icon feature__icon--green">
+                <svg class="icon" aria-hidden="true"><use href="#i-shield-check"></use></svg>
+              </div>
+              <h3>Is anything of mine down?</h3>
+              <p>
+                Sentinel watches your own URLs, when you open the board and not before. Native reads
+                the status code. A browser can only say reachable, and the board says so. Verdicts
+                are stored; incidents are derived.
+              </p>
+              <p class="feature__foot">
+                <span>90 checks · 500 kept</span>
+                <a
+                  class="text-link"
+                  href="https://github.com/1-Pankaj/Devlofy/blob/master/src/lib/sentinel/status.ts"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Source
+                  <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"></use></svg>
+                  <span class="sr-only">(opens in a new tab)</span>
+                </a>
+              </p>
+            </article>
+
+            <article class="feature" data-spotlight data-reveal style="--reveal-delay: 60ms">
+              <div class="feature__icon feature__icon--violet">
+                <svg class="icon" aria-hidden="true"><use href="#i-magnifying-glass"></use></svg>
+              </div>
+              <h3>Five kinds, one field</h3>
+              <p>
+                Projects, clients, notes, tasks and watch targets in one query, plus Bench's eleven
+                tools. Every result acts: open it, or tick the task off where it sits. No dead ends.
+              </p>
+              <p class="feature__foot">
+                <span>Nothing is a dead end</span>
+                <a
+                  class="text-link"
+                  href="https://github.com/1-Pankaj/Devlofy/blob/master/src/lib/db/repo.ts"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Source
+                  <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"></use></svg>
+                  <span class="sr-only">(opens in a new tab)</span>
+                </a>
+              </p>
+            </article>
+
+            <article class="feature" data-spotlight data-reveal style="--reveal-delay: 120ms">
+              <div class="feature__icon feature__icon--green">
+                <svg class="icon" aria-hidden="true"><use href="#i-leaf"></use></svg>
+              </div>
+              <h3>Growth without the guilt</h3>
+              <p>
+                Five stages from seed to canopy, driven by the minutes you actually worked. Miss a
+                day and nothing wilts. The signpost grows one plate for every active project.
+              </p>
+              <p class="feature__foot">
+                <span>5 stages · 11 GLB props</span>
+                <a
+                  class="text-link"
+                  href="https://github.com/1-Pankaj/Devlofy/blob/master/src/lib/garden/model.ts"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Source
+                  <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"></use></svg>
+                  <span class="sr-only">(opens in a new tab)</span>
+                </a>
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================ -->
+      <!-- Garden                                                           -->
+      <!-- ================================================================ -->
+      <section class="section garden" id="garden" aria-labelledby="garden-title">
+        <div class="garden__field" aria-hidden="true"></div>
+        <canvas class="garden__canvas" data-fireflies aria-hidden="true"></canvas>
+
+        <div class="shell garden__inner">
+          <div class="garden__copy" data-reveal>
+            <p class="label label--night"><span>04</span> The garden</p>
+            <h2 id="garden-title">Hours in.<br /><em>Canopy out.</em></h2>
+            <p class="lede lede--night">
+              The tree is built from your focus history, not a streak counter. Five stages, from
+              seed to canopy, weighted by the minutes you actually worked. Miss a week and nothing
+              wilts.
+            </p>
+
+            <div class="growth" data-growth>
+              <p class="growth__label">What grows it</p>
+              <div class="growth__row">
+                <span class="growth__name">Focus minutes</span>
+                <span class="growth__bar"><i style="--value: 55%"></i></span>
+                <span class="growth__value">55%</span>
+              </div>
+              <div class="growth__row">
+                <span class="growth__name">Streak</span>
+                <span class="growth__bar"><i style="--value: 30%"></i></span>
+                <span class="growth__value">30%</span>
+              </div>
+              <div class="growth__row">
+                <span class="growth__name">Today</span>
+                <span class="growth__bar"><i style="--value: 15%"></i></span>
+                <span class="growth__value">15%</span>
+              </div>
+              <p class="growth__note">
+                Weighted by <code>growthFromStats()</code>. No penalty state, no dead plant.
+              </p>
+            </div>
+
+            <ol class="stages" aria-label="The five garden stages">
+              <li>Seed</li>
+              <li>Sprout</li>
+              <li>Sapling</li>
+              <li>Young</li>
+              <li>Canopy</li>
+            </ol>
+
+            <ul class="garden__facts">
+              <li>
+                <svg class="icon" aria-hidden="true"><use href="#i-tree-structure"></use></svg>
+                Five Blender-authored stages, with a procedural fallback.
+              </li>
+              <li>
+                <svg class="icon" aria-hidden="true"><use href="#i-leaf"></use></svg>
+                Eleven authored GLB props; the bench and signpost are built in code.
+              </li>
+              <li>
+                <svg class="icon" aria-hidden="true"><use href="#i-database"></use></svg>
+                One hanging plate per active project, up to five.
+              </li>
+            </ul>
+          </div>
+
+          <div class="garden__stage" data-reveal style="--reveal-delay: 120ms">
+            <div class="garden__glow" aria-hidden="true"></div>
+            <figure class="device device--garden">
+              <div class="device__frame">
+                <span class="device__notch" aria-hidden="true"></span>
+                <img
+                  src="assets/app/phone-garden.webp"
+                  width="780"
+                  height="1688"
+                  alt="The Garden on a phone: a low-poly tree, a bench, and a signpost with project plates."
+                  loading="lazy"
+                  decoding="async"
+                />
+              </div>
+              <figcaption class="device__caption">
+                The seeded demo after five days of focus.
+              </figcaption>
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================ -->
+      <!-- Checks                                                           -->
+      <!-- ================================================================ -->
+      <section class="section checks" id="checks" aria-labelledby="checks-title">
+        <div class="shell">
+          <header class="section-head section-head--split" data-reveal>
+            <div>
+              <p class="label"><span>05</span> Verification</p>
+              <h2 id="checks-title">482 checks<br />you can run.</h2>
+            </div>
+            <div class="checks__intro">
+              <p class="lede">
+                The rules live in pure functions outside the screens, and every rule has a known
+                answer. Four suites, no test runner, no dependency. The same command runs in CI.
+              </p>
+              <code class="command">bash tools/checks/self-check.sh</code>
+            </div>
+          </header>
+
+          <div class="checks__body">
+            <div class="checks__viz-wrap" data-reveal>
+              <div class="checks__viz" data-checks-grid aria-hidden="true"></div>
+              <div class="checks__legend" aria-hidden="true">
+                <span><i class="swatch swatch--bench"></i>Bench</span>
+                <span><i class="swatch swatch--engine"></i>Engine</span>
+                <span><i class="swatch swatch--notes"></i>Notes</span>
+                <span><i class="swatch swatch--sentinel"></i>Sentinel</span>
+              </div>
+              <p class="checks__sum">
+                <span>80</span> + <span>122</span> + <span>190</span> + <span>90</span> =
+                <strong>482</strong>
+              </p>
+            </div>
+
+            <div class="checks__list" data-reveal style="--reveal-delay: 80ms">
+              <article class="check-row">
+                <div class="check-row__top">
+                  <h3>Bench</h3>
+                  <p class="check-row__count">80</p>
+                </div>
+                <p>
+                  Published SHA-1 and SHA-256 vectors, RFC base64 and URL rules, cron against real
+                  timestamps, contrast ratios, and diff and patch round-trips.
+                </p>
+                <code>src/lib/bench/self-check.ts</code>
+              </article>
+
+              <article class="check-row">
+                <div class="check-row__top">
+                  <h3>Engine</h3>
+                  <p class="check-row__count">122</p>
+                </div>
+                <p>
+                  The full weight table, every reason string, the overdue decay and its floor, each
+                  tie-break, and the sentences rhythm must not say below six blocks.
+                </p>
+                <code>src/lib/engine/self-check.ts</code>
+              </article>
+
+              <article class="check-row">
+                <div class="check-row__top">
+                  <h3>Notes</h3>
+                  <p class="check-row__count">190</p>
+                </div>
+                <p>
+                  Every body-to-body edit, plus two safety rules: only the lines you touched are
+                  rewritten, and a note always has at least one block.
+                </p>
+                <code>src/lib/notes/self-check.ts</code>
+              </article>
+
+              <article class="check-row">
+                <div class="check-row__top">
+                  <h3>Sentinel</h3>
+                  <p class="check-row__count">90</p>
+                </div>
+                <p>
+                  Verdicts, the 15-minute window, incident runs, latency spread, URL parsing, and the
+                  standing that More and Today both render.
+                </p>
+                <code>src/lib/sentinel/self-check.ts</code>
+              </article>
+            </div>
+          </div>
+
+          <p class="checks__note" data-reveal>
+            Known answers, not snapshots: each suite is plain TypeScript that returns
+            <code>{ name, pass, detail }[]</code> and runs under Node.
+          </p>
+        </div>
+      </section>
+
+      <!-- ================================================================ -->
+      <!-- Install                                                          -->
+      <!-- ================================================================ -->
+      <section class="section install-section" id="install" aria-labelledby="install-title">
+        <div class="shell">
+          <div class="install">
+            <div class="install__copy" data-reveal>
+              <p class="label"><span>06</span> Install</p>
+              <h2 id="install-title">Clone, install,<br />run.</h2>
+              <p class="lede">
+                There is no store build yet. Clone the repository and run it: Expo starts Android
+                and web from the same source.
+              </p>
+              <a
+                class="text-link"
+                href="https://github.com/1-Pankaj/Devlofy#readme"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Read the README
+                <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"></use></svg>
+                <span class="sr-only">(opens in a new tab)</span>
+              </a>
+            </div>
+
+            <div class="install__aside" data-reveal style="--reveal-delay: 80ms">
+              <p class="install__aside-label">What you need</p>
+              <ul class="requirements">
+                <li>
+                  <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
+                  <span><strong>Node 22</strong> and npm</span>
+                </li>
+                <li>
+                  <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
+                  <span><strong>Android</strong> device or emulator, with Expo</span>
+                </li>
+                <li>
+                  <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
+                  <span><strong>A browser</strong> for web. SQLite runs as wasm.</span>
+                </li>
+                <li>
+                  <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
+                  <span><strong>Nothing else</strong>: no sign-up, no API key</span>
+                </li>
+              </ul>
+
+              <p class="install__note">
+                Android is the primary target and web is a first-class partner. iOS is kept
+                buildable, but has not been tested on a device yet.
+              </p>
+            </div>
+
+            <div class="terminal-wrap" data-reveal style="--reveal-delay: 140ms">
+              <div class="terminal">
+                <div class="terminal__bar">
+                  <span class="terminal__lights" aria-hidden="true"><i></i><i></i><i></i></span>
+                  <span class="terminal__title">bash · fresh clone</span>
+                  <button class="terminal__copy" type="button" data-copy-target="#install-commands">
+                    <svg class="icon" aria-hidden="true"><use href="#i-copy"></use></svg>
+                    <span>Copy</span>
+                  </button>
+                </div>
+                <div class="terminal__body">
+                  <pre class="terminal__code" id="install-commands"><code><span class="tok">git</span> clone <span class="url">https://github.com/1-Pankaj/Devlofy.git</span>
+<span class="tok">cd</span> Devlofy
+<span class="tok">npm</span> install
+<span class="tok">npx</span> expo start</code></pre>
+
+                  <div class="terminal__keys">
+                    <p class="terminal__keys-label">In the Expo terminal</p>
+                    <dl class="terminal__keys-list">
+                      <div>
+                        <dt><kbd>a</kbd></dt>
+                        <dd>Open Android</dd>
+                      </div>
+                      <div>
+                        <dt><kbd>w</kbd></dt>
+                        <dd>Open web</dd>
+                      </div>
+                      <div>
+                        <dt><kbd>r</kbd></dt>
+                        <dd>Reload the app</dd>
+                      </div>
+                      <div>
+                        <dt><kbd>?</kbd></dt>
+                        <dd>All commands</dd>
+                      </div>
+                    </dl>
+                  </div>
+                </div>
+                <div class="terminal__foot">
+                  <span class="status-dot" aria-hidden="true"></span>
+                  <span>Node 22 · Expo SDK 58 · runs locally</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================ -->
+      <!-- FAQ                                                              -->
+      <!-- ================================================================ -->
+      <section class="section faq" id="faq" aria-labelledby="faq-title">
+        <div class="shell faq__inner">
+          <header class="faq__head" data-reveal>
+            <p class="label"><span>07</span> Questions</p>
+            <h2 id="faq-title">The honest<br />answers.</h2>
+            <p class="lede">
+              Including the parts that are not finished. If a claim is not in the repository, it is
+              not on this page.
+            </p>
+
+            <p class="faq__aside">
+              <span>Still unanswered?</span>
+              <a
+                class="text-link"
+                href="https://github.com/1-Pankaj/Devlofy/issues"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Open an issue
+                <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"></use></svg>
+                <span class="sr-only">(opens in a new tab)</span>
+              </a>
+            </p>
+          </header>
+
+          <div class="faq__list" data-reveal style="--reveal-delay: 80ms">
+            <details class="faq__item" open>
+              <summary>
+                <span>Is there a download?</span>
+                <svg class="icon faq__caret" aria-hidden="true"><use href="#i-caret-down"></use></svg>
+              </summary>
+              <div class="faq__body">
+                <p>
+                  Not yet. v0.8.0 has no APK and no store listing, so this page does not offer one.
+                  Clone the repository and run it with Expo. A signed build is a later step, not
+                  part of this release.
+                </p>
+              </div>
+            </details>
+
+            <details class="faq__item">
+              <summary>
+                <span>Does it need an account or a connection?</span>
+                <svg class="icon faq__caret" aria-hidden="true"><use href="#i-caret-down"></use></svg>
+              </summary>
+              <div class="faq__body">
+                <p>
+                  No Devlofy account and no backend. Everything works offline except GitHub and
+                  Sentinel, which make requests only when you open them. Your data is one SQLite
+                  file on the device.
+                </p>
+              </div>
+            </details>
+
+            <details class="faq__item">
+              <summary>
+                <span>Is there any cloud AI?</span>
+                <svg class="icon faq__caret" aria-hidden="true"><use href="#i-caret-down"></use></svg>
+              </summary>
+              <div class="faq__body">
+                <p>
+                  No. The Engine is a documented weight table and a set of pure functions over your
+                  own rows. Every score prints a reason you can read, disagree with and change.
+                </p>
+              </div>
+            </details>
+
+            <details class="faq__item">
+              <summary>
+                <span>What happens if I miss a day?</span>
+                <svg class="icon faq__caret" aria-hidden="true"><use href="#i-caret-down"></use></svg>
+              </summary>
+              <div class="faq__body">
+                <p>
+                  Nothing wilts. Growth is 55% focus minutes, 30% streak and 15% today, so a gap
+                  slows the tree rather than killing it. Trophies come from real history, not from a
+                  counter you have to protect.
+                </p>
+              </div>
+            </details>
+
+            <details class="faq__item">
+              <summary>
+                <span>Can I get my data out?</span>
+                <svg class="icon faq__caret" aria-hidden="true"><use href="#i-caret-down"></use></svg>
+              </summary>
+              <div class="faq__body">
+                <p>
+                  Yes. <code>exportAll()</code> writes a JSON dump of every table you own, with a
+                  format version. On Android the database file is yours to copy, back up or delete
+                  without asking; on the web, the export is the way out.
+                </p>
+              </div>
+            </details>
+
+            <details class="faq__item">
+              <summary>
+                <span>Why Android and web?</span>
+                <svg class="icon faq__caret" aria-hidden="true"><use href="#i-caret-down"></use></svg>
+              </summary>
+              <div class="faq__body">
+                <p>
+                  The app is personal-first. A phone gets the tab bar; a desktop-width screen gets a
+                  side rail. Both are in scope. iOS is kept iOS-safe in the code, but it is not a
+                  tested platform yet.
+                </p>
+              </div>
+            </details>
+
+            <details class="faq__item">
+              <summary>
+                <span>What is deliberately missing?</span>
+                <svg class="icon faq__caret" aria-hidden="true"><use href="#i-caret-down"></use></svg>
+              </summary>
+              <div class="faq__body">
+                <p>
+                  Background checks, notifications, sync, an iOS build and a store release. Each
+                  one has a written reason; sync is a decision, not a missing screen. Sentinel
+                  checks while you look, and says exactly that.
+                </p>
+              </div>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================ -->
+      <!-- Closing                                                          -->
+      <!-- ================================================================ -->
+      <section class="closing" aria-labelledby="closing-title">
+        <div class="closing__field" aria-hidden="true"></div>
+        <div class="shell closing__inner">
+          <img
+            class="closing__mark"
+            src="assets/brand/mark-night.png"
+            alt=""
+            width="64"
+            height="64"
+          />
+          <h2 id="closing-title">Your work is already yours.</h2>
+          <p>
+            No account to create. Nothing to migrate. Clone it, run it, and every row stays on
+            your machine.
+          </p>
+          <div class="closing__actions">
+            <a
+              class="btn btn--primary"
+              href="https://github.com/1-Pankaj/Devlofy"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <svg class="icon" aria-hidden="true"><use href="#i-github"></use></svg>
+              Get the source
+              <span class="sr-only">(opens in a new tab)</span>
+            </a>
+            <a class="btn btn--outline" href="#install">
+              Install in three commands
+              <svg class="icon" aria-hidden="true"><use href="#i-arrow-right"></use></svg>
+            </a>
+          </div>
+          <p class="closing__meta">v0.8.0 · MIT · Built with Expo</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="shell footer__inner">
+        <div class="footer__brand">
+          <a class="brand brand--footer" href="#top" aria-label="Devlofy, back to top">
+            <img
+              class="brand__mark"
+              src="assets/brand/mark-night.png"
+              alt=""
+              width="26"
+              height="26"
+            />
+            <span class="brand__name">Devlofy</span>
+          </a>
+          <p class="footer__tagline">
+            The command center for solo developers. Local data, plain files, no cloud.
+          </p>
+        </div>
+
+        <nav class="footer__nav" aria-label="Footer">
+          <a href="#product">Product</a>
+          <a href="#features">Features</a>
+          <a href="#garden">Garden</a>
+          <a href="#checks">Checks</a>
+          <a href="#install">Install</a>
+          <a href="#faq">FAQ</a>
+        </nav>
+
+        <div class="footer__links">
+          <a
+            href="https://github.com/1-Pankaj/Devlofy"
+            target="_blank"
+            rel="noreferrer"
+          >
+            GitHub
+            <svg class="icon" aria-hidden="true"><use href="#i-arrow-square-out"></use></svg>
+            <span class="sr-only">(opens in a new tab)</span>
+          </a>
+          <a
+            href="https://github.com/1-Pankaj/Devlofy/issues"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Issues
+            <svg class="icon" aria-hidden="true"><use href="#i-arrow-square-out"></use></svg>
+            <span class="sr-only">(opens in a new tab)</span>
+          </a>
+          <a
+            href="https://github.com/1-Pankaj/Devlofy/blob/master/LICENSE"
+            target="_blank"
+            rel="noreferrer"
+          >
+            MIT license
+            <svg class="icon" aria-hidden="true"><use href="#i-arrow-square-out"></use></svg>
+            <span class="sr-only">(opens in a new tab)</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="shell footer__fine">
+        <p>
+          Screenshots are the real app on the seeded demo data. Figures are from the repository at
+          v0.8.0.
+        </p>
+        <p>
+          Type: <a href="assets/fonts/OFL.txt">Mona Sans</a>, SIL OFL 1.1. Icons:
+          <a href="assets/phosphor/LICENSE">Phosphor</a>, MIT. No trackers, no CDN, no third-party
+          requests.
+        </p>
+      </div>
+    </footer>
+
+    <script src="main.js" defer></script>
+  </body>
+</html>
