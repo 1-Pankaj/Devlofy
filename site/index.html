@@ -1,1228 +1,1353 @@
-<!doctype html>
-<html lang="en" class="no-js">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Devlofy · The command center for solo developers</title>
-    <meta
-      name="description"
-      content="Plan the day, time the work, price it, write it down and watch the garden grow. One local SQLite file, no backend, no sign-up, no cloud AI."
-    />
-    <meta name="theme-color" content="#08090c" />
-    <meta name="color-scheme" content="light" />
-    <link rel="icon" href="assets/brand/favicon.png" type="image/png" />
-    <link rel="apple-touch-icon" href="assets/brand/favicon.png" />
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!--
+  Devlofy landing page — © 2026 Pankaj Israni, MIT License (same as the Devlofy repo).
+  Third-party software used by this page, all used under their own licenses:
+    · Octicons (SVG sprite)        © GitHub, Inc. — MIT License
+    · Mona Sans (Google Fonts)     © Monotype Imaging Inc. — SIL Open Font License 1.1
+    · GSAP + ScrollTrigger         © Webflow — GSAP Standard License ("no charge" license)
+    · Lenis                        © darkroom.engineering — MIT License
+    · Swiper                       © Vladimir Kharlampidi — MIT License
+  License of record for the app itself: https://github.com/1-Pankaj/Devlofy/blob/master/LICENSE
+-->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#ffffff">
+<title>Devlofy — The command center for people who build alone</title>
+<meta name="description" content="The offline-first command center for solo developers — plan your day, run your clients, ship your projects, get paid. Local SQLite, a 3D focus garden, Android + web. No account, no backend, no cloud AI.">
+<link rel="canonical" href="https://1-pankaj.github.io/Devlofy/">
+<meta property="og:title" content="Devlofy — The command center for people who build alone">
+<meta property="og:description" content="The offline-first command center for solo developers. Local SQLite, a 3D focus garden, Android + web. No account, no backend, no cloud AI. MIT licensed, open source.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://1-pankaj.github.io/Devlofy/">
+<meta property="og:image" content="https://opengraph.githubassets.com/1/1-Pankaj/Devlofy">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Devlofy","applicationCategory":"DeveloperApplication","operatingSystem":"Android, Web","softwareVersion":"0.8.0","isAccessibleForFree":true,"description":"The offline-first command center for solo developers — plan your day, run your clients, ship your projects, get paid. Local SQLite, a 3D focus garden, Android + web. No account, no backend, no cloud AI.","author":{"@type":"Person","name":"Pankaj Israni","url":"https://github.com/1-Pankaj"},"license":"https://github.com/1-Pankaj/Devlofy/blob/master/LICENSE","codeRepository":"https://github.com/1-Pankaj/Devlofy"}
+</script>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3.5' fill='%231f883d'/%3E%3Cpath d='M8 2.2l1.5 4.3 4.3 1.5-4.3 1.5L8 13.8 6.5 9.5 2.2 8l4.3-1.5z' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mona+Sans:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
+<script>document.documentElement.classList.add('js');</script>
+<style>
+/* ================= PRIMER-FAITHFUL TOKENS ================= */
+:root{
+  color-scheme:light;
+  --canvas:#ffffff;
+  --subtle:#f6f8fa;
+  --inset:#eff2f5;
+  --fg:#1f2328;
+  --fg-muted:#59636e;
+  --fg-subtle:#6e7781;
+  --border:#d1d9e0;
+  --border-muted:rgba(31,35,40,.15);
+  --accent:#0969da;
+  --accent-sub:#ddf4ff;
+  --accent-emph:#0550ae;
+  --success:#1a7f37;
+  --success-emph:#1f883d;
+  --success-sub:#dafbe1;
+  --attention:#9a6700;
+  --attention-sub:#fff8c5;
+  --danger:#cf222e;
+  --done:#8250df;
+  --done-sub:#fbefff;
+  --open:#1a7f37;
+  --merged:#8250df;
+  --closed-fg:#59636e;
+  --heat0:#ebedf0; --heat1:#9be9a8; --heat2:#40c463; --heat3:#30a14e; --heat4:#216e39;
+  --sans:'Mona Sans',-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --shadow-md:0 8px 24px rgba(140,149,159,.2);
+  --shadow-lg:0 16px 48px rgba(140,149,159,.3);
+  --radius:6px;
+}
+/* ================= BASE ================= */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-padding-top:118px;-webkit-text-size-adjust:100%;overflow-x:clip}
+body{background:var(--canvas);color:var(--fg);font:400 16px/1.6 var(--sans);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;overflow-x:clip}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+svg.octicon{width:16px;height:16px;fill:currentColor;flex-shrink:0;display:inline-block;vertical-align:text-bottom}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+::selection{background:rgba(9,105,218,.25)}
+.container{width:min(1216px,calc(100% - 40px));margin-inline:auto}
+.container-md{width:min(1012px,calc(100% - 40px));margin-inline:auto}
+.sec{padding:clamp(64px,8vw,104px) 0}
+.sec-subtle{background:var(--subtle);border-block:1px solid var(--border)}
+.kicker{display:inline-flex;align-items:center;gap:8px;font:600 12px/1 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.kicker .octicon{width:14px;height:14px}
+h2.sec-title{font-size:clamp(1.7rem,3.2vw,2.35rem);font-weight:700;letter-spacing:-.02em;line-height:1.18;margin:14px 0 12px}
+p.sec-sub{color:var(--fg-muted);font-size:17px;line-height:1.65;max-width:640px}
+.sec-head{margin-bottom:clamp(32px,4.5vw,52px)}
+/* reveal gating — only hidden when GSAP is present */
+html.gsap [data-reveal]{opacity:0;transform:translateY(22px)}
+html.gsap .mask>span{display:block;transform:translateY(110%)}
+.mask{display:block;overflow:hidden}
+.mask>span{display:block}
+/* ================= BUTTONS (Primer) ================= */
+.btn{display:inline-flex;align-items:center;gap:8px;padding:5px 14px;height:34px;border-radius:var(--radius);
+  border:1px solid var(--border-muted);background:var(--subtle);color:var(--fg);
+  font:500 14px/1.4 var(--sans);white-space:nowrap;transition:background .18s,border-color .18s,color .18s}
+.btn:hover{background:var(--inset);text-decoration:none}
+.btn .octicon{width:14px;height:14px;color:var(--fg-muted)}
+.btn-primary{background:var(--success-emph);color:#fff;border-color:rgba(31,35,40,.15)}
+.btn-primary .octicon{color:#fff}
+.btn-primary:hover{background:var(--success)}
+.btn-lg{height:44px;padding:0 22px;font-size:15.5px;border-radius:8px}
+.btn-lg .octicon{width:16px;height:16px}
+.counter{display:inline-flex;align-items:center;padding:0 7px;min-height:20px;border-radius:20px;
+  background:rgba(175,184,193,.25);font-size:12px;font-weight:600;color:var(--fg)}
+.counter[hidden]{display:none!important}
+.btn-primary .counter{background:rgba(255,255,255,.25);color:#fff}
+kbd{display:inline-block;padding:2px 6px;border-radius:5px;border:1px solid var(--border);
+  border-bottom-width:2px;background:var(--subtle);font:600 11px/1.4 var(--mono);color:var(--fg-muted)}
+/* ================= REPO HEADER ================= */
+/* Solid header, like github.com — backdrop-filter here repaints every scroll frame and stutters the page */
+.repo-head{position:sticky;top:0;z-index:90;background:var(--canvas);
+  border-bottom:1px solid var(--border);transition:box-shadow .3s}
+.repo-head.scrolled{box-shadow:0 4px 16px rgba(140,149,159,.12)}
+.rh-top{display:flex;align-items:center;gap:14px;height:56px}
+.rh-mark{color:var(--fg);display:flex}
+.rh-mark .octicon{width:30px;height:30px}
+.crumbs{display:flex;align-items:center;gap:7px;font-size:15px;min-width:0}
+.crumbs .user{color:var(--accent);font-weight:400;white-space:nowrap}
+.crumbs .sep{color:var(--fg-muted)}
+.crumbs .name{color:var(--accent);font-weight:700;white-space:nowrap}
+.crumbs .name:hover{text-decoration:underline}
+.badge-public{border:1px solid var(--border-muted);border-radius:2em;padding:1px 9px;font-size:12px;font-weight:500;color:var(--fg-muted);white-space:nowrap}
+.rh-actions{margin-left:auto;display:flex;align-items:center;gap:10px}
+.rh-search{display:flex;align-items:center;gap:8px;width:240px;height:32px;padding:0 10px;
+  border:1px solid var(--border);border-radius:var(--radius);color:var(--fg-muted);font-size:13.5px;background:var(--canvas);transition:border-color .2s}
+.rh-search:hover{border-color:#8c959f}
+.rh-search kbd{margin-left:auto}
+.rh-tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+.rh-tabs::-webkit-scrollbar{display:none}
+.tab{display:inline-flex;align-items:center;gap:7px;padding:10px 6px 12px;font-size:14px;color:var(--fg);
+  border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tab .octicon{color:var(--fg-muted);width:14px;height:14px}
+.tab:hover{text-decoration:none;border-bottom-color:var(--border)}
+.tab.active{font-weight:600;border-bottom-color:#fd8c73}
+.tab.active .octicon{color:var(--fg)}
+.tab .counter{min-height:18px;padding:0 6px;font-size:11.5px}
+/* ================= HERO ================= */
+.hero{padding:clamp(56px,8vw,96px) 0 clamp(56px,7vw,88px);border-bottom:1px solid var(--border);position:relative;overflow:hidden}
+.hero-glow{position:absolute;inset:auto -10% -60% -10%;height:70%;pointer-events:none;
+  background:radial-gradient(50% 60% at 50% 100%,rgba(31,136,61,.075),transparent 70%),
+             radial-gradient(42% 55% at 76% 100%,rgba(154,103,0,.05),transparent 70%)}
+.topics{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:26px}
+.topic{background:var(--accent-sub);color:var(--accent);border-radius:2em;padding:5px 13px;font-size:12.5px;font-weight:600}
+.topic:hover{background:#c6e6ff;text-decoration:none}
+h1.hero-title{text-align:center;font-weight:800;font-size:clamp(2.55rem,6.4vw,5rem);line-height:1.03;letter-spacing:-.028em;max-width:19ch;margin-inline:auto}
+.grad{background:linear-gradient(92deg,#0e5a24 0%,#1f883d 58%,#35b35b 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero-sub{text-align:center;color:var(--fg-muted);font-size:clamp(1.05rem,1.5vw,1.22rem);line-height:1.66;max-width:620px;margin:26px auto 0}
+.hero-sub b{color:var(--fg);font-weight:600}
+.hero-cta{display:flex;justify-content:center;align-items:center;gap:14px;margin-top:36px;flex-wrap:wrap}
+.kbd-hint{display:inline-flex;align-items:center;gap:8px;color:var(--fg-muted);font-size:13px}
+.hero-proof{display:flex;justify-content:center;gap:22px;flex-wrap:wrap;margin-top:26px;font-size:13px;color:var(--fg-muted)}
+.hero-proof span{display:inline-flex;align-items:center;gap:6px}
+.hero-proof .octicon{width:14px;height:14px;color:var(--success)}
+/* ================= HEATMAP ================= */
+.hm-panel{margin:clamp(44px,6vw,64px) auto 0;max-width:1012px;background:var(--canvas);border:1px solid var(--border);
+  border-radius:var(--radius);padding:20px 22px;box-shadow:0 1px 0 rgba(31,35,40,.04)}
+.hm-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+.hm-title{font-size:15.5px;font-weight:600}
+.hm-title b{color:var(--accent)}
+.hm-legend{display:flex;align-items:center;gap:4px;font-size:11.5px;color:var(--fg-muted)}
+.hm-legend i{width:10px;height:10px;border-radius:2px;display:block}
+.hm-scroll{overflow-x:auto;padding-bottom:6px}
+.hm-inner{display:grid;grid-template-columns:auto 1fr;gap:8px;width:max-content;margin-inline:auto}
+.hm-days{display:grid;grid-template-rows:repeat(7,11px);gap:3px;font-size:9.5px;color:var(--fg-subtle);width:26px;padding-top:19px}
+.hm-days span{grid-row:var(--r)}
+.hm-body{width:max-content}
+.hm-months{display:grid;grid-template-columns:repeat(53,14px);height:16px;font-size:9.5px;color:var(--fg-subtle)}
+.hm-months span{white-space:nowrap}
+.hm-grid{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,11px);gap:3px}
+.hm-cell{width:11px;height:11px;border-radius:2px;background:var(--heat0)}
+.hm-cell[data-l="1"]{background:var(--heat1)}.hm-cell[data-l="2"]{background:var(--heat2)}
+.hm-cell[data-l="3"]{background:var(--heat3)}.hm-cell[data-l="4"]{background:var(--heat4)}
+html.gsap .hm-cell{opacity:0;transform:scale(.3)}
+.hm-cell:hover{outline:1px solid var(--fg-muted);outline-offset:0}
+.hm-tip{position:fixed;z-index:120;pointer-events:none;background:var(--canvas);border:1px solid var(--border);
+  border-radius:6px;box-shadow:var(--shadow-md);padding:7px 11px;font-size:12px;font-weight:600;color:var(--fg);
+  opacity:0;transform:translateY(4px);transition:opacity .15s,transform .15s;white-space:nowrap}
+.hm-tip small{display:block;font-weight:400;color:var(--fg-muted);font-size:11px}
+.hm-cap{margin-top:14px;font-size:13px;color:var(--fg-muted);text-align:center}
+.hm-cap .octicon{width:13px;height:13px;color:var(--success);vertical-align:-2px;margin-right:2px}
+/* ================= MARQUEE ================= */
+.marquee{overflow:hidden;background:var(--subtle);border-bottom:1px solid var(--border);padding:15px 0}
+.mq-track{display:flex;width:max-content;animation:mq 30s linear infinite;will-change:transform}
+.marquee:hover .mq-track{animation-play-state:paused}
+.mq-seg{display:flex;align-items:center;flex-shrink:0}
+.mq-item{display:flex;align-items:center;gap:12px;padding-right:44px;font-size:13px;font-weight:600;
+  letter-spacing:.09em;text-transform:uppercase;color:var(--fg-muted);white-space:nowrap}
+.mq-item .octicon{width:14px;height:14px;color:var(--success)}
+@keyframes mq{to{transform:translateX(-50%)}}
+</style>
+<style>
+/* ================= FILE BROWSER (features) ================= */
+.filebox{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--canvas)}
+.filebox-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 18px;background:var(--subtle);border-bottom:1px solid var(--border)}
+.filebox-head .path{display:flex;align-items:center;gap:8px;font:600 13.5px var(--mono);color:var(--fg-muted)}
+.filebox-head .path .octicon{width:14px;height:14px}
+.filebox-head .path b{color:var(--fg);font-weight:600}
+.filebox-head .n{font-size:12.5px;color:var(--fg-muted)}
+.frow{display:grid;grid-template-columns:minmax(150px,1.1fr) 2fr auto;align-items:center;gap:18px;
+  padding:13px 18px;border-top:1px solid var(--border-muted);transition:background .15s}
+.frow:first-of-type{border-top:0}
+.frow:hover{background:var(--subtle)}
+.frow .ficon{color:#54aeff}
+.frow .fname{color:var(--accent);font-weight:500;font-size:14.5px}
+.frow:hover .fname{text-decoration:underline}
+.frow .fmsg{color:var(--fg-muted);font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.frow .ftime{color:var(--fg-muted);font-size:13px;white-space:nowrap}
+.frow{color:inherit}
+.frow:hover{text-decoration:none}
+/* ================= MARKDOWN / README ================= */
+.readme-grid{display:grid;grid-template-columns:minmax(0,1fr) 296px;gap:24px;align-items:start}
+.md{background:var(--canvas);border:1px solid var(--border);border-radius:var(--radius);padding:clamp(24px,3.5vw,40px)}
+.md-file{display:flex;align-items:center;gap:9px;font-size:14px;font-weight:600;color:var(--fg-muted);
+  border-bottom:1px solid var(--border);padding-bottom:16px;margin-bottom:24px}
+.md-file .octicon{color:var(--fg-muted)}
+.md h3{font-size:21px;font-weight:700;letter-spacing:-.01em;margin:34px 0 12px;display:flex;align-items:center;gap:8px}
+.md h3:first-of-type{margin-top:6px}
+.md h3 .octicon{width:15px;height:15px;color:var(--fg-muted);opacity:0;transition:opacity .15s}
+.md h3:hover .octicon{opacity:1}
+.md p{margin:14px 0;font-size:15.5px;line-height:1.72;color:#424a53}
+.md p b{color:var(--fg);font-weight:600}
+.md blockquote{border-left:4px solid var(--border);padding:2px 0 2px 16px;margin:16px 0;color:var(--fg-muted);font-size:15px}
+.md blockquote em{color:var(--fg)}
+.md ul{margin:14px 0;padding-left:6px;list-style:none}
+.md ul li{display:flex;gap:10px;padding:6px 0;font-size:15px;color:#424a53}
+.md ul .octicon{color:var(--success);margin-top:4px}
+.md code{font-family:var(--mono);font-size:85%;background:rgba(175,184,193,.2);border-radius:5px;padding:.18em .35em;color:var(--fg)}
+.md pre{position:relative;background:var(--subtle);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;margin:16px 0}
+.md pre code{background:none;padding:0;font-size:13px;line-height:1.65;color:var(--fg)}
+.copy-btn{position:absolute;top:8px;right:8px;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;
+  border:1px solid var(--border-muted);border-radius:6px;background:var(--canvas);font-size:12px;font-weight:500;color:var(--fg-muted)}
+.copy-btn:hover{background:var(--subtle);color:var(--fg)}
+.copy-btn .octicon{width:13px;height:13px}
+.copy-btn.ok{color:var(--success);border-color:rgba(26,127,55,.4)}
+.tk-k{color:#cf222e}.tk-s{color:#0a3069}.tk-c{color:#6e7781}.tk-f{color:#8250df}.tk-v{color:#953800}.tk-p{color:#0550ae}
+/* details FAQ inside readme */
+.md details{border-top:1px solid var(--border);padding:6px 0}
+.md details:last-child{border-bottom:1px solid var(--border)}
+.md summary{display:flex;align-items:center;gap:10px;padding:11px 4px;font-size:15px;font-weight:600;cursor:pointer;list-style:none;color:var(--fg)}
+.md summary::-webkit-details-marker{display:none}
+.md summary .octicon{width:14px;height:14px;color:var(--fg-muted);transition:transform .25s}
+.md details[open] summary .octicon{transform:rotate(90deg)}
+.md details p{margin:4px 4px 14px;font-size:14.5px}
+/* ================= ABOUT SIDEBAR ================= */
+.about{background:var(--canvas);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.about h4{font-size:14px;font-weight:600;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+.about h4 .octicon{color:var(--fg-muted);width:14px;height:14px}
+.about .desc{font-size:14px;color:var(--fg);margin-bottom:14px}
+.about .topics{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+.about .topic{font-size:11.5px;padding:3px 10px}
+.a-row{display:flex;align-items:center;gap:9px;font-size:13.5px;color:var(--fg-muted);padding:5px 0}
+.a-row .octicon{color:var(--fg-muted);width:15px;height:15px}
+.a-row b{color:var(--fg);font-weight:600}
+.a-row a{color:var(--accent)}
+.avatar{width:24px;height:24px;border-radius:50%;border:1px solid var(--border)}
+.langbar{display:flex;height:8px;border-radius:99px;overflow:hidden;background:var(--inset);margin:12px 0 10px}
+.langbar i{display:block;height:100%}
+.lang-legend{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--fg-muted)}
+.lang-legend .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
+.lang-legend b{color:var(--fg);font-weight:600}
+/* ================= COMMAND PALETTE ================= */
+.palette-sec-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:clamp(36px,5vw,72px);align-items:center}
+/* Bench preview — a live, clickable mock of the real command palette */
+.pal-demo{display:flex;flex-direction:column;align-items:center;gap:16px}
+.pal-card{position:relative;display:flex;flex-direction:column;width:min(464px,100%);margin-top:14px;
+  text-align:left;background:var(--canvas);border:1px solid var(--border);border-radius:12px;
+  box-shadow:var(--shadow-md);padding:0;cursor:pointer;transition:box-shadow .25s,border-color .25s,transform .25s}
+.pal-card:hover{box-shadow:var(--shadow-lg);border-color:#8c959f;transform:translateY(-2px)}
+.pal-card:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.kbd-cap{position:absolute;top:-28px;left:-16px;width:76px;height:76px;border-radius:16px;z-index:2;
+  background:var(--canvas);border:1px solid var(--border);box-shadow:0 3px 0 var(--border),var(--shadow-md);
+  display:grid;place-items:center;font:600 34px/1 var(--sans);color:var(--accent);transform:rotate(-6deg)}
+.pal-head{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--border)}
+.pal-head .octicon{color:var(--fg-muted)}
+.pal-q{font:600 15px/1.4 var(--sans);color:var(--fg)}
+.pal-caret{width:1.5px;height:17px;background:var(--accent);animation:caret 1.1s steps(1) infinite}
+@keyframes caret{50%{opacity:0}}
+.pal-head kbd{margin-left:auto}
+.pal-group{font:600 11px/1 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--fg-subtle);padding:13px 16px 5px}
+.pal-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px;padding:5px 10px 11px}
+.pal-row{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:7px;font-size:13.5px;color:var(--fg);white-space:nowrap}
+.pal-row .octicon{color:var(--fg-muted);width:14px;height:14px}
+.pal-row.active{background:var(--accent);color:#fff}
+.pal-row.active .octicon{color:#fff}
+.pal-foot{display:flex;gap:15px;padding:9px 16px;border-top:1px solid var(--border);background:var(--subtle);
+  border-radius:0 0 11px 11px;font-size:11.5px;color:var(--fg-muted)}
+.pal-foot span{display:inline-flex;align-items:center;gap:5px}
+.pal-foot span:last-child{margin-left:auto}
+.pal-cap{font-size:13px;color:var(--fg-muted);display:inline-flex;align-items:center;gap:5px}
+.cmdk-backdrop{position:fixed;inset:0;z-index:110;background:rgba(31,35,40,.35);opacity:0;pointer-events:none;transition:opacity .2s}
+.cmdk-backdrop.open{opacity:1;pointer-events:auto}
+.cmdk{position:fixed;z-index:111;left:50%;top:14vh;transform:translateX(-50%) scale(.97);width:min(600px,92vw);
+  background:var(--canvas);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow-lg);
+  opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;overflow:hidden}
+.cmdk.open{opacity:1;pointer-events:auto;transform:translateX(-50%) scale(1)}
+.cmdk-input{display:flex;align-items:center;gap:11px;padding:15px 17px;border-bottom:1px solid var(--border)}
+.cmdk-input .octicon{color:var(--fg-muted)}
+.cmdk-input input{flex:1;border:0;outline:0;font:400 15.5px var(--sans);color:var(--fg);background:none}
+.cmdk-input input::placeholder{color:var(--fg-subtle)}
+.cmdk-list{max-height:330px;overflow-y:auto;padding:7px}
+.cmdk-group{font:600 11px/1 var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--fg-subtle);padding:10px 12px 6px}
+.cmdk-item{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:8px;font-size:14.5px;color:var(--fg);cursor:pointer}
+.cmdk-item .octicon{color:var(--fg-muted);width:15px;height:15px}
+.cmdk-item .hint{margin-left:auto;font-size:12px;color:var(--fg-subtle)}
+.cmdk-item.active{background:var(--accent);color:#fff}
+.cmdk-item.active .octicon,.cmdk-item.active .hint{color:#fff}
+.cmdk-empty{padding:22px;text-align:center;color:var(--fg-muted);font-size:14px}
+.cmdk-foot{display:flex;gap:16px;padding:10px 16px;border-top:1px solid var(--border);background:var(--subtle);
+  font-size:11.5px;color:var(--fg-muted)}
+.cmdk-foot span{display:inline-flex;align-items:center;gap:6px}
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(12px);z-index:130;
+  display:flex;align-items:center;gap:9px;background:var(--canvas);border:1px solid var(--border);
+  border-radius:8px;box-shadow:var(--shadow-lg);padding:11px 16px;font-size:13.5px;font-weight:500;
+  opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;max-width:92vw}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast .octicon{color:var(--success)}
+/* ================= GARDEN ================= */
+.garden-grid{display:grid;grid-template-columns:1.02fr .98fr;gap:clamp(40px,6vw,88px);align-items:center}
+.gfacts{margin-top:26px;display:flex;flex-direction:column}
+.gf{display:flex;gap:12px;padding:14px 0;border-top:1px solid var(--border);font-size:15px;color:var(--fg-muted)}
+.gf:last-child{border-bottom:1px solid var(--border)}
+.gf .octicon{color:var(--success);margin-top:3px}
+.gf b{color:var(--fg);font-weight:600}
+.tree-wrap{max-width:420px;margin-inline:auto;width:100%}
+.tree-wrap svg{width:100%;height:auto;animation:sway 7.5s ease-in-out infinite alternate;transform-origin:50% 96%;will-change:transform}
+@keyframes sway{from{transform:rotate(-1.2deg)}to{transform:rotate(1.2deg)}}
+.tree-glow{fill:rgba(64,196,99,.14);filter:blur(30px)}
+.td{fill:none;stroke:#1f2328;stroke-width:2.6;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset 1.9s cubic-bezier(.65,0,.35,1) var(--dd,0s)}
+.td.g{stroke:#1a7f37}
+.grown .td{stroke-dashoffset:0}
+.leaf{opacity:0;transform:scale(0);transform-origin:center;transform-box:fill-box;transition:opacity .7s cubic-bezier(.19,1,.22,1) var(--dd,0s),transform .7s cubic-bezier(.19,1,.22,1) var(--dd,0s)}
+.grown .leaf{opacity:1;transform:scale(1)}
+.tree-cap{text-align:center;margin-top:20px;font-size:14px;color:var(--fg-muted)}
+.tree-cap b{color:var(--success);font-weight:600}
+/* ================= CHANGELOG CARDS ================= */
+.swiper{padding:8px 6px 44px !important}
+.swiper-slide{height:auto !important}
+.comment{background:var(--canvas);border:1px solid var(--border);border-radius:var(--radius);padding:20px;height:100%;display:flex;flex-direction:column;gap:10px;transition:box-shadow .25s,transform .25s}
+.comment:hover{box-shadow:var(--shadow-md);transform:translateY(-3px)}
+.rel-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.rel-tag{display:inline-flex;align-items:center;gap:6px;background:var(--accent-sub);color:var(--accent);border-radius:2em;padding:3px 11px;font:600 12.5px/1.5 var(--mono)}
+.rel-tag .octicon{width:12px;height:12px}
+.rel-name{font-size:15px;font-weight:600;color:var(--fg)}
+.rel-date{font-size:12.5px;color:var(--fg-subtle);margin-left:auto;white-space:nowrap}
+.rel-body{font-size:14.5px;line-height:1.65;color:#424a53;flex:1}
+.rel-link{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--accent)}
+.rel-link .octicon{width:13px;height:13px}
+.comm-note{text-align:center;font-size:12.5px;color:var(--fg-subtle)}
+/* ================= ALERTS (GitHub admonitions) ================= */
+.privacy-grid{display:grid;grid-template-columns:.9fr 1.1fr;gap:clamp(36px,5vw,80px);align-items:start}
+.alert{display:flex;gap:12px;border:1px solid;border-radius:var(--radius);padding:15px 17px;margin-bottom:14px;font-size:14.5px;line-height:1.6}
+.alert .octicon{width:17px;height:17px;margin-top:2px}
+.alert b.t{display:block;font-size:13.5px;margin-bottom:3px}
+.alert p{color:#424a53}
+.alert-note{border-color:rgba(9,105,218,.4);background:var(--accent-sub)}
+.alert-note .octicon,.alert-note .t{color:var(--accent)}
+.alert-important{border-color:rgba(130,80,223,.4);background:var(--done-sub)}
+.alert-important .octicon,.alert-important .t{color:var(--done)}
+.alert-tip{border-color:rgba(26,127,55,.4);background:var(--success-sub)}
+.alert-tip .octicon,.alert-tip .t{color:var(--success)}
+.swiper-pagination-bullet{background:var(--fg-muted);opacity:.35}
+.swiper-pagination-bullet-active{background:var(--accent);opacity:1}
+/* ================= VERIFICATION CHECKS ================= */
+.ck-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.ck{display:flex;gap:13px;border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;background:var(--canvas);transition:box-shadow .25s}
+.ck:hover{box-shadow:var(--shadow-md)}
+.ck>.octicon{width:17px;height:17px;color:var(--success);margin-top:3px}
+.ck b.t{display:block;font:600 13.5px/1.5 var(--mono);color:var(--fg);margin-bottom:4px}
+.ck p{font-size:14.5px;line-height:1.6;color:#424a53}
+.ck-next{grid-column:1/-1;border-style:dashed;background:var(--subtle)}
+.ck-next>.octicon{color:var(--attention)}
+/* ================= CTA / FOOTER ================= */
+.cta{text-align:center;padding:clamp(80px,10vw,130px) 0}
+.cta h2{font-size:clamp(2.3rem,5.4vw,3.9rem);font-weight:800;letter-spacing:-.025em;line-height:1.06}
+.cta p{color:var(--fg-muted);font-size:17px;max-width:520px;margin:18px auto 0}
+.cta .row{display:flex;justify-content:center;gap:14px;margin-top:34px;flex-wrap:wrap}
+.cta .micro{margin-top:24px;font-size:13px;color:var(--fg-muted);display:flex;justify-content:center;gap:18px;flex-wrap:wrap}
+.cta .micro span{display:inline-flex;align-items:center;gap:6px}
+.cta .micro .octicon{width:13px;height:13px;color:var(--fg-muted)}
+.footer{border-top:1px solid var(--border);padding:28px 0;background:var(--canvas)}
+.f-inner{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--fg-muted)}
+.f-left{display:flex;align-items:center;gap:10px}
+.f-left .octicon{width:20px;height:20px;color:var(--fg)}
+.f-links{display:flex;gap:18px;flex-wrap:wrap}
+.f-links a{color:var(--fg-muted)}
+.f-links a:hover{color:var(--accent);text-decoration:none}
+.f-made{display:inline-flex;align-items:center;gap:5px}
+.f-made .octicon{color:var(--danger);width:12px;height:12px}
+.f-sub{border-top:1px solid var(--border-muted);margin-top:18px;padding-top:16px;font-size:12px;color:var(--fg-subtle);text-align:center;line-height:1.7}
+.f-sub a{color:var(--fg-muted);text-decoration:underline}
+.f-sub a:hover{color:var(--accent)}
+.visually-hidden{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
+/* ================= RESPONSIVE ================= */
+@media (max-width:1000px){
+  .readme-grid{grid-template-columns:1fr}
+  .rh-search{display:none}
+}
+@media (max-width:860px){
+  .garden-grid,.palette-sec-grid,.privacy-grid{grid-template-columns:1fr}
+  .ck-grid{grid-template-columns:1fr}
+  .tree-wrap{max-width:330px;margin-top:10px}
+  .pal-card{max-width:440px}
+  .kbd-cap{width:66px;height:66px;font-size:29px;top:-22px;left:-8px}
+  .frow{grid-template-columns:minmax(120px,1fr) auto;row-gap:2px;padding:12px 14px}
+  .frow .fmsg{grid-column:1/-1;white-space:normal;font-size:13.5px}
+  .hm-inner{margin-inline:0}
+}
+@media (max-width:480px){
+  .pal-grid{grid-template-columns:1fr}
+  .kbd-cap{width:58px;height:58px;font-size:26px;top:-18px;left:-6px;border-radius:14px}
+}
+@media (max-width:640px){
+  .crumbs .user-wrap{display:none}
+  .badge-public{display:none}
+  .tab span.tlabel{display:none}
+  .tab.active span.tlabel{display:inline}
+  .hero-cta .btn{flex:1;justify-content:center;min-width:200px}
+  .kbd-hint{width:100%;justify-content:center}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+  html{scroll-behavior:auto}
+  .mq-track{animation:none}
+  .tree-wrap svg{animation:none}
+}
+</style>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true"><symbol id="i-bell" viewBox="0 0 16 16"><path d="M8 16a2 2 0 0 0 1.985-1.75c.017-.137-.097-.25-.235-.25h-3.5c-.138 0-.252.113-.235.25A2 2 0 0 0 8 16ZM3 5a5 5 0 0 1 10 0v2.947c0 .05.015.098.042.139l1.703 2.555A1.519 1.519 0 0 1 13.482 13H2.518a1.516 1.516 0 0 1-1.263-2.36l1.703-2.554A.255.255 0 0 0 3 7.947Zm5-3.5A3.5 3.5 0 0 0 4.5 5v2.947c0 .346-.102.683-.294.97l-1.703 2.556a.017.017 0 0 0-.003.01l.001.006c0 .002.002.004.004.006l.006.004.007.001h10.964l.007-.001.006-.004.004-.006.001-.007a.017.017 0 0 0-.003-.01l-1.703-2.554a1.745 1.745 0 0 1-.294-.97V5A3.5 3.5 0 0 0 8 1.5Z"/></symbol><symbol id="i-book" viewBox="0 0 16 16"><path d="M0 1.75A.75.75 0 0 1 .75 1h4.253c1.227 0 2.317.59 3 1.501A3.743 3.743 0 0 1 11.006 1h4.245a.75.75 0 0 1 .75.75v10.5a.75.75 0 0 1-.75.75h-4.507a2.25 2.25 0 0 0-1.591.659l-.622.621a.75.75 0 0 1-1.06 0l-.622-.621A2.25 2.25 0 0 0 5.258 13H.75a.75.75 0 0 1-.75-.75Zm7.251 10.324.004-5.073-.002-2.253A2.25 2.25 0 0 0 5.003 2.5H1.5v9h3.757a3.75 3.75 0 0 1 1.994.574ZM8.755 4.75l-.004 7.322a3.752 3.752 0 0 1 1.992-.572H14.5v-9h-3.495a2.25 2.25 0 0 0-2.25 2.25Z"/></symbol><symbol id="i-broadcast" viewBox="0 0 16 16"><path d="M8.75 8.582v5.668a.75.75 0 0 1-1.5 0V8.582a1.75 1.75 0 1 1 1.5 0Zm3.983-7.125a.75.75 0 0 1 1.06.026A7.976 7.976 0 0 1 16 7c0 2.139-.84 4.083-2.207 5.517a.75.75 0 1 1-1.086-1.034A6.474 6.474 0 0 0 14.5 7a6.474 6.474 0 0 0-1.793-4.483.75.75 0 0 1 .026-1.06Zm-9.466 0c.3.286.312.76.026 1.06A6.474 6.474 0 0 0 1.5 7a6.47 6.47 0 0 0 1.793 4.483.75.75 0 0 1-1.086 1.034A7.973 7.973 0 0 1 0 7c0-2.139.84-4.083 2.207-5.517a.75.75 0 0 1 1.06-.026Zm8.556 2.321A4.988 4.988 0 0 1 13 7a4.988 4.988 0 0 1-1.177 3.222.75.75 0 1 1-1.146-.967A3.487 3.487 0 0 0 11.5 7c0-.86-.309-1.645-.823-2.255a.75.75 0 0 1 1.146-.967Zm-6.492.958A3.48 3.48 0 0 0 4.5 7a3.48 3.48 0 0 0 .823 2.255.75.75 0 0 1-1.146.967A4.981 4.981 0 0 1 3 7a4.982 4.982 0 0 1 1.188-3.236.75.75 0 1 1 1.143.972Z"/></symbol><symbol id="i-calendar" viewBox="0 0 16 16"><path d="M4.75 0a.75.75 0 0 1 .75.75V2h5V.75a.75.75 0 0 1 1.5 0V2h1.25c.966 0 1.75.784 1.75 1.75v10.5A1.75 1.75 0 0 1 13.25 16H2.75A1.75 1.75 0 0 1 1 14.25V3.75C1 2.784 1.784 2 2.75 2H4V.75A.75.75 0 0 1 4.75 0ZM2.5 7.5v6.75c0 .138.112.25.25.25h10.5a.25.25 0 0 0 .25-.25V7.5Zm10.75-4H2.75a.25.25 0 0 0-.25.25V6h11V3.75a.25.25 0 0 0-.25-.25Z"/></symbol><symbol id="i-check-circle-fill" viewBox="0 0 16 16"><path d="M8 16A8 8 0 1 1 8 0a8 8 0 0 1 0 16Zm3.78-9.72a.751.751 0 0 0-.018-1.042.751.751 0 0 0-1.042-.018L6.75 9.19 5.28 7.72a.751.751 0 0 0-1.042.018.751.751 0 0 0-.018 1.042l2 2a.75.75 0 0 0 1.06 0Z"/></symbol><symbol id="i-check" viewBox="0 0 16 16"><path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"/></symbol><symbol id="i-checklist" viewBox="0 0 16 16"><path d="M2.5 1.75v11.5c0 .138.112.25.25.25h3.17a.75.75 0 0 1 0 1.5H2.75A1.75 1.75 0 0 1 1 13.25V1.75C1 .784 1.784 0 2.75 0h8.5C12.216 0 13 .784 13 1.75v7.736a.75.75 0 0 1-1.5 0V1.75a.25.25 0 0 0-.25-.25h-8.5a.25.25 0 0 0-.25.25Zm13.274 9.537v-.001l-4.557 4.45a.75.75 0 0 1-1.055-.008l-1.943-1.95a.75.75 0 0 1 1.062-1.058l1.419 1.425 4.026-3.932a.75.75 0 1 1 1.048 1.074ZM4.75 4h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1 0-1.5ZM4 7.75A.75.75 0 0 1 4.75 7h2a.75.75 0 0 1 0 1.5h-2A.75.75 0 0 1 4 7.75Z"/></symbol><symbol id="i-chevron-down" viewBox="0 0 16 16"><path d="M12.78 5.22a.749.749 0 0 1 0 1.06l-4.25 4.25a.749.749 0 0 1-1.06 0L3.22 6.28a.749.749 0 1 1 1.06-1.06L8 8.939l3.72-3.719a.749.749 0 0 1 1.06 0Z"/></symbol><symbol id="i-clock" viewBox="0 0 16 16"><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm7-3.25v2.992l2.028.812a.75.75 0 0 1-.557 1.392l-2.5-1A.751.751 0 0 1 7 8.25v-3.5a.75.75 0 0 1 1.5 0Z"/></symbol><symbol id="i-code" viewBox="0 0 16 16"><path d="m11.28 3.22 4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734L13.94 8l-3.72-3.72a.749.749 0 0 1 .326-1.275.749.749 0 0 1 .734.215Zm-6.56 0a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042L2.06 8l3.72 3.72a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L.47 8.53a.75.75 0 0 1 0-1.06Z"/></symbol><symbol id="i-comment-discussion" viewBox="0 0 16 16"><path d="M1.75 1h8.5c.966 0 1.75.784 1.75 1.75v5.5A1.75 1.75 0 0 1 10.25 10H7.061l-2.574 2.573A1.458 1.458 0 0 1 2 11.543V10h-.25A1.75 1.75 0 0 1 0 8.25v-5.5C0 1.784.784 1 1.75 1ZM1.5 2.75v5.5c0 .138.112.25.25.25h1a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h3.5a.25.25 0 0 0 .25-.25v-5.5a.25.25 0 0 0-.25-.25h-8.5a.25.25 0 0 0-.25.25Zm13 2a.25.25 0 0 0-.25-.25h-.5a.75.75 0 0 1 0-1.5h.5c.966 0 1.75.784 1.75 1.75v5.5A1.75 1.75 0 0 1 14.25 12H14v1.543a1.458 1.458 0 0 1-2.487 1.03L9.22 12.28a.749.749 0 0 1 .326-1.275.749.749 0 0 1 .734.215l2.22 2.22v-2.19a.75.75 0 0 1 .75-.75h1a.25.25 0 0 0 .25-.25Z"/></symbol><symbol id="i-copy" viewBox="0 0 16 16"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"/></symbol><symbol id="i-credit-card" viewBox="0 0 16 16"><path d="M10.75 9a.75.75 0 0 0 0 1.5h1.5a.75.75 0 0 0 0-1.5h-1.5Z"/><path d="M0 3.75C0 2.784.784 2 1.75 2h12.5c.966 0 1.75.784 1.75 1.75v8.5A1.75 1.75 0 0 1 14.25 14H1.75A1.75 1.75 0 0 1 0 12.25ZM14.5 6.5h-13v5.75c0 .138.112.25.25.25h12.5a.25.25 0 0 0 .25-.25Zm0-2.75a.25.25 0 0 0-.25-.25H1.75a.25.25 0 0 0-.25.25V5h13Z"/></symbol><symbol id="i-database" viewBox="0 0 16 16"><path d="M1 3.5c0-.626.292-1.165.7-1.59.406-.422.956-.767 1.579-1.041C4.525.32 6.195 0 8 0c1.805 0 3.475.32 4.722.869.622.274 1.172.62 1.578 1.04.408.426.7.965.7 1.591v9c0 .626-.292 1.165-.7 1.59-.406.422-.956.767-1.579 1.041C11.476 15.68 9.806 16 8 16c-1.805 0-3.475-.32-4.721-.869-.623-.274-1.173-.62-1.579-1.04-.408-.426-.7-.965-.7-1.591Zm1.5 0c0 .133.058.318.282.551.227.237.591.483 1.101.707C4.898 5.205 6.353 5.5 8 5.5c1.646 0 3.101-.295 4.118-.742.508-.224.873-.471 1.1-.708.224-.232.282-.417.282-.55 0-.133-.058-.318-.282-.551-.227-.237-.591-.483-1.101-.707C11.102 1.795 9.647 1.5 8 1.5c-1.646 0-3.101.295-4.118.742-.508.224-.873.471-1.1.708-.224.232-.282.417-.282.55Zm0 4.5c0 .133.058.318.282.551.227.237.591.483 1.101.707C4.898 9.705 6.353 10 8 10c1.646 0 3.101-.295 4.118-.742.508-.224.873-.471 1.1-.708.224-.232.282-.417.282-.55V5.724c-.241.15-.503.286-.778.407C11.475 6.68 9.805 7 8 7c-1.805 0-3.475-.32-4.721-.869a6.15 6.15 0 0 1-.779-.407Zm0 2.225V12.5c0 .133.058.318.282.55.227.237.592.484 1.1.708 1.016.447 2.471.742 4.118.742 1.647 0 3.102-.295 4.117-.742.51-.224.874-.47 1.101-.707.224-.233.282-.418.282-.551v-2.275c-.241.15-.503.285-.778.406-1.247.549-2.917.869-4.722.869-1.805 0-3.475-.32-4.721-.869a6.327 6.327 0 0 1-.779-.406Z"/></symbol><symbol id="i-diff" viewBox="0 0 16 16"><path d="M8.75 1.75V5H12a.75.75 0 0 1 0 1.5H8.75v3.25a.75.75 0 0 1-1.5 0V6.5H4A.75.75 0 0 1 4 5h3.25V1.75a.75.75 0 0 1 1.5 0ZM4 13h8a.75.75 0 0 1 0 1.5H4A.75.75 0 0 1 4 13Z"/></symbol><symbol id="i-download" viewBox="0 0 16 16"><path d="M2.75 14A1.75 1.75 0 0 1 1 12.25v-2.5a.75.75 0 0 1 1.5 0v2.5c0 .138.112.25.25.25h10.5a.25.25 0 0 0 .25-.25v-2.5a.75.75 0 0 1 1.5 0v2.5A1.75 1.75 0 0 1 13.25 14Z"/><path d="M7.25 7.689V2a.75.75 0 0 1 1.5 0v5.689l1.97-1.969a.749.749 0 1 1 1.06 1.06l-3.25 3.25a.749.749 0 0 1-1.06 0L4.22 6.78a.749.749 0 1 1 1.06-1.06l1.97 1.969Z"/></symbol><symbol id="i-eye" viewBox="0 0 16 16"><path d="M8 2c1.981 0 3.671.992 4.933 2.078 1.27 1.091 2.187 2.345 2.637 3.023a1.62 1.62 0 0 1 0 1.798c-.45.678-1.367 1.932-2.637 3.023C11.67 13.008 9.981 14 8 14c-1.981 0-3.671-.992-4.933-2.078C1.797 10.83.88 9.576.43 8.898a1.62 1.62 0 0 1 0-1.798c.45-.677 1.367-1.931 2.637-3.022C4.33 2.992 6.019 2 8 2ZM1.679 7.932a.12.12 0 0 0 0 .136c.411.622 1.241 1.75 2.366 2.717C5.176 11.758 6.527 12.5 8 12.5c1.473 0 2.825-.742 3.955-1.715 1.124-.967 1.954-2.096 2.366-2.717a.12.12 0 0 0 0-.136c-.412-.621-1.242-1.75-2.366-2.717C10.824 4.242 9.473 3.5 8 3.5c-1.473 0-2.825.742-3.955 1.715-1.124.967-1.954 2.096-2.366 2.717ZM8 10a2 2 0 1 1-.001-3.999A2 2 0 0 1 8 10Z"/></symbol><symbol id="i-file-directory-fill" viewBox="0 0 16 16"><path d="M1.75 1A1.75 1.75 0 0 0 0 2.75v10.5C0 14.216.784 15 1.75 15h12.5A1.75 1.75 0 0 0 16 13.25v-8.5A1.75 1.75 0 0 0 14.25 3H7.5a.25.25 0 0 1-.2-.1l-.9-1.2C6.07 1.26 5.55 1 5 1H1.75Z"/></symbol><symbol id="i-file" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Zm1.75-.25a.25.25 0 0 0-.25.25v12.5c0 .138.112.25.25.25h9.5a.25.25 0 0 0 .25-.25V6h-2.75A1.75 1.75 0 0 1 9 4.25V1.5Zm6.75.062V4.25c0 .138.112.25.25.25h2.688l-.011-.013-2.914-2.914-.013-.011Z"/></symbol><symbol id="i-flame" viewBox="0 0 16 16"><path d="M9.533.753V.752c.217 2.385 1.463 3.626 2.653 4.81C13.37 6.74 14.498 7.863 14.498 10c0 3.5-3 6-6.5 6S1.5 13.512 1.5 10c0-1.298.536-2.56 1.425-3.286.376-.308.862 0 1.035.454C4.46 8.487 5.581 8.419 6 8c.282-.282.341-.811-.003-1.5C4.34 3.187 7.035.75 8.77.146c.39-.137.726.194.763.607ZM7.998 14.5c2.832 0 5-1.98 5-4.5 0-1.463-.68-2.19-1.879-3.383l-.036-.037c-1.013-1.008-2.3-2.29-2.834-4.434-.322.256-.63.579-.864.953-.432.696-.621 1.58-.046 2.73.473.947.67 2.284-.278 3.232-.61.61-1.545.84-2.403.633a2.79 2.79 0 0 1-1.436-.874A3.198 3.198 0 0 0 3 10c0 2.53 2.164 4.5 4.998 4.5Z"/></symbol><symbol id="i-gear" viewBox="0 0 16 16"><path d="M8 0a8.2 8.2 0 0 1 .701.031C9.444.095 9.99.645 10.16 1.29l.288 1.107c.018.066.079.158.212.224.231.114.454.243.668.386.123.082.233.09.299.071l1.103-.303c.644-.176 1.392.021 1.82.63.27.385.506.792.704 1.218.315.675.111 1.422-.364 1.891l-.814.806c-.049.048-.098.147-.088.294.016.257.016.515 0 .772-.01.147.038.246.088.294l.814.806c.475.469.679 1.216.364 1.891a7.977 7.977 0 0 1-.704 1.217c-.428.61-1.176.807-1.82.63l-1.102-.302c-.067-.019-.177-.011-.3.071a5.909 5.909 0 0 1-.668.386c-.133.066-.194.158-.211.224l-.29 1.106c-.168.646-.715 1.196-1.458 1.26a8.006 8.006 0 0 1-1.402 0c-.743-.064-1.289-.614-1.458-1.26l-.289-1.106c-.018-.066-.079-.158-.212-.224a5.738 5.738 0 0 1-.668-.386c-.123-.082-.233-.09-.299-.071l-1.103.303c-.644.176-1.392-.021-1.82-.63a8.12 8.12 0 0 1-.704-1.218c-.315-.675-.111-1.422.363-1.891l.815-.806c.05-.048.098-.147.088-.294a6.214 6.214 0 0 1 0-.772c.01-.147-.038-.246-.088-.294l-.815-.806C.635 6.045.431 5.298.746 4.623a7.92 7.92 0 0 1 .704-1.217c.428-.61 1.176-.807 1.82-.63l1.102.302c.067.019.177.011.3-.071.214-.143.437-.272.668-.386.133-.066.194-.158.211-.224l.29-1.106C6.009.645 6.556.095 7.299.03 7.53.01 7.764 0 8 0Zm-.571 1.525c-.036.003-.108.036-.137.146l-.289 1.105c-.147.561-.549.967-.998 1.189-.173.086-.34.183-.5.29-.417.278-.97.423-1.529.27l-1.103-.303c-.109-.03-.175.016-.195.045-.22.312-.412.644-.573.99-.014.031-.021.11.059.19l.815.806c.411.406.562.957.53 1.456a4.709 4.709 0 0 0 0 .582c.032.499-.119 1.05-.53 1.456l-.815.806c-.081.08-.073.159-.059.19.162.346.353.677.573.989.02.03.085.076.195.046l1.102-.303c.56-.153 1.113-.008 1.53.27.161.107.328.204.501.29.447.222.85.629.997 1.189l.289 1.105c.029.109.101.143.137.146a6.6 6.6 0 0 0 1.142 0c.036-.003.108-.036.137-.146l.289-1.105c.147-.561.549-.967.998-1.189.173-.086.34-.183.5-.29.417-.278.97-.423 1.529-.27l1.103.303c.109.029.175-.016.195-.045.22-.313.411-.644.573-.99.014-.031.021-.11-.059-.19l-.815-.806c-.411-.406-.562-.957-.53-1.456a4.709 4.709 0 0 0 0-.582c-.032-.499.119-1.05.53-1.456l.815-.806c.081-.08.073-.159.059-.19a6.464 6.464 0 0 0-.573-.989c-.02-.03-.085-.076-.195-.046l-1.102.303c-.56.153-1.113.008-1.53-.27a4.44 4.44 0 0 0-.501-.29c-.447-.222-.85-.629-.997-1.189l-.289-1.105c-.029-.11-.101-.143-.137-.146a6.6 6.6 0 0 0-1.142 0ZM11 8a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM9.5 8a1.5 1.5 0 1 0-3.001.001A1.5 1.5 0 0 0 9.5 8Z"/></symbol><symbol id="i-git-branch" viewBox="0 0 16 16"><path d="M9.5 3.25a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.493 2.493 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25Zm-6 0a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Zm8.25-.75a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5ZM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Z"/></symbol><symbol id="i-git-commit" viewBox="0 0 16 16"><path d="M11.93 8.5a4.002 4.002 0 0 1-7.86 0H.75a.75.75 0 0 1 0-1.5h3.32a4.002 4.002 0 0 1 7.86 0h3.32a.75.75 0 0 1 0 1.5Zm-1.43-.75a2.5 2.5 0 1 0-5 0 2.5 2.5 0 0 0 5 0Z"/></symbol><symbol id="i-git-pull-request" viewBox="0 0 16 16"><path d="M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354ZM3.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm0 9.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm8.25.75a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Z"/></symbol><symbol id="i-globe" viewBox="0 0 16 16"><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM5.78 8.75a9.64 9.64 0 0 0 1.363 4.177c.255.426.542.832.857 1.215.245-.296.551-.705.857-1.215A9.64 9.64 0 0 0 10.22 8.75Zm4.44-1.5a9.64 9.64 0 0 0-1.363-4.177c-.307-.51-.612-.919-.857-1.215a9.927 9.927 0 0 0-.857 1.215A9.64 9.64 0 0 0 5.78 7.25Zm-5.944 1.5H1.543a6.507 6.507 0 0 0 4.666 5.5c-.123-.181-.24-.365-.352-.552-.715-1.192-1.437-2.874-1.581-4.948Zm-2.733-1.5h2.733c.144-2.074.866-3.756 1.58-4.948.12-.197.237-.381.353-.552a6.507 6.507 0 0 0-4.666 5.5Zm10.181 1.5c-.144 2.074-.866 3.756-1.58 4.948-.12.197-.237.381-.353.552a6.507 6.507 0 0 0 4.666-5.5Zm2.733-1.5a6.507 6.507 0 0 0-4.666-5.5c.123.181.24.365.353.552.714 1.192 1.436 2.874 1.58 4.948Z"/></symbol><symbol id="i-graph" viewBox="0 0 16 16"><path d="M1.5 1.75V13.5h13.75a.75.75 0 0 1 0 1.5H.75a.75.75 0 0 1-.75-.75V1.75a.75.75 0 0 1 1.5 0Zm14.28 2.53-5.25 5.25a.75.75 0 0 1-1.06 0L7 7.06 4.28 9.78a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042l3.25-3.25a.75.75 0 0 1 1.06 0L10 7.94l4.72-4.72a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042Z"/></symbol><symbol id="i-hash" viewBox="0 0 16 16"><path d="M6.368 1.01a.75.75 0 0 1 .623.859L6.57 4.5h3.98l.46-2.868a.75.75 0 0 1 1.48.237L12.07 4.5h2.18a.75.75 0 0 1 0 1.5h-2.42l-.64 4h2.56a.75.75 0 0 1 0 1.5h-2.8l-.46 2.869a.75.75 0 0 1-1.48-.237l.42-2.632H5.45l-.46 2.869a.75.75 0 0 1-1.48-.237l.42-2.632H1.75a.75.75 0 0 1 0-1.5h2.42l.64-4H2.25a.75.75 0 0 1 0-1.5h2.8l.46-2.868a.75.75 0 0 1 .858-.622ZM9.67 10l.64-4H6.33l-.64 4Z"/></symbol><symbol id="i-heart-fill" viewBox="0 0 16 16"><path d="M7.655 14.916v-.001h-.002l-.006-.003-.018-.01a22.066 22.066 0 0 1-3.744-2.584C2.045 10.731 0 8.35 0 5.5 0 2.836 2.086 1 4.25 1 5.797 1 7.153 1.802 8 3.02 8.847 1.802 10.203 1 11.75 1 13.914 1 16 2.836 16 5.5c0 2.85-2.044 5.231-3.886 6.818a22.094 22.094 0 0 1-3.433 2.414 7.152 7.152 0 0 1-.31.17l-.018.01-.008.004a.75.75 0 0 1-.69 0Z"/></symbol><symbol id="i-heart" viewBox="0 0 16 16"><path d="m8 14.25.345.666a.75.75 0 0 1-.69 0l-.008-.004-.018-.01a7.152 7.152 0 0 1-.31-.17 22.055 22.055 0 0 1-3.434-2.414C2.045 10.731 0 8.35 0 5.5 0 2.836 2.086 1 4.25 1 5.797 1 7.153 1.802 8 3.02 8.847 1.802 10.203 1 11.75 1 13.914 1 16 2.836 16 5.5c0 2.85-2.045 5.231-3.885 6.818a22.066 22.066 0 0 1-3.744 2.584l-.018.01-.006.003h-.002ZM4.25 2.5c-1.336 0-2.75 1.164-2.75 3 0 2.15 1.58 4.144 3.365 5.682A20.58 20.58 0 0 0 8 13.393a20.58 20.58 0 0 0 3.135-2.211C12.92 9.644 14.5 7.65 14.5 5.5c0-1.836-1.414-3-2.75-3-1.373 0-2.609.986-3.029 2.456a.749.749 0 0 1-1.442 0C6.859 3.486 5.623 2.5 4.25 2.5Z"/></symbol><symbol id="i-history" viewBox="0 0 16 16"><path d="m.427 1.927 1.215 1.215a8.002 8.002 0 1 1-1.6 5.685.75.75 0 1 1 1.493-.154 6.5 6.5 0 1 0 1.18-4.458l1.358 1.358A.25.25 0 0 1 3.896 6H.25A.25.25 0 0 1 0 5.75V2.104a.25.25 0 0 1 .427-.177ZM7.75 4a.75.75 0 0 1 .75.75v2.992l2.028.812a.75.75 0 0 1-.557 1.392l-2.5-1A.751.751 0 0 1 7 8.25v-3.5A.75.75 0 0 1 7.75 4Z"/></symbol><symbol id="i-inbox" viewBox="0 0 16 16"><path d="M2.8 2.06A1.75 1.75 0 0 1 4.41 1h7.18c.7 0 1.333.417 1.61 1.06l2.74 6.395c.04.093.06.194.06.295v4.5A1.75 1.75 0 0 1 14.25 15H1.75A1.75 1.75 0 0 1 0 13.25v-4.5c0-.101.02-.202.06-.295Zm1.61.44a.25.25 0 0 0-.23.152L1.887 8H4.75a.75.75 0 0 1 .6.3L6.625 10h2.75l1.275-1.7a.75.75 0 0 1 .6-.3h2.863L11.82 2.652a.25.25 0 0 0-.23-.152Zm10.09 7h-2.875l-1.275 1.7a.75.75 0 0 1-.6.3h-3.5a.75.75 0 0 1-.6-.3L4.375 9.5H1.5v3.75c0 .138.112.25.25.25h12.5a.25.25 0 0 0 .25-.25Z"/></symbol><symbol id="i-issue-closed" viewBox="0 0 16 16"><path d="M11.28 6.78a.75.75 0 0 0-1.06-1.06L7.25 8.69 5.78 7.22a.75.75 0 0 0-1.06 1.06l2 2a.75.75 0 0 0 1.06 0l3.5-3.5Z"/><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0Zm-1.5 0a6.5 6.5 0 1 0-13 0 6.5 6.5 0 0 0 13 0Z"/></symbol><symbol id="i-issue-opened" viewBox="0 0 16 16"><path d="M8 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"/><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Z"/></symbol><symbol id="i-kebab-horizontal" viewBox="0 0 16 16"><path d="M8 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3ZM1.5 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Zm13 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"/></symbol><symbol id="i-key" viewBox="0 0 16 16"><path d="M10.5 0a5.499 5.499 0 1 1-1.288 10.848l-.932.932a.749.749 0 0 1-.53.22H7v.75a.749.749 0 0 1-.22.53l-.5.5a.749.749 0 0 1-.53.22H5v.75a.749.749 0 0 1-.22.53l-.5.5a.749.749 0 0 1-.53.22h-2A1.75 1.75 0 0 1 0 14.25v-2c0-.199.079-.389.22-.53l4.932-4.932A5.5 5.5 0 0 1 10.5 0Zm-4 5.5c-.001.431.069.86.205 1.269a.75.75 0 0 1-.181.768L1.5 12.56v1.69c0 .138.112.25.25.25h1.69l.06-.06v-1.19a.75.75 0 0 1 .75-.75h1.19l.06-.06v-1.19a.75.75 0 0 1 .75-.75h1.19l1.023-1.025a.75.75 0 0 1 .768-.18A4 4 0 1 0 6.5 5.5ZM11 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"/></symbol><symbol id="i-law" viewBox="0 0 16 16"><path d="M8.75.75V2h.985c.304 0 .603.08.867.231l1.29.736c.038.022.08.033.124.033h2.234a.75.75 0 0 1 0 1.5h-.427l2.111 4.692a.75.75 0 0 1-.154.838l-.53-.53.529.531-.001.002-.002.002-.006.006-.006.005-.01.01-.045.04c-.21.176-.441.327-.686.45C14.556 10.78 13.88 11 13 11a4.498 4.498 0 0 1-2.023-.454 3.544 3.544 0 0 1-.686-.45l-.045-.04-.016-.015-.006-.006-.004-.004v-.001a.75.75 0 0 1-.154-.838L12.178 4.5h-.162c-.305 0-.604-.079-.868-.231l-1.29-.736a.245.245 0 0 0-.124-.033H8.75V13h2.5a.75.75 0 0 1 0 1.5h-6.5a.75.75 0 0 1 0-1.5h2.5V3.5h-.984a.245.245 0 0 0-.124.033l-1.289.737c-.265.15-.564.23-.869.23h-.162l2.112 4.692a.75.75 0 0 1-.154.838l-.53-.53.529.531-.001.002-.002.002-.006.006-.016.015-.045.04c-.21.176-.441.327-.686.45C4.556 10.78 3.88 11 3 11a4.498 4.498 0 0 1-2.023-.454 3.544 3.544 0 0 1-.686-.45l-.045-.04-.016-.015-.006-.006-.004-.004v-.001a.75.75 0 0 1-.154-.838L2.178 4.5H1.75a.75.75 0 0 1 0-1.5h2.234a.249.249 0 0 0 .125-.033l1.288-.737c.265-.15.564-.23.869-.23h.984V.75a.75.75 0 0 1 1.5 0Zm2.945 8.477c.285.135.718.273 1.305.273s1.02-.138 1.305-.273L13 6.327Zm-10 0c.285.135.718.273 1.305.273s1.02-.138 1.305-.273L3 6.327Z"/></symbol><symbol id="i-link-external" viewBox="0 0 16 16"><path d="M3.75 2h3.5a.75.75 0 0 1 0 1.5h-3.5a.25.25 0 0 0-.25.25v8.5c0 .138.112.25.25.25h8.5a.25.25 0 0 0 .25-.25v-3.5a.75.75 0 0 1 1.5 0v3.5A1.75 1.75 0 0 1 12.25 14h-8.5A1.75 1.75 0 0 1 2 12.25v-8.5C2 2.784 2.784 2 3.75 2Zm6.854-1h4.146a.25.25 0 0 1 .25.25v4.146a.25.25 0 0 1-.427.177L13.03 4.03 9.28 7.78a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042l3.75-3.75-1.543-1.543A.25.25 0 0 1 10.604 1Z"/></symbol><symbol id="i-lock" viewBox="0 0 16 16"><path d="M4 4a4 4 0 0 1 8 0v2h.25c.966 0 1.75.784 1.75 1.75v5.5A1.75 1.75 0 0 1 12.25 15h-8.5A1.75 1.75 0 0 1 2 13.25v-5.5C2 6.784 2.784 6 3.75 6H4Zm8.25 3.5h-8.5a.25.25 0 0 0-.25.25v5.5c0 .138.112.25.25.25h8.5a.25.25 0 0 0 .25-.25v-5.5a.25.25 0 0 0-.25-.25ZM10.5 6V4a2.5 2.5 0 1 0-5 0v2Z"/></symbol><symbol id="i-mark-github" viewBox="0 0 16 16"><path d="M6.766 11.328c-2.063-.25-3.516-1.734-3.516-3.656 0-.781.281-1.625.75-2.188-.203-.515-.172-1.609.063-2.062.625-.078 1.468.25 1.968.703.594-.187 1.219-.281 1.985-.281.765 0 1.39.094 1.953.265.484-.437 1.344-.765 1.969-.687.218.422.25 1.515.046 2.047.5.593.766 1.39.766 2.203 0 1.922-1.453 3.375-3.547 3.64.531.344.89 1.094.89 1.954v1.625c0 .468.391.734.86.547C13.781 14.359 16 11.53 16 8.03 16 3.61 12.406 0 7.984 0 3.563 0 0 3.61 0 8.031a7.88 7.88 0 0 0 5.172 7.422c.422.156.828-.125.828-.547v-1.25c-.219.094-.5.156-.75.156-1.031 0-1.64-.562-2.078-1.609-.172-.422-.36-.672-.719-.719-.187-.015-.25-.093-.25-.187 0-.188.313-.328.625-.328.453 0 .844.281 1.25.86.313.452.64.655 1.031.655s.641-.14 1-.5c.266-.265.47-.5.657-.656"/></symbol><symbol id="i-milestone" viewBox="0 0 16 16"><path d="M7.75 0a.75.75 0 0 1 .75.75V3h3.634c.414 0 .814.147 1.13.414l2.07 1.75a1.75 1.75 0 0 1 0 2.672l-2.07 1.75a1.75 1.75 0 0 1-1.13.414H8.5v5.25a.75.75 0 0 1-1.5 0V10H2.75A1.75 1.75 0 0 1 1 8.25v-3.5C1 3.784 1.784 3 2.75 3H7V.75A.75.75 0 0 1 7.75 0Zm4.384 8.5a.25.25 0 0 0 .161-.06l2.07-1.75a.248.248 0 0 0 0-.38l-2.07-1.75a.25.25 0 0 0-.161-.06H2.75a.25.25 0 0 0-.25.25v3.5c0 .138.112.25.25.25h9.384Z"/></symbol><symbol id="i-north-star" viewBox="0 0 16 16"><path d="M8.5.75a.75.75 0 0 0-1.5 0v5.19L4.391 3.33a.75.75 0 1 0-1.06 1.061L5.939 7H.75a.75.75 0 0 0 0 1.5h5.19l-2.61 2.609a.75.75 0 1 0 1.061 1.06L7 9.561v5.189a.75.75 0 0 0 1.5 0V9.56l2.609 2.61a.75.75 0 1 0 1.06-1.061L9.561 8.5h5.189a.75.75 0 0 0 0-1.5H9.56l2.61-2.609a.75.75 0 0 0-1.061-1.06L8.5 5.939V.75Z"/></symbol><symbol id="i-package" viewBox="0 0 16 16"><path d="m8.878.392 5.25 3.045c.54.314.872.89.872 1.514v6.098a1.75 1.75 0 0 1-.872 1.514l-5.25 3.045a1.75 1.75 0 0 1-1.756 0l-5.25-3.045A1.75 1.75 0 0 1 1 11.049V4.951c0-.624.332-1.201.872-1.514L7.122.392a1.75 1.75 0 0 1 1.756 0ZM7.875 1.69l-4.63 2.685L8 7.133l4.755-2.758-4.63-2.685a.248.248 0 0 0-.25 0ZM2.5 5.677v5.372c0 .09.047.171.125.216l4.625 2.683V8.432Zm6.25 8.271 4.625-2.683a.25.25 0 0 0 .125-.216V5.677L8.75 8.432Z"/></symbol><symbol id="i-paintbrush" viewBox="0 0 16 16"><path d="M11.134 1.535c.7-.509 1.416-.942 2.076-1.155.649-.21 1.463-.267 2.069.34.603.601.568 1.411.368 2.07-.202.668-.624 1.39-1.125 2.096-1.011 1.424-2.496 2.987-3.775 4.249-1.098 1.084-2.132 1.839-3.04 2.3a3.744 3.744 0 0 1-1.055 3.217c-.431.431-1.065.691-1.657.861-.614.177-1.294.287-1.914.357A21.151 21.151 0 0 1 .797 16H.743l.007-.75H.749L.742 16a.75.75 0 0 1-.743-.742l.743-.008-.742.007v-.054a21.25 21.25 0 0 1 .13-2.284c.067-.647.187-1.287.358-1.914.17-.591.43-1.226.86-1.657a3.746 3.746 0 0 1 3.227-1.054c.466-.893 1.225-1.907 2.314-2.982 1.271-1.255 2.833-2.75 4.245-3.777ZM1.62 13.089c-.051.464-.086.929-.104 1.395.466-.018.932-.053 1.396-.104a10.511 10.511 0 0 0 1.668-.309c.526-.151.856-.325 1.011-.48a2.25 2.25 0 1 0-3.182-3.182c-.155.155-.329.485-.48 1.01a10.515 10.515 0 0 0-.309 1.67Zm10.396-10.34c-1.224.89-2.605 2.189-3.822 3.384l1.718 1.718c1.21-1.205 2.51-2.597 3.387-3.833.47-.662.78-1.227.912-1.662.134-.444.032-.551.009-.575h-.001V1.78c-.014-.014-.113-.113-.548.027-.432.14-.995.462-1.655.942Zm-4.832 7.266-.001.001a9.859 9.859 0 0 0 1.63-1.142L7.155 7.216a9.7 9.7 0 0 0-1.161 1.607c.482.302.889.71 1.19 1.192Z"/></symbol><symbol id="i-people" viewBox="0 0 16 16"><path d="M2 5.5a3.5 3.5 0 1 1 5.898 2.549 5.508 5.508 0 0 1 3.034 4.084.75.75 0 1 1-1.482.235 4 4 0 0 0-7.9 0 .75.75 0 0 1-1.482-.236A5.507 5.507 0 0 1 3.102 8.05 3.493 3.493 0 0 1 2 5.5ZM11 4a3.001 3.001 0 0 1 2.22 5.018 5.01 5.01 0 0 1 2.56 3.012.749.749 0 0 1-.885.954.752.752 0 0 1-.549-.514 3.507 3.507 0 0 0-2.522-2.372.75.75 0 0 1-.574-.73v-.352a.75.75 0 0 1 .416-.672A1.5 1.5 0 0 0 11 5.5.75.75 0 0 1 11 4Zm-5.5-.5a2 2 0 1 0-.001 3.999A2 2 0 0 0 5.5 3.5Z"/></symbol><symbol id="i-plus" viewBox="0 0 16 16"><path d="M7.75 2a.75.75 0 0 1 .75.75V7h4.25a.75.75 0 0 1 0 1.5H8.5v4.25a.75.75 0 0 1-1.5 0V8.5H2.75a.75.75 0 0 1 0-1.5H7V2.75A.75.75 0 0 1 7.75 2Z"/></symbol><symbol id="i-repo-forked" viewBox="0 0 16 16"><path d="M5 5.372v.878c0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75v-.878a2.25 2.25 0 1 1 1.5 0v.878a2.25 2.25 0 0 1-2.25 2.25h-1.5v2.128a2.251 2.251 0 1 1-1.5 0V8.5h-1.5A2.25 2.25 0 0 1 3.5 6.25v-.878a2.25 2.25 0 1 1 1.5 0ZM5 3.25a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Zm6.75.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm-3 8.75a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Z"/></symbol><symbol id="i-repo" viewBox="0 0 16 16"><path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5Zm10.5-1h-8a1 1 0 0 0-1 1v6.708A2.486 2.486 0 0 1 4.5 9h8ZM5 12.25a.25.25 0 0 1 .25-.25h3.5a.25.25 0 0 1 .25.25v3.25a.25.25 0 0 1-.4.2l-1.45-1.087a.249.249 0 0 0-.3 0L5.4 15.7a.25.25 0 0 1-.4-.2Z"/></symbol><symbol id="i-rocket" viewBox="0 0 16 16"><path d="M14.064 0h.186C15.216 0 16 .784 16 1.75v.186a8.752 8.752 0 0 1-2.564 6.186l-.458.459c-.314.314-.641.616-.979.904v3.207c0 .608-.315 1.172-.833 1.49l-2.774 1.707a.749.749 0 0 1-1.11-.418l-.954-3.102a1.214 1.214 0 0 1-.145-.125L3.754 9.816a1.218 1.218 0 0 1-.124-.145L.528 8.717a.749.749 0 0 1-.418-1.11l1.71-2.774A1.748 1.748 0 0 1 3.31 4h3.204c.288-.338.59-.665.904-.979l.459-.458A8.749 8.749 0 0 1 14.064 0ZM8.938 3.623h-.002l-.458.458c-.76.76-1.437 1.598-2.02 2.5l-1.5 2.317 2.143 2.143 2.317-1.5c.902-.583 1.74-1.26 2.499-2.02l.459-.458a7.25 7.25 0 0 0 2.123-5.127V1.75a.25.25 0 0 0-.25-.25h-.186a7.249 7.249 0 0 0-5.125 2.123ZM3.56 14.56c-.732.732-2.334 1.045-3.005 1.148a.234.234 0 0 1-.201-.064.234.234 0 0 1-.064-.201c.103-.671.416-2.273 1.15-3.003a1.502 1.502 0 1 1 2.12 2.12Zm6.94-3.935c-.088.06-.177.118-.266.175l-2.35 1.521.548 1.783 1.949-1.2a.25.25 0 0 0 .119-.213ZM3.678 8.116 5.2 5.766c.058-.09.117-.178.176-.266H3.309a.25.25 0 0 0-.213.119l-1.2 1.95ZM12 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/></symbol><symbol id="i-search" viewBox="0 0 16 16"><path d="M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215ZM11.5 7a4.499 4.499 0 1 0-8.997 0A4.499 4.499 0 0 0 11.5 7Z"/></symbol><symbol id="i-shield" viewBox="0 0 16 16"><path d="M7.467.133a1.748 1.748 0 0 1 1.066 0l5.25 1.68A1.75 1.75 0 0 1 15 3.48V7c0 1.566-.32 3.182-1.303 4.682-.983 1.498-2.585 2.813-5.032 3.855a1.697 1.697 0 0 1-1.33 0c-2.447-1.042-4.049-2.357-5.032-3.855C1.32 10.182 1 8.566 1 7V3.48a1.75 1.75 0 0 1 1.217-1.667Zm.61 1.429a.25.25 0 0 0-.153 0l-5.25 1.68a.25.25 0 0 0-.174.238V7c0 1.358.275 2.666 1.057 3.86.784 1.194 2.121 2.34 4.366 3.297a.196.196 0 0 0 .154 0c2.245-.956 3.582-2.104 4.366-3.298C13.225 9.666 13.5 8.36 13.5 7V3.48a.251.251 0 0 0-.174-.237l-5.25-1.68ZM8.75 4.75v3a.75.75 0 0 1-1.5 0v-3a.75.75 0 0 1 1.5 0ZM9 10.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/></symbol><symbol id="i-smiley" viewBox="0 0 16 16"><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm3.82 1.636a.75.75 0 0 1 1.038.175l.007.009c.103.118.22.222.35.31.264.178.683.37 1.285.37.602 0 1.02-.192 1.285-.371.13-.088.247-.192.35-.31l.007-.008a.75.75 0 0 1 1.222.87l-.022-.015c.02.013.021.015.021.015v.001l-.001.002-.002.003-.005.007-.014.019a2.066 2.066 0 0 1-.184.213c-.16.166-.338.316-.53.445-.63.418-1.37.638-2.127.629-.946 0-1.652-.308-2.126-.63a3.331 3.331 0 0 1-.715-.657l-.014-.02-.005-.006-.002-.003v-.002h-.001l.613-.432-.614.43a.75.75 0 0 1 .183-1.044ZM12 7a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM5 8a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm5.25 2.25.592.416a97.71 97.71 0 0 0-.592-.416Z"/></symbol><symbol id="i-star-fill" viewBox="0 0 16 16"><path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.751.751 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z"/></symbol><symbol id="i-star" viewBox="0 0 16 16"><path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.751.751 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Zm0 2.445L6.615 5.5a.75.75 0 0 1-.564.41l-3.097.45 2.24 2.184a.75.75 0 0 1 .216.664l-.528 3.084 2.769-1.456a.75.75 0 0 1 .698 0l2.77 1.456-.53-3.084a.75.75 0 0 1 .216-.664l2.24-2.183-3.096-.45a.75.75 0 0 1-.564-.41L8 2.694Z"/></symbol><symbol id="i-stop" viewBox="0 0 16 16"><path d="M4.47.22A.749.749 0 0 1 5 0h6c.199 0 .389.079.53.22l4.25 4.25c.141.14.22.331.22.53v6a.749.749 0 0 1-.22.53l-4.25 4.25A.749.749 0 0 1 11 16H5a.749.749 0 0 1-.53-.22L.22 11.53A.749.749 0 0 1 0 11V5c0-.199.079-.389.22-.53Zm.84 1.28L1.5 5.31v5.38l3.81 3.81h5.38l3.81-3.81V5.31L10.69 1.5ZM8 4a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 8 4Zm0 8a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"/></symbol><symbol id="i-sun" viewBox="0 0 16 16"><path d="M8 12a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm0-1.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Zm5.657-8.157a.75.75 0 0 1 0 1.061l-1.061 1.06a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734l1.06-1.06a.75.75 0 0 1 1.06 0Zm-9.193 9.193a.75.75 0 0 1 0 1.06l-1.06 1.061a.75.75 0 1 1-1.061-1.06l1.06-1.061a.75.75 0 0 1 1.061 0ZM8 0a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0V.75A.75.75 0 0 1 8 0ZM3 8a.75.75 0 0 1-.75.75H.75a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 3 8Zm13 0a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 16 8Zm-8 5a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5A.75.75 0 0 1 8 13Zm3.536-1.464a.75.75 0 0 1 1.06 0l1.061 1.06a.75.75 0 0 1-1.06 1.061l-1.061-1.06a.75.75 0 0 1 0-1.061ZM2.343 2.343a.75.75 0 0 1 1.061 0l1.06 1.061a.751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018l-1.06-1.06a.75.75 0 0 1 0-1.06Z"/></symbol><symbol id="i-tag" viewBox="0 0 16 16"><path d="M1 7.775V2.75C1 1.784 1.784 1 2.75 1h5.025c.464 0 .91.184 1.238.513l6.25 6.25a1.75 1.75 0 0 1 0 2.474l-5.026 5.026a1.75 1.75 0 0 1-2.474 0l-6.25-6.25A1.752 1.752 0 0 1 1 7.775Zm1.5 0c0 .066.026.13.073.177l6.25 6.25a.25.25 0 0 0 .354 0l5.025-5.025a.25.25 0 0 0 0-.354l-6.25-6.25a.25.25 0 0 0-.177-.073H2.75a.25.25 0 0 0-.25.25ZM6 5a1 1 0 1 1 0 2 1 1 0 0 1 0-2Z"/></symbol><symbol id="i-tasklist" viewBox="0 0 16 16"><path d="M2 2h4a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1Zm4.655 8.595a.75.75 0 0 1 0 1.06L4.03 14.28a.75.75 0 0 1-1.06 0l-1.5-1.5a.749.749 0 0 1 .326-1.275.749.749 0 0 1 .734.215l.97.97 2.095-2.095a.75.75 0 0 1 1.06 0ZM9.75 2.5h5.5a.75.75 0 0 1 0 1.5h-5.5a.75.75 0 0 1 0-1.5Zm0 5h5.5a.75.75 0 0 1 0 1.5h-5.5a.75.75 0 0 1 0-1.5Zm0 5h5.5a.75.75 0 0 1 0 1.5h-5.5a.75.75 0 0 1 0-1.5Zm-7.25-9v3h3v-3Z"/></symbol><symbol id="i-terminal" viewBox="0 0 16 16"><path d="M0 2.75C0 1.784.784 1 1.75 1h12.5c.966 0 1.75.784 1.75 1.75v10.5A1.75 1.75 0 0 1 14.25 15H1.75A1.75 1.75 0 0 1 0 13.25Zm1.75-.25a.25.25 0 0 0-.25.25v10.5c0 .138.112.25.25.25h12.5a.25.25 0 0 0 .25-.25V2.75a.25.25 0 0 0-.25-.25ZM7.25 8a.749.749 0 0 1-.22.53l-2.25 2.25a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734L5.44 8 3.72 6.28a.749.749 0 0 1 .326-1.275.749.749 0 0 1 .734.215l2.25 2.25c.141.14.22.331.22.53Zm1.5 1.5h3a.75.75 0 0 1 0 1.5h-3a.75.75 0 0 1 0-1.5Z"/></symbol><symbol id="i-x" viewBox="0 0 16 16"><path d="M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734L9.06 8l3.22 3.22a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L8 9.06l-3.22 3.22a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z"/></symbol><symbol id="i-zap" viewBox="0 0 16 16"><path d="M9.504.43a1.516 1.516 0 0 1 2.437 1.713L10.415 5.5h2.123c1.57 0 2.346 1.909 1.22 3.004l-7.34 7.142a1.249 1.249 0 0 1-.871.354h-.302a1.25 1.25 0 0 1-1.157-1.723L5.633 10.5H3.462c-1.57 0-2.346-1.909-1.22-3.004L9.503.429Zm1.047 1.074L3.286 8.571A.25.25 0 0 0 3.462 9H6.75a.75.75 0 0 1 .694 1.034l-1.713 4.188 6.982-6.793A.25.25 0 0 0 12.538 7H9.25a.75.75 0 0 1-.683-1.06l2.008-4.418.003-.006a.036.036 0 0 0-.004-.009l-.006-.006-.008-.001c-.003 0-.006.002-.009.004Z"/></symbol></svg><!-- Octicon sprite -->
+<a class="visually-hidden" href="#inside" style="position:absolute;left:-9999px">Skip to content</a>
 
-    <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Devlofy" />
-    <meta property="og:title" content="Devlofy · The command center for solo developers" />
-    <meta
-      property="og:description"
-      content="Tasks, time, invoices, notes, a dev toolbox and a 3D garden. One local SQLite file. No backend, no sign-up, no cloud AI."
-    />
-    <meta property="og:url" content="https://1-pankaj.github.io/Devlofy/" />
-    <meta property="og:image" content="https://1-pankaj.github.io/Devlofy/assets/og.png" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Devlofy, the command center for solo developers: 482 known-answer checks, 11 offline Bench tools, 0 backend services." />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Devlofy · The command center for solo developers" />
-    <meta
-      name="twitter:description"
-      content="Tasks, time, invoices, notes, a dev toolbox and a 3D garden. One local SQLite file."
-    />
-    <meta name="twitter:image" content="https://1-pankaj.github.io/Devlofy/assets/og.png" />
-    <meta name="twitter:image:alt" content="Devlofy, the command center for solo developers: 482 known-answer checks, 11 offline Bench tools, 0 backend services." />
-    <link rel="canonical" href="https://1-pankaj.github.io/Devlofy/" />
+<!-- ============ REPO HEADER ============ -->
+<header class="repo-head" id="repoHead">
+  <div class="container rh-top">
+    <a class="rh-mark" href="https://github.com/1-Pankaj" target="_blank" rel="noopener" aria-label="GitHub profile">
+      <svg class="octicon"><use href="#i-mark-github"/></svg>
+    </a>
+    <nav class="crumbs" aria-label="Repository path">
+      <span class="user-wrap"><a class="user" href="https://github.com/1-Pankaj" target="_blank" rel="noopener">1-Pankaj</a><span class="sep">/</span></span>
+      <a class="name" href="https://github.com/1-Pankaj/Devlofy" target="_blank" rel="noopener">Devlofy</a>
+      <span class="badge-public">Public</span>
+    </nav>
+    <div class="rh-actions">
+      <button class="rh-search" id="searchBtn" type="button" aria-label="Open command palette">
+        <svg class="octicon"><use href="#i-search"/></svg>
+        Type <b style="font-weight:600;color:var(--fg)">/</b> to search
+        <kbd>/</kbd>
+      </button>
+      <a class="btn btn-primary" href="https://github.com/1-Pankaj/Devlofy/releases" target="_blank" rel="noopener">
+        <svg class="octicon"><use href="#i-download"/></svg> Get the app
+      </a>
+      <a class="btn" href="https://github.com/1-Pankaj/Devlofy" target="_blank" rel="noopener">
+        <svg class="octicon"><use href="#i-star"/></svg> Star
+        <span class="counter" data-gh="stargazers_count" hidden>–</span>
+      </a>
+    </div>
+  </div>
+  <div class="container">
+    <nav class="rh-tabs" aria-label="Repository tabs">
+      <a class="tab active" href="#inside"><svg class="octicon"><use href="#i-code"/></svg><span class="tlabel">Code</span></a>
+      <a class="tab" href="https://github.com/1-Pankaj/Devlofy/issues" target="_blank" rel="noopener"><svg class="octicon"><use href="#i-issue-opened"/></svg><span class="tlabel">Issues</span> <span class="counter" data-gh="open_issues_count" hidden>–</span></a>
+      <a class="tab" href="https://github.com/1-Pankaj/Devlofy/pulls" target="_blank" rel="noopener"><svg class="octicon"><use href="#i-git-pull-request"/></svg><span class="tlabel">Pull requests</span></a>
+      <a class="tab" href="#readme"><svg class="octicon"><use href="#i-book"/></svg><span class="tlabel">README</span></a>
+      <a class="tab" href="#bench"><svg class="octicon"><use href="#i-zap"/></svg><span class="tlabel">Bench</span></a>
+      <a class="tab" href="#changelog"><svg class="octicon"><use href="#i-tag"/></svg><span class="tlabel">Changelog</span></a>
+      <a class="tab" href="#privacy"><svg class="octicon"><use href="#i-shield"/></svg><span class="tlabel">Security</span></a>
+    </nav>
+  </div>
+</header>
 
-    <link
-      rel="preload"
-      href="assets/fonts/mona-sans-variable.woff2"
-      as="font"
-      type="font/woff2"
-      crossorigin
-    />
-    <link
-      rel="preload"
-      href="assets/fonts/mona-sans-mono-variable.woff2"
-      as="font"
-      type="font/woff2"
-      crossorigin
-    />
-    <link rel="stylesheet" href="styles.css" />
-    <script>
-      document.documentElement.classList.replace('no-js', 'js');
-    </script>
-  </head>
-  <body>
-    <a class="skip-link" href="#main">Skip to content</a>
+<!-- ============ HERO ============ -->
+<section class="hero" id="top">
+  <div class="hero-glow" aria-hidden="true"></div>
+  <div class="container">
+    <div class="topics" data-reveal>
+      <a class="topic" href="https://github.com/1-Pankaj/Devlofy" target="_blank" rel="noopener">offline-first</a>
+      <a class="topic" href="https://github.com/1-Pankaj/Devlofy" target="_blank" rel="noopener">developer-tools</a>
+      <a class="topic" href="https://github.com/1-Pankaj/Devlofy" target="_blank" rel="noopener">local-first</a>
+      <a class="topic" href="https://github.com/1-Pankaj/Devlofy" target="_blank" rel="noopener">android</a>
+    </div>
+    <h1 class="hero-title">
+      <span class="mask" data-hero><span>The <em class="grad" style="font-style:normal">command center</em> for people who build alone.</span></span>
+    </h1>
+    <p class="hero-sub" data-reveal>Devlofy gathers your tasks, focus hours, clients, notes, invoices and a full bench of offline tools into <b>one app that lives entirely on your device</b>. No accounts. No cloud. No noise. It just stays with you and works.</p>
+    <div class="hero-cta" data-reveal>
+      <a class="btn btn-primary btn-lg magnetic" href="https://github.com/1-Pankaj/Devlofy/releases" target="_blank" rel="noopener">
+        <svg class="octicon"><use href="#i-download"/></svg> Get Devlofy — free
+      </a>
+      <a class="btn btn-lg magnetic" href="https://github.com/1-Pankaj/Devlofy" target="_blank" rel="noopener">
+        <svg class="octicon"><use href="#i-star"/></svg> Star on GitHub
+        <span class="counter" data-gh="stargazers_count" hidden>–</span>
+      </a>
+      <span class="kbd-hint">Press <kbd>/</kbd> anywhere to try the bench</span>
+    </div>
+    <div class="hero-proof" data-reveal>
+      <span><svg class="octicon"><use href="#i-law"/></svg> MIT licensed</span>
+      <span><svg class="octicon"><use href="#i-lock"/></svg> Zero telemetry</span>
+      <span><svg class="octicon"><use href="#i-globe"/></svg> Android &amp; Web — iOS planned</span>
+      <span><svg class="octicon"><use href="#i-tag"/></svg> v0.8.0 — latest release</span>
+    </div>
 
-    <svg class="sprite" aria-hidden="true" focusable="false" width="0" height="0">
-  <symbol id="i-github" viewBox="0 0 256 256"><path d="M208.31,75.68A59.78,59.78,0,0,0,202.93,28,8,8,0,0,0,196,24a59.75,59.75,0,0,0-48,24H124A59.75,59.75,0,0,0,76,24a8,8,0,0,0-6.93,4,59.78,59.78,0,0,0-5.38,47.68A58.14,58.14,0,0,0,56,104v8a56.06,56.06,0,0,0,48.44,55.47A39.8,39.8,0,0,0,96,192v8H72a24,24,0,0,1-24-24A40,40,0,0,0,8,136a8,8,0,0,0,0,16,24,24,0,0,1,24,24,40,40,0,0,0,40,40H96v16a8,8,0,0,0,16,0V192a24,24,0,0,1,48,0v40a8,8,0,0,0,16,0V192a39.8,39.8,0,0,0-8.44-24.53A56.06,56.06,0,0,0,216,112v-8A58.14,58.14,0,0,0,208.31,75.68ZM200,112a40,40,0,0,1-40,40H112a40,40,0,0,1-40-40v-8a41.74,41.74,0,0,1,6.9-22.48A8,8,0,0,0,80,73.83a43.81,43.81,0,0,1,.79-33.58,43.88,43.88,0,0,1,32.32,20.06A8,8,0,0,0,119.82,64h32.35a8,8,0,0,0,6.74-3.69,43.87,43.87,0,0,1,32.32-20.06A43.81,43.81,0,0,1,192,73.83a8.09,8.09,0,0,0,1,7.65A41.72,41.72,0,0,1,200,104Z"/></symbol>
-  <symbol id="i-arrow-right" viewBox="0 0 256 256"><path d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69L138.34,61.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"/></symbol>
-  <symbol id="i-arrow-down" viewBox="0 0 256 256"><path d="M205.66,149.66l-72,72a8,8,0,0,1-11.32,0l-72-72a8,8,0,0,1,11.32-11.32L120,196.69V40a8,8,0,0,1,16,0V196.69l58.34-58.35a8,8,0,0,1,11.32,11.32Z"/></symbol>
-  <symbol id="i-arrow-up-right" viewBox="0 0 256 256"><path d="M200,64V168a8,8,0,0,1-16,0V83.31L69.66,197.66a8,8,0,0,1-11.32-11.32L172.69,72H88a8,8,0,0,1,0-16H192A8,8,0,0,1,200,64Z"/></symbol>
-  <symbol id="i-arrow-square-out" viewBox="0 0 256 256"><path d="M224,104a8,8,0,0,1-16,0V59.32l-66.33,66.34a8,8,0,0,1-11.32-11.32L196.68,48H152a8,8,0,0,1,0-16h64a8,8,0,0,1,8,8Zm-40,24a8,8,0,0,0-8,8v72H48V80h72a8,8,0,0,0,0-16H48A16,16,0,0,0,32,80V208a16,16,0,0,0,16,16H176a16,16,0,0,0,16-16V136A8,8,0,0,0,184,128Z"/></symbol>
-  <symbol id="i-check" viewBox="0 0 256 256"><path d="M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z"/></symbol>
-  <symbol id="i-check-circle" viewBox="0 0 256 256"><path d="M173.66,98.34a8,8,0,0,1,0,11.32l-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35A8,8,0,0,1,173.66,98.34ZM232,128A104,104,0,1,1,128,24,104.11,104.11,0,0,1,232,128Zm-16,0a88,88,0,1,0-88,88A88.1,88.1,0,0,0,216,128Z"/></symbol>
-  <symbol id="i-caret-down" viewBox="0 0 256 256"><path d="M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z"/></symbol>
-  <symbol id="i-plus" viewBox="0 0 256 256"><path d="M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z"/></symbol>
-  <symbol id="i-copy" viewBox="0 0 256 256"><path d="M216,32H88a8,8,0,0,0-8,8V80H40a8,8,0,0,0-8,8V216a8,8,0,0,0,8,8H168a8,8,0,0,0,8-8V176h40a8,8,0,0,0,8-8V40A8,8,0,0,0,216,32ZM160,208H48V96H160Zm48-48H176V88a8,8,0,0,0-8-8H96V48H208Z"/></symbol>
-  <symbol id="i-sparkle" viewBox="0 0 256 256"><path d="M197.58,129.06,146,110l-19-51.62a15.92,15.92,0,0,0-29.88,0L78,110l-51.62,19a15.92,15.92,0,0,0,0,29.88L78,178l19,51.62a15.92,15.92,0,0,0,29.88,0L146,178l51.62-19a15.92,15.92,0,0,0,0-29.88ZM137,164.22a8,8,0,0,0-4.74,4.74L112,223.85,91.78,169A8,8,0,0,0,87,164.22L32.15,144,87,123.78A8,8,0,0,0,91.78,119L112,64.15,132.22,119a8,8,0,0,0,4.74,4.74L191.85,144ZM144,40a8,8,0,0,1,8-8h16V16a8,8,0,0,1,16,0V32h16a8,8,0,0,1,0,16H184V64a8,8,0,0,1-16,0V48H152A8,8,0,0,1,144,40ZM248,88a8,8,0,0,1-8,8h-8v8a8,8,0,0,1-16,0V96h-8a8,8,0,0,1,0-16h8V72a8,8,0,0,1,16,0v8h8A8,8,0,0,1,248,88Z"/></symbol>
-  <symbol id="i-coins" viewBox="0 0 256 256"><path d="M184,89.57V84c0-25.08-37.83-44-88-44S8,58.92,8,84v40c0,20.89,26.25,37.49,64,42.46V172c0,25.08,37.83,44,88,44s88-18.92,88-44V132C248,111.3,222.58,94.68,184,89.57ZM232,132c0,13.22-30.79,28-72,28-3.73,0-7.43-.13-11.08-.37C170.49,151.77,184,139,184,124V105.74C213.87,110.19,232,122.27,232,132ZM72,150.25V126.46A183.74,183.74,0,0,0,96,128a183.74,183.74,0,0,0,24-1.54v23.79A163,163,0,0,1,96,152,163,163,0,0,1,72,150.25Zm96-40.32V124c0,8.39-12.41,17.4-32,22.87V123.5C148.91,120.37,159.84,115.71,168,109.93ZM96,56c41.21,0,72,14.78,72,28s-30.79,28-72,28S24,97.22,24,84,54.79,56,96,56ZM24,124V109.93c8.16,5.78,19.09,10.44,32,13.57v23.37C36.41,141.4,24,132.39,24,124Zm64,48v-4.17c2.63.1,5.29.17,8,.17,3.88,0,7.67-.13,11.39-.35A121.92,121.92,0,0,0,120,171.41v23.46C100.41,189.4,88,180.39,88,172Zm48,26.25V174.4a179.48,179.48,0,0,0,24,1.6,183.74,183.74,0,0,0,24-1.54v23.79a165.45,165.45,0,0,1-48,0Zm64-3.38V171.5c12.91-3.13,23.84-7.79,32-13.57V172C232,180.39,219.59,189.4,200,194.87Z"/></symbol>
-  <symbol id="i-file-text" viewBox="0 0 256 256"><path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Zm-32-80a8,8,0,0,1-8,8H96a8,8,0,0,1,0-16h64A8,8,0,0,1,168,136Zm0,32a8,8,0,0,1-8,8H96a8,8,0,0,1,0-16h64A8,8,0,0,1,168,168Z"/></symbol>
-  <symbol id="i-shield-check" viewBox="0 0 256 256"><path d="M208,40H48A16,16,0,0,0,32,56v56c0,52.72,25.52,84.67,46.93,102.19,23.06,18.86,46,25.26,47,25.53a8,8,0,0,0,4.2,0c1-.27,23.91-6.67,47-25.53C198.48,196.67,224,164.72,224,112V56A16,16,0,0,0,208,40Zm0,72c0,37.07-13.66,67.16-40.6,89.42A129.3,129.3,0,0,1,128,223.62a128.25,128.25,0,0,1-38.92-21.81C61.82,179.51,48,149.3,48,112l0-56,160,0ZM82.34,141.66a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32l-56,56a8,8,0,0,1-11.32,0Z"/></symbol>
-  <symbol id="i-magnifying-glass" viewBox="0 0 256 256"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"/></symbol>
-  <symbol id="i-leaf" viewBox="0 0 256 256"><path d="M223.45,40.07a8,8,0,0,0-7.52-7.52C139.8,28.08,78.82,51,52.82,94a87.09,87.09,0,0,0-12.76,49c.57,15.92,5.21,32,13.79,47.85l-19.51,19.5a8,8,0,0,0,11.32,11.32l19.5-19.51C81,210.73,97.09,215.37,113,215.94q1.67.06,3.33.06A86.93,86.93,0,0,0,162,203.18C205,177.18,227.93,116.21,223.45,40.07ZM153.75,189.5c-22.75,13.78-49.68,14-76.71.77l88.63-88.62a8,8,0,0,0-11.32-11.32L65.73,179c-13.19-27-13-54,.77-76.71,22.09-36.47,74.6-56.44,141.31-54.06C210.2,114.89,190.22,167.41,153.75,189.5Z"/></symbol>
-  <symbol id="i-tree-structure" viewBox="0 0 256 256"><path d="M160,112h48a16,16,0,0,0,16-16V48a16,16,0,0,0-16-16H160a16,16,0,0,0-16,16V64H128a24,24,0,0,0-24,24v32H72v-8A16,16,0,0,0,56,96H24A16,16,0,0,0,8,112v32a16,16,0,0,0,16,16H56a16,16,0,0,0,16-16v-8h32v32a24,24,0,0,0,24,24h16v16a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V160a16,16,0,0,0-16-16H160a16,16,0,0,0-16,16v16H128a8,8,0,0,1-8-8V88a8,8,0,0,1,8-8h16V96A16,16,0,0,0,160,112ZM56,144H24V112H56v32Zm104,16h48v48H160Zm0-112h48V96H160Z"/></symbol>
-  <symbol id="i-database" viewBox="0 0 256 256"><path d="M128,24C74.17,24,32,48.6,32,80v96c0,31.4,42.17,56,96,56s96-24.6,96-56V80C224,48.6,181.83,24,128,24Zm80,104c0,9.62-7.88,19.43-21.61,26.92C170.93,163.35,150.19,168,128,168s-42.93-4.65-58.39-13.08C55.88,147.43,48,137.62,48,128V111.36c17.06,15,46.23,24.64,80,24.64s62.94-9.68,80-24.64ZM69.61,53.08C85.07,44.65,105.81,40,128,40s42.93,4.65,58.39,13.08C200.12,60.57,208,70.38,208,80s-7.88,19.43-21.61,26.92C170.93,115.35,150.19,120,128,120s-42.93-4.65-58.39-13.08C55.88,99.43,48,89.62,48,80S55.88,60.57,69.61,53.08ZM186.39,202.92C170.93,211.35,150.19,216,128,216s-42.93-4.65-58.39-13.08C55.88,195.43,48,185.62,48,176V159.36c17.06,15,46.23,24.64,80,24.64s62.94-9.68,80-24.64V176C208,185.62,200.12,195.43,186.39,202.92Z"/></symbol>
-</svg>
-
-    <header class="site-header" data-header>
-      <div class="shell header__inner">
-        <a class="brand" href="#top" aria-label="Devlofy, back to top">
-          <img class="brand__mark" src="assets/brand/mark-night.png" alt="" width="30" height="30" />
-          <span class="brand__name">Devlofy</span>
-          <span class="brand__version">v0.8.0</span>
-        </a>
-
-        <nav class="site-nav" aria-label="Sections">
-          <a href="#product" data-nav>Product</a>
-          <a href="#features" data-nav>Features</a>
-          <a href="#garden" data-nav>Garden</a>
-          <a href="#checks" data-nav>Checks</a>
-          <a href="#install" data-nav>Install</a>
-          <a href="#faq" data-nav>FAQ</a>
-        </nav>
-
-        <div class="header__actions">
-          <a
-            class="btn btn--outline btn--sm header__github"
-            href="https://github.com/1-Pankaj/Devlofy"
-            target="_blank"
-            rel="noreferrer"
-          >
-            <svg class="icon" aria-hidden="true"><use href="#i-github"></use></svg>
-            GitHub
-            <span class="sr-only">(opens in a new tab)</span>
-          </a>
-          <button
-            class="menu-toggle"
-            type="button"
-            aria-label="Open menu"
-            aria-expanded="false"
-            aria-controls="menu"
-            data-menu-open
-          >
-            <span></span><span></span>
-          </button>
+    <!-- Contribution-graph heatmap of focus hours -->
+    <div class="hm-panel" data-reveal>
+      <div class="hm-head">
+        <div class="hm-title"><b data-hours-total>0</b> focused hours in a sample year</div>
+        <div class="hm-legend">Less
+          <i style="background:var(--heat0)"></i><i style="background:var(--heat1)"></i><i style="background:var(--heat2)"></i><i style="background:var(--heat3)"></i><i style="background:var(--heat4)"></i>
+        More</div>
+      </div>
+      <div class="hm-scroll">
+        <div class="hm-inner">
+          <div class="hm-days" aria-hidden="true">
+            <span style="--r:2">Mon</span><span style="--r:4">Wed</span><span style="--r:6">Fri</span>
+          </div>
+          <div class="hm-body">
+            <div class="hm-months" id="hmMonths" aria-hidden="true"></div>
+            <div class="hm-grid" id="hmGrid" role="img" aria-label="Contribution-graph style heatmap of focused hours across a sample year"></div>
+          </div>
         </div>
       </div>
+      <p class="hm-cap"><svg class="octicon"><use href="#i-north-star"/></svg>Sample data — one imagined year, so you can see the shape of it. Your cells come from your real focus; <b style="color:var(--fg)">yours will look nothing like this one.</b></p>
+    </div>
+  </div>
+</section>
+<!-- ============ MARQUEE ============ -->
+<div class="marquee" aria-hidden="true">
+  <div class="mq-track" id="mqTrack">
+    <div class="mq-seg">
+      <span class="mq-item"><svg class="octicon"><use href="#i-north-star"/></svg>No accounts</span>
+      <span class="mq-item"><svg class="octicon"><use href="#i-north-star"/></svg>No cloud</span>
+      <span class="mq-item"><svg class="octicon"><use href="#i-north-star"/></svg>No telemetry</span>
+      <span class="mq-item"><svg class="octicon"><use href="#i-north-star"/></svg>No subscriptions</span>
+      <span class="mq-item"><svg class="octicon"><use href="#i-north-star"/></svg>No tracking</span>
+      <span class="mq-item"><svg class="octicon"><use href="#i-north-star"/></svg>No lock-in</span>
+      <span class="mq-item"><svg class="octicon"><use href="#i-north-star"/></svg>Works offline, forever</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============ WHAT'S INSIDE (file browser) ============ -->
+<section class="sec" id="inside">
+  <div class="container-md">
+    <header class="sec-head">
+      <span class="kicker" data-reveal><svg class="octicon"><use href="#i-file-directory-fill"/></svg> What&rsquo;s inside</span>
+      <h2 class="sec-title" data-reveal>Nine modules. One <em style="font-style:normal;color:var(--accent)">src/</em> folder.</h2>
+      <p class="sec-sub" data-reveal>Everything below ships inside a single app that runs on your device and never asks who you are. Browse them the way you browse a repo — with the version that shipped each one.</p>
     </header>
+    <div class="filebox" data-reveal>
+      <div class="filebox-head">
+        <span class="path"><svg class="octicon"><use href="#i-git-branch"/></svg>1-Pankaj<b>/Devlofy</b>/src</span>
+        <span class="n">9 modules · master</span>
+      </div>
 
-    <dialog class="menu" id="menu" aria-label="Site menu" data-menu>
-      <div class="menu__top">
-        <span class="menu__title">Menu</span>
-        <button class="menu__close" type="button" aria-label="Close menu" data-menu-close>
-          <svg class="icon icon--close" aria-hidden="true"><use href="#i-plus"></use></svg>
+      <a class="frow" href="https://github.com/1-Pankaj/Devlofy" target="_blank" rel="noopener" data-reveal>
+        <span style="display:flex;align-items:center;gap:11px"><svg class="octicon ficon"><use href="#i-file-directory-fill"/></svg><span class="fname">today</span></span>
+        <span class="fmsg">Plan the day in plain words — <code style="font-family:var(--mono);font-size:12.5px;background:rgba(175,184,193,.2);border-radius:4px;padding:1px 5px">45m</code>, <code style="font-family:var(--mono);font-size:12.5px;background:rgba(175,184,193,.2);border-radius:4px;padding:1px 5px">!3</code>, <code style="font-family:var(--mono);font-size:12.5px;background:rgba(175,184,193,.2);border-radius:4px;padding:1px 5px">tomorrow</code> just work</span>
+        <span class="ftime">shipped in v0.1.0</span>
+      </a>
+      <a class="frow" href="https://github.com/1-Pankaj/Devlofy" target="_blank" rel="noopener" data-reveal>
+        <span style="display:flex;align-items:center;gap:11px"><svg class="octicon ficon"><use href="#i-file-directory-fill"/></svg><span class="fname">garden</span></span>
+        <span class="fmsg">A 3D tree that grows only when you actually focus — proof you can walk around in</span>
+        <span class="ftime">shipped in v0.1.0</span>
+      </a>
+      <a class="frow" href="https://github.com/1-Pankaj/Devlofy" target="_blank" rel="noopener" data-reveal>
+        <span style="display:flex;align-items:center;gap:11px"><svg class="octicon ficon"><use href="#i-file-directory-fill"/></svg><span class="fname">work</span></span>
+        <span class="fmsg">Projects, milestones, clients, billable hours at your rate — invoices drafted in a tap</span>
+        <span class="ftime">shipped in v0.3.0</span>
+      </a>
+      <a class="frow" href="https://github.com/1-Pankaj/Devlofy" target="_blank" rel="noopener" data-reveal>
+        <span style="display:flex;align-items:center;gap:11px"><svg class="octicon ficon"><use href="#i-file-directory-fill"/></svg><span class="fname">notes</span></span>
+        <span class="fmsg">Markdown notes in blocks — wikilinks, backlinks, tickable to-dos that become real tasks</span>
+        <span class="ftime">rebuilt in v0.8.0</span>
+      </a>
+      <a class="frow" href="https://github.com/1-Pankaj/Devlofy" target="_blank" rel="noopener" data-reveal>
+        <span style="display:flex;align-items:center;gap:11px"><svg class="octicon ficon"><use href="#i-file-directory-fill"/></svg><span class="fname">bench</span></span>
+        <span class="fmsg">Eleven offline tools — JSON, SQL, Regex, Diff, Text, Encode, JWT, Hash, Epoch, Cron, Colour</span>
+        <span class="ftime">shipped in v0.6.0</span>
+      </a>
+      <a class="frow" href="https://github.com/1-Pankaj/Devlofy" target="_blank" rel="noopener" data-reveal>
+        <span style="display:flex;align-items:center;gap:11px"><svg class="octicon ficon"><use href="#i-file-directory-fill"/></svg><span class="fname">sentinel</span></span>
+        <span class="fmsg">Uptime and latency for your own URLs — status, incidents and history, kept local</span>
+        <span class="ftime">shipped in v0.7.0</span>
+      </a>
+      <a class="frow" href="https://github.com/1-Pankaj/Devlofy" target="_blank" rel="noopener" data-reveal>
+        <span style="display:flex;align-items:center;gap:11px"><svg class="octicon ficon"><use href="#i-file-directory-fill"/></svg><span class="fname">github</span></span>
+        <span class="fmsg">Notifications, issues, PR reviews, branch commits and merges — without the tab swarm</span>
+        <span class="ftime">shipped in v0.4.0</span>
+      </a>
+      <a class="frow" href="https://github.com/1-Pankaj/Devlofy" target="_blank" rel="noopener" data-reveal>
+        <span style="display:flex;align-items:center;gap:11px"><svg class="octicon ficon"><use href="#i-file-directory-fill"/></svg><span class="fname">search</span></span>
+        <span class="fmsg">One search across projects, clients, notes, tasks and bench tools — <kbd style="font-size:10.5px;padding:1px 5px">Ctrl/Cmd + K</kbd> on web</span>
+        <span class="ftime">shipped in v0.3.0</span>
+      </a>
+      <a class="frow" href="https://github.com/1-Pankaj/Devlofy" target="_blank" rel="noopener" data-reveal>
+        <span style="display:flex;align-items:center;gap:11px"><svg class="octicon ficon"><use href="#i-file-directory-fill"/></svg><span class="fname">engine</span></span>
+        <span class="fmsg">Local rules that suggest what to do next, when you usually work, and how far your estimates drift</span>
+        <span class="ftime">shipped in v0.3.0</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ README + ABOUT ============ -->
+<section class="sec sec-subtle" id="readme">
+  <div class="container-md">
+    <header class="sec-head">
+      <span class="kicker" data-reveal><svg class="octicon"><use href="#i-book"/></svg> The README</span>
+      <h2 class="sec-title" data-reveal>Written like it&rsquo;s meant to be read.</h2>
+      <p class="sec-sub" data-reveal>Most tools hide the fine print. Devlofy&rsquo;s fine print <em>is</em> the product — open source, MIT licensed, and honest about what it does and doesn&rsquo;t do.</p>
+    </header>
+    <div class="readme-grid">
+
+      <article class="md" data-reveal>
+        <div class="md-file"><svg class="octicon"><use href="#i-book"/></svg> README.md</div>
+
+        <h3 id="why">Why Devlofy exists <svg class="octicon"><use href="#i-link-external"/></svg></h3>
+        <p>Most software asks you to sign in, sync up, and hand over your life. Devlofy was built on the opposite idea — <b>the best tool is the one that simply stays with you.</b> It opens in a blink, works on a plane, in a basement, on a train, and it remembers everything even when the internet doesn&rsquo;t.</p>
+        <blockquote>
+          <p><em>Your work deserves a home that doesn&rsquo;t watch it.</em></p>
+        </blockquote>
+        <ul>
+          <li><svg class="octicon"><use href="#i-check-circle-fill"/></svg> Plan days in plain words — <code>!3</code>, <code>45m</code>, <code>tomorrow</code>, <code>#project</code> are understood</li>
+          <li><svg class="octicon"><use href="#i-check-circle-fill"/></svg> A focus timer with streaks, feeding a private 3D garden</li>
+          <li><svg class="octicon"><use href="#i-check-circle-fill"/></svg> Client work, billable hours and invoices in one place</li>
+          <li><svg class="octicon"><use href="#i-check-circle-fill"/></svg> Cross-app search and a local engine that suggests next steps</li>
+          <li><svg class="octicon"><use href="#i-check-circle-fill"/></svg> JSON export, any time — leaving is allowed, so staying is a choice</li>
+        </ul>
+
+        <h3 id="run">Run it from source <svg class="octicon"><use href="#i-link-external"/></svg></h3>
+        <p>No installer ceremony, no account, no email. Clone it and go:</p>
+        <pre><code><span class="tk-c">$ clone the repo — or grab a build from Releases</span>
+git clone <span class="tk-s">https://github.com/1-Pankaj/Devlofy.git</span>
+<span class="tk-f">cd</span> Devlofy
+npm install
+npx expo start   <span class="tk-c"># then press a (Android) or w (web) — iOS is planned</span></code><button class="copy-btn" id="copyBtn" type="button" aria-label="Copy install commands"><svg class="octicon"><use href="#i-copy"/></svg>Copy</button></pre>
+
+        <details>
+          <summary><svg class="octicon"><use href="#i-chevron-down"/></svg> Is Devlofy really free?</summary>
+          <p>Yes — MIT licensed, fully open source. Use it, read it, change it, ship your own version. If it earns its place, a star helps more than you&rsquo;d think.</p>
+        </details>
+        <details>
+          <summary><svg class="octicon"><use href="#i-chevron-down"/></svg> Where exactly is my data?</summary>
+          <p>In a local SQLite database on your device — on web, in your browser&rsquo;s own storage. One tap exports everything to JSON whenever you want a copy.</p>
+        </details>
+        <details>
+          <summary><svg class="octicon"><use href="#i-chevron-down"/></svg> Does it work without internet?</summary>
+          <p>Almost everything does — that&rsquo;s the point. Tasks, focus, the garden, notes, invoices and all eleven bench tools run fully offline. The GitHub and Sentinel panels simply wait politely for a connection.</p>
+        </details>
+        <details>
+          <summary><svg class="octicon"><use href="#i-chevron-down"/></svg> How is this different from Notion or Trello?</summary>
+          <p>Those tools live in someone else&rsquo;s cloud and want an account before they show you anything. Devlofy lives where you live — your device — and never asks who you are. It&rsquo;s not a workspace rental; it&rsquo;s a workshop you own.</p>
+        </details>
+      </article>
+
+      <aside class="about" data-reveal>
+        <h4>About <svg class="octicon"><use href="#i-kebab-horizontal"/></svg></h4>
+        <p class="desc">The offline-first command center for solo developers. One app for tasks, focus, clients, notes, invoices and eleven everyday tools.</p>
+        <div class="topics">
+          <span class="topic">offline-first</span><span class="topic">local-first</span><span class="topic">expo</span><span class="topic">react-native</span><span class="topic">sqlite</span><span class="topic">developer-tools</span>
+        </div>
+        <div class="a-row"><svg class="octicon"><use href="#i-book"/></svg> Readme</div>
+        <div class="a-row"><svg class="octicon"><use href="#i-law"/></svg> <a href="https://github.com/1-Pankaj/Devlofy/blob/master/LICENSE" target="_blank" rel="noopener">MIT license</a></div>
+        <div class="a-row"><svg class="octicon"><use href="#i-tag"/></svg> <b>v0.8.0</b>&nbsp;latest release</div>
+        <div class="a-row"><svg class="octicon"><use href="#i-globe"/></svg> Android &amp; Web · iOS planned</div>
+        <div class="a-row"><img class="avatar" src="https://github.com/1-Pankaj.png?size=64" alt="Pankaj's avatar" loading="lazy" onerror="this.style.display='none'"> <b>1</b>&nbsp;contributor</div>
+        <div class="a-row"><svg class="octicon"><use href="#i-star"/></svg> <b data-gh="stargazers_count">–</b>&nbsp;stars</div>
+        <div class="a-row"><svg class="octicon"><use href="#i-repo-forked"/></svg> <b data-gh="forks_count">–</b>&nbsp;forks</div>
+        <div class="a-row"><svg class="octicon"><use href="#i-eye"/></svg> <b data-gh="subscribers_count">–</b>&nbsp;watching</div>
+        <div class="langbar" aria-hidden="true">
+          <i style="width:90%;background:#3178c6"></i><i style="width:4.4%;background:#3572A5"></i><i style="width:4%;background:#89e051"></i><i style="width:1.6%;background:#f1e05a"></i>
+        </div>
+        <div class="lang-legend">
+          <span><span class="dot" style="background:#3178c6"></span>TypeScript <b>90.0%</b></span>
+          <span><span class="dot" style="background:#3572A5"></span>Python <b>4.4%</b></span>
+          <span><span class="dot" style="background:#89e051"></span>Shell <b>4.0%</b></span>
+          <span><span class="dot" style="background:#f1e05a"></span>JavaScript <b>1.6%</b></span>
+        </div>
+      </aside>
+
+    </div>
+  </div>
+</section>
+<!-- ============ BENCH / COMMAND PALETTE ============ -->
+<section class="sec" id="bench">
+  <div class="container-md palette-sec-grid">
+    <div>
+      <span class="kicker" data-reveal><svg class="octicon"><use href="#i-terminal"/></svg> The bench</span>
+      <h2 class="sec-title" data-reveal>Eleven tools, one keystroke away.</h2>
+      <p class="sec-sub" data-reveal>JSON, SQL, Regex, Diff, Text, Encode, JWT, Hash, Epoch, Cron, Colour — the small tools you normally scatter across browser tabs, gathered into one command palette. Everything computes locally. Try a taste of it right now: press <kbd>/</kbd> or open the palette below.</p>
+      <div data-reveal style="margin-top:26px;display:flex;gap:14px;flex-wrap:wrap">
+        <button class="btn btn-primary btn-lg magnetic" type="button" id="openPalBtn">
+          <svg class="octicon"><use href="#i-search"/></svg> Open the palette
         </button>
+        <a class="btn btn-lg magnetic" href="https://github.com/1-Pankaj/Devlofy" target="_blank" rel="noopener">
+          <svg class="octicon"><use href="#i-code"/></svg> Read the bench code
+        </a>
       </div>
-      <nav class="menu__nav" aria-label="Sections">
-        <a href="#product" data-menu-close>Product</a>
-        <a href="#features" data-menu-close>Features</a>
-        <a href="#garden" data-menu-close>Garden</a>
-        <a href="#checks" data-menu-close>Checks</a>
-        <a href="#install" data-menu-close>Install</a>
-        <a href="#faq" data-menu-close>FAQ</a>
-      </nav>
-      <a class="btn btn--primary btn--block" href="#install" data-menu-close>
-        Start from source
-        <svg class="icon" aria-hidden="true"><use href="#i-arrow-right"></use></svg>
+    </div>
+    <div class="pal-demo" data-reveal>
+      <button class="pal-card" id="palCard" type="button" aria-label="Preview of the bench command palette. Activate to open the real palette.">
+        <span class="kbd-cap" aria-hidden="true">/</span>
+        <span class="pal-head" aria-hidden="true">
+          <svg class="octicon"><use href="#i-search"/></svg>
+          <span class="pal-q">/</span><span class="pal-caret"></span>
+          <kbd>esc</kbd>
+        </span>
+        <span class="pal-group" aria-hidden="true">Bench &mdash; 11 tools</span>
+        <span class="pal-grid" aria-hidden="true">
+          <span class="pal-row"><svg class="octicon"><use href="#i-code"/></svg>JSON formatter</span>
+          <span class="pal-row"><svg class="octicon"><use href="#i-database"/></svg>SQL playground</span>
+          <span class="pal-row"><svg class="octicon"><use href="#i-search"/></svg>Regex tester</span>
+          <span class="pal-row"><svg class="octicon"><use href="#i-diff"/></svg>Diff viewer</span>
+          <span class="pal-row"><svg class="octicon"><use href="#i-file"/></svg>Text tools</span>
+          <span class="pal-row"><svg class="octicon"><use href="#i-lock"/></svg>Encode / decode</span>
+          <span class="pal-row"><svg class="octicon"><use href="#i-key"/></svg>JWT decoder</span>
+          <span class="pal-row"><svg class="octicon"><use href="#i-hash"/></svg>Hash generator</span>
+          <span class="pal-row"><svg class="octicon"><use href="#i-clock"/></svg>Epoch converter</span>
+          <span class="pal-row"><svg class="octicon"><use href="#i-calendar"/></svg>Cron builder</span>
+          <span class="pal-row"><svg class="octicon"><use href="#i-paintbrush"/></svg>Colour picker</span>
+        </span>
+        <span class="pal-foot" aria-hidden="true">
+          <span><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
+          <span><kbd>↵</kbd> open</span>
+          <span><svg class="octicon" style="width:12px;height:12px"><use href="#i-lock"/></svg> runs offline</span>
+        </span>
+      </button>
+      <p class="pal-cap">Press <kbd>/</kbd> anywhere on the page &mdash; or click the card. This one is live.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ GARDEN ============ -->
+<section class="sec sec-subtle" id="garden">
+  <div class="container-md garden-grid">
+    <div>
+      <span class="kicker" data-reveal><svg class="octicon"><use href="#i-sun"/></svg> The garden</span>
+      <h2 class="sec-title" data-reveal>While you work, something grows.</h2>
+      <p class="sec-sub" data-reveal>Every focused minute waters a small tree living inside Devlofy. Minutes become hours, hours become a forest — a private, living record of work only you could have done. On the hard days, open the garden and look at it. That&rsquo;s your proof.</p>
+      <div class="gfacts" data-reveal>
+        <div class="gf"><svg class="octicon"><use href="#i-eye"/></svg><span><b>Real 3D.</b> Rendered live on your device — walk around it, breathe with it.</span></div>
+        <div class="gf"><svg class="octicon"><use href="#i-clock"/></svg><span><b>Fed by focus.</b> Not streaks, not points. Actual, honest, uninterrupted time.</span></div>
+        <div class="gf"><svg class="octicon"><use href="#i-lock"/></svg><span><b>Never resets.</b> No seasons, no paywalls. What you grew, you keep.</span></div>
+      </div>
+    </div>
+    <div class="tree-wrap" id="gardenTree" data-reveal>
+      <svg viewBox="0 0 400 440" role="img" aria-label="A stylised tree drawing itself, grown from focused hours">
+        <ellipse class="tree-glow" cx="200" cy="250" rx="150" ry="150"/>
+        <line x1="60" y1="404" x2="340" y2="404" stroke="rgba(31,35,40,.18)" stroke-width="1.4" stroke-linecap="round"/>
+        <path class="td" pathLength="1" style="--dd:.1s" d="M200 404 C 197 356, 205 330, 200 282"/>
+        <path class="td" pathLength="1" style="--dd:.5s" d="M200 340 C 176 322, 152 300, 138 272"/>
+        <path class="td" pathLength="1" style="--dd:.7s" d="M200 316 C 224 302, 248 284, 262 256"/>
+        <path class="td" pathLength="1" style="--dd:.9s" d="M138 272 C 128 262, 116 258, 104 252"/>
+        <path class="td" pathLength="1" style="--dd:1.1s" d="M262 256 C 272 248, 284 244, 296 240"/>
+        <path class="td g" pathLength="1" style="--dd:1.3s" d="M200 282 C 197 244, 196 208, 200 172"/>
+        <path class="td g" pathLength="1" style="--dd:1.5s" d="M200 226 C 186 214, 176 200, 172 184"/>
+        <path class="td g" pathLength="1" style="--dd:1.7s" d="M200 204 C 214 194, 224 182, 228 166"/>
+        <circle class="leaf" style="--dd:2s;fill:#40c463"    cx="200" cy="160" r="17"/>
+        <circle class="leaf" style="--dd:2.15s;fill:#9be9a8" cx="138" cy="266" r="12"/>
+        <circle class="leaf" style="--dd:2.3s;fill:#216e39"  cx="266" cy="250" r="12"/>
+        <circle class="leaf" style="--dd:2.45s;fill:#40c463" cx="100" cy="248" r="8"/>
+        <circle class="leaf" style="--dd:2.6s;fill:#9be9a8"  cx="300" cy="236" r="8"/>
+        <circle class="leaf" style="--dd:2.75s;fill:#30a14e" cx="170" cy="178" r="7"/>
+        <circle class="leaf" style="--dd:2.9s;fill:#40c463"  cx="230" cy="160" r="7"/>
+      </svg>
+      <p class="tree-cap">Every leaf is real focused time — rendered on your device, kept off every server</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CHANGELOG ============ -->
+<section class="sec" id="changelog">
+  <div class="container-md">
+    <header class="sec-head" style="text-align:center">
+      <span class="kicker" data-reveal style="justify-content:center"><svg class="octicon"><use href="#i-tag"/></svg> Changelog</span>
+      <h2 class="sec-title" data-reveal>Every release, in the open.</h2>
+      <p class="sec-sub" data-reveal style="margin-inline:auto">Devlofy follows Keep a Changelog and SemVer — with one rule the author set for himself: <b>no release ever adds a server, an account, or telemetry.</b></p>
+    </header>
+    <div class="swiper" data-reveal>
+      <div class="swiper-wrapper">
+
+        <div class="swiper-slide">
+          <div class="comment">
+            <div class="rel-head"><span class="rel-tag"><svg class="octicon"><use href="#i-tag"/></svg>v0.8.0</span><span class="rel-name">Notes in blocks, and wikilinks</span><span class="rel-date">Oct 19, 2026</span></div>
+            <p class="rel-body">The app&rsquo;s oldest feature, rebuilt as blocks — a view over the markdown lines already on disk. <b>[[wikilinks]]</b> with backlinks, a formatting bar that follows the caret, to-dos that become tasks. No migration; 190 new tests.</p>
+            <a class="rel-link" href="https://github.com/1-Pankaj/Devlofy/releases/tag/v0.8.0" target="_blank" rel="noopener"><svg class="octicon"><use href="#i-link-external"/></svg> Read the notes</a>
+          </div>
+        </div>
+
+        <div class="swiper-slide">
+          <div class="comment">
+            <div class="rel-head"><span class="rel-tag"><svg class="octicon"><use href="#i-tag"/></svg>v0.7.1</span><span class="rel-name">Bench &amp; Sentinel, promoted</span><span class="rel-date">Oct 19, 2026</span></div>
+            <p class="rel-body">Feature cards in More, a Sentinel status strip on Today that never runs a check by itself, and bench tools in global search — typing <b>sha256</b> now opens the Hash tool.</p>
+            <a class="rel-link" href="https://github.com/1-Pankaj/Devlofy/releases/tag/v0.7.1" target="_blank" rel="noopener"><svg class="octicon"><use href="#i-link-external"/></svg> Read the notes</a>
+          </div>
+        </div>
+
+        <div class="swiper-slide">
+          <div class="comment">
+            <div class="rel-head"><span class="rel-tag"><svg class="octicon"><use href="#i-tag"/></svg>v0.7.0</span><span class="rel-name">Sentinel</span><span class="rel-date">Oct 19, 2026</span></div>
+            <p class="rel-body">Uptime checks for your own URLs: status, latency, incidents after three failures, uptime windows and a full check log. Checks run only when you open the board or press the button.</p>
+            <a class="rel-link" href="https://github.com/1-Pankaj/Devlofy/releases/tag/v0.7.0" target="_blank" rel="noopener"><svg class="octicon"><use href="#i-link-external"/></svg> Read the notes</a>
+          </div>
+        </div>
+
+        <div class="swiper-slide">
+          <div class="comment">
+            <div class="rel-head"><span class="rel-tag"><svg class="octicon"><use href="#i-tag"/></svg>v0.6.0</span><span class="rel-name">The Bench, eleven tools strong</span><span class="rel-date">Oct 19, 2026</span></div>
+            <p class="rel-body">Eleven offline developer tools — everything computes as you type and nothing leaves the device. Plus a code-built 3D prop kit, so the garden is never empty when a GLB model is missing.</p>
+            <a class="rel-link" href="https://github.com/1-Pankaj/Devlofy/releases/tag/v0.6.0" target="_blank" rel="noopener"><svg class="octicon"><use href="#i-link-external"/></svg> Read the notes</a>
+          </div>
+        </div>
+
+        <div class="swiper-slide">
+          <div class="comment">
+            <div class="rel-head"><span class="rel-tag"><svg class="octicon"><use href="#i-tag"/></svg>v0.5.0</span><span class="rel-name">GitHub, write access</span><span class="rel-date">Oct 19, 2026</span></div>
+            <p class="rel-body">Edit files with syntax highlighting, commit to a branch, review the diff first, open and merge pull requests, file issues, re-run Actions. Commits to the default branch: deliberately not possible.</p>
+            <a class="rel-link" href="https://github.com/1-Pankaj/Devlofy/releases/tag/v0.5.0" target="_blank" rel="noopener"><svg class="octicon"><use href="#i-link-external"/></svg> Read the notes</a>
+          </div>
+        </div>
+
+        <div class="swiper-slide">
+          <div class="comment">
+            <div class="rel-head"><span class="rel-tag"><svg class="octicon"><use href="#i-tag"/></svg>v0.4.0</span><span class="rel-name">GitHub, read-only</span><span class="rel-date">Oct 18, 2026</span></div>
+            <p class="rel-body">A dashboard for review requests, your pull requests, assigned issues and recent CI runs. Signs in with a pasted token or device flow — and each section loads on its own, so one missing permission never blanks the screen.</p>
+            <a class="rel-link" href="https://github.com/1-Pankaj/Devlofy/releases/tag/v0.4.0" target="_blank" rel="noopener"><svg class="octicon"><use href="#i-link-external"/></svg> Read the notes</a>
+          </div>
+        </div>
+
+        <div class="swiper-slide">
+          <div class="comment">
+            <div class="rel-head"><span class="rel-tag"><svg class="octicon"><use href="#i-tag"/></svg>v0.3.0</span><span class="rel-name">Engine, Money, Search</span><span class="rel-date">Oct 18, 2026</span></div>
+            <p class="rel-body">Local rules that rank what to do next — with a reason for every suggestion — plus hourly rates, billable time, invoices from the session log, and one search with <b>Cmd/Ctrl + K</b>.</p>
+            <a class="rel-link" href="https://github.com/1-Pankaj/Devlofy/releases/tag/v0.3.0" target="_blank" rel="noopener"><svg class="octicon"><use href="#i-link-external"/></svg> Read the notes</a>
+          </div>
+        </div>
+
+        <div class="swiper-slide">
+          <div class="comment">
+            <div class="rel-head"><span class="rel-tag"><svg class="octicon"><use href="#i-tag"/></svg>v0.2.0</span><span class="rel-name">Rhythm</span><span class="rel-date">Oct 18, 2026</span></div>
+            <p class="rel-body">Focus sessions attributed to a project, a 12-week rhythm heatmap, a daily focus goal — and the quick-add grammar (<b>!3</b>, <b>45m</b>, <b>tomorrow</b>, <b>#Project</b>) with a preview of what it will create.</p>
+            <a class="rel-link" href="https://github.com/1-Pankaj/Devlofy/releases/tag/v0.2.0" target="_blank" rel="noopener"><svg class="octicon"><use href="#i-link-external"/></svg> Read the notes</a>
+          </div>
+        </div>
+
+        <div class="swiper-slide">
+          <div class="comment">
+            <div class="rel-head"><span class="rel-tag"><svg class="octicon"><use href="#i-tag"/></svg>v0.1.0</span><span class="rel-name">First light</span><span class="rel-date">Oct 17, 2026</span></div>
+            <p class="rel-body">Today, Garden, Work, Notes, More. Local SQLite storage, Blender-authored 3D models with a procedural fallback, and desktop mode — wide screens get a side rail, phones keep the bottom bar.</p>
+            <a class="rel-link" href="https://github.com/1-Pankaj/Devlofy/releases/tag/v0.1.0" target="_blank" rel="noopener"><svg class="octicon"><use href="#i-link-external"/></svg> Read the notes</a>
+          </div>
+        </div>
+
+      </div>
+      <div class="swiper-pagination"></div>
+    </div>
+    <p class="comm-note" data-reveal>Condensed from <a href="https://github.com/1-Pankaj/Devlofy/blob/master/CHANGELOG.md" target="_blank" rel="noopener">CHANGELOG.md</a> — the complete history lives in the repo.</p>
+  </div>
+</section>
+
+<!-- ============ PRIVACY ============ -->
+<section class="sec sec-subtle" id="privacy">
+  <div class="container-md privacy-grid">
+    <div>
+      <span class="kicker" data-reveal><svg class="octicon"><use href="#i-shield"/></svg> Security &amp; privacy</span>
+      <h2 class="sec-title" data-reveal>Private isn&rsquo;t a feature. It&rsquo;s the floor.</h2>
+      <p class="sec-sub" data-reveal>Plenty of tools promise privacy in a settings page. Devlofy starts there — the privacy is in the architecture itself. There is no server to trust, because there is no server. Nothing to breach, nothing to sell, nothing to subpoena.</p>
+    </div>
+    <div>
+      <div class="alert alert-important" data-reveal>
+        <svg class="octicon"><use href="#i-shield"/></svg>
+        <div><b class="t">Important — what we collect</b>
+        <p>Nothing. No analytics, no telemetry, no crash reporting service, no accounts. The absence of a backend is the guarantee — there is no server to trust, breach, or subpoena.</p></div>
+      </div>
+      <div class="alert alert-note" data-reveal>
+        <svg class="octicon"><use href="#i-database"/></svg>
+        <div><b class="t">Note — where your data lives</b>
+        <p>In a local SQLite database on your device. On web, SQLite runs as WebAssembly in your browser&rsquo;s own storage. One tap in <b>More</b> dumps all of it to JSON, whenever you like.</p></div>
+      </div>
+      <div class="alert alert-tip" data-reveal>
+        <svg class="octicon"><use href="#i-broadcast"/></svg>
+        <div><b class="t">Tip — the only two things that touch the network</b>
+        <p>GitHub (only when you connect an account) and Sentinel (only when you open the board or press check). A GitHub token is verified before it is saved, and kept out of the export file.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ VERIFICATION ============ -->
+<section class="sec" id="checks">
+  <div class="container-md">
+    <header class="sec-head">
+      <span class="kicker" data-reveal><svg class="octicon"><use href="#i-check-circle-fill"/></svg> Verification</span>
+      <h2 class="sec-title" data-reveal>Don&rsquo;t trust this page. Run the checks.</h2>
+      <p class="sec-sub" data-reveal>The repo ships its own proof. Every claim above is one clone away from being true in your terminal — no progress bars, no promises, just commands and their results.</p>
+    </header>
+    <div class="ck-grid">
+      <div class="ck" data-reveal>
+        <svg class="octicon"><use href="#i-check-circle-fill"/></svg>
+        <div><b class="t">npm run check</b>
+        <p>Typecheck, lint, and <b>482 known-answer checks</b> in one command — 190 for the notes block model, 122 for the Engine, 90 for Sentinel, 80 for the Bench.</p></div>
+      </div>
+      <div class="ck" data-reveal>
+        <svg class="octicon"><use href="#i-check-circle-fill"/></svg>
+        <div><b class="t">npx expo export --platform web</b>
+        <p>The full web build, which validates the WebAssembly SQLite and the 3D renderer — the two parts most likely to silently break.</p></div>
+      </div>
+      <div class="ck" data-reveal>
+        <svg class="octicon"><use href="#i-law"/></svg>
+        <div><b class="t">MIT, with a NOTICE file</b>
+        <p>Every dependency&rsquo;s license is auditable — <b>npm ls --all</b> gives the authoritative list per package. Read it, then decide.</p></div>
+      </div>
+      <div class="ck" data-reveal>
+        <svg class="octicon"><use href="#i-check-circle-fill"/></svg>
+        <div><b class="t">482 checks, zero mock data</b>
+        <p>The suites are known-answer checks — fixed inputs, expected outputs — and <b>tools/checks/self-check.sh</b> runs every one of them with a single command.</p></div>
+      </div>
+      <div class="ck ck-next" data-reveal>
+        <svg class="octicon"><use href="#i-rocket"/></svg>
+        <div><b class="t">What&rsquo;s next: iOS</b>
+        <p>Planned — and kept iOS-safe in the code today. No fake progress bars in the meantime; when it ships, it ships.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CTA ============ -->
+<section class="sec-subtle cta" style="border-top:1px solid var(--border)">
+  <div class="container">
+    <span class="kicker" data-reveal style="justify-content:center"><svg class="octicon"><use href="#i-north-star"/></svg> Ready when you are</span>
+    <h2 data-reveal style="margin-top:16px">Own your <span class="grad">tools</span> for once.</h2>
+    <p data-reveal>Free, open source, and yours forever. If it earns a place on your machine, a star helps more than you&rsquo;d think.</p>
+    <div class="row" data-reveal>
+      <a class="btn btn-primary btn-lg magnetic" href="https://github.com/1-Pankaj/Devlofy/releases" target="_blank" rel="noopener">
+        <svg class="octicon"><use href="#i-download"/></svg> Get Devlofy — free
       </a>
-      <a
-        class="menu__github"
-        href="https://github.com/1-Pankaj/Devlofy"
-        target="_blank"
-        rel="noreferrer"
-      >
-        <svg class="icon" aria-hidden="true"><use href="#i-github"></use></svg>
-        github.com/1-Pankaj/Devlofy
-        <span class="sr-only">(opens in a new tab)</span>
+      <a class="btn btn-lg magnetic" href="https://github.com/1-Pankaj/Devlofy" target="_blank" rel="noopener">
+        <svg class="octicon"><use href="#i-star"/></svg> Star the repo
+        <span class="counter" data-gh="stargazers_count" hidden>–</span>
       </a>
-      <p class="menu__meta">v0.8.0 · MIT · Android + web</p>
-    </dialog>
-
-    <main id="main">
-      <!-- ================================================================ -->
-      <!-- Hero                                                             -->
-      <!-- ================================================================ -->
-      <section class="hero" id="top" aria-labelledby="hero-title">
-        <div class="hero__field" aria-hidden="true"></div>
-
-        <div class="shell hero__inner">
-          <p class="pill hero__pill">
-            <span class="status-dot" aria-hidden="true"></span>
-            Offline-first · Android + web · MIT
-          </p>
-
-          <h1 class="hero__title" id="hero-title">
-            <span class="hero__line"><span>The command center</span></span>
-            <span class="hero__line"><span>for <em>solo developers.</em></span></span>
-          </h1>
-
-          <p class="hero__lede">
-            Plan the day, time the work, price it, write it down, and watch the garden grow.
-            One SQLite file on your own device. No backend, no sign-up, no chat box.
-          </p>
-
-          <div class="hero__actions">
-            <a class="btn btn--primary" href="#install">
-              Start from source
-              <svg class="icon" aria-hidden="true"><use href="#i-arrow-right"></use></svg>
-            </a>
-            <a class="btn btn--quiet" href="#product">
-              Take the tour
-              <svg class="icon" aria-hidden="true"><use href="#i-arrow-down"></use></svg>
-            </a>
-          </div>
-
-          <p class="hero__meta">
-            <span><svg class="icon" aria-hidden="true"><use href="#i-check-circle"></use></svg>482 checks green</span>
-            <span aria-hidden="true">·</span>
-            <span>Expo SDK 58</span>
-            <span aria-hidden="true">·</span>
-            <span>React Native 0.88</span>
-          </p>
-
-          <div class="hero__stage" data-parallax>
-            <div class="hero__halo" aria-hidden="true"></div>
-
-            <figure class="window" data-depth="1">
-              <div class="window__bar">
-                <span class="window__dots" aria-hidden="true"><i></i><i></i><i></i></span>
-                <span class="window__url">devlofy · today</span>
-                <span class="window__tag">local</span>
-              </div>
-              <img
-                src="assets/app/today.webp"
-                width="2320"
-                height="1450"
-                alt="The Today screen: a focus timer, a next-up list with reasons, and the project shelf."
-                fetchpriority="high"
-                decoding="async"
-              />
-            </figure>
-
-            <figure class="device hero__device" data-depth="2">
-              <div class="device__frame">
-                <span class="device__notch" aria-hidden="true"></span>
-                <img
-                  src="assets/app/phone-today.webp"
-                  width="960"
-                  height="1800"
-                  alt="Devlofy Today on a phone, with the same tasks and focus block."
-                  decoding="async"
-                />
-              </div>
-            </figure>
-
-            <p class="hero__caption">
-              The seeded demo week, captured from the running app. No mockups.
-            </p>
-          </div>
-        </div>
-
-        <div class="ticker" aria-hidden="true">
-          <div class="ticker__track" data-ticker>
-            <span>No sign-up</span><i></i>
-            <span>No backend</span><i></i>
-            <span>One SQLite file</span><i></i>
-            <span>Android + web</span><i></i>
-            <span>MIT licensed</span><i></i>
-            <span>482 known-answer checks</span><i></i>
-            <span>Offline by default</span><i></i>
-          </div>
-        </div>
-      </section>
-
-      <!-- ================================================================ -->
-      <!-- Product: stacking tour                                           -->
-      <!-- ================================================================ -->
-      <section class="section product" id="product" aria-labelledby="product-title">
-        <div class="shell">
-          <header class="section-head" data-reveal>
-            <p class="label"><span>01</span> The product</p>
-            <h2 id="product-title">Three rooms,<br />one desk.</h2>
-            <p class="lede">
-              Every screen reads the same database. No sync step, no export dance, no second copy
-              to keep in step with the first.
-            </p>
-          </header>
-
-          <div class="stack" data-stack>
-            <article class="stack__item">
-              <div class="tour" data-spotlight>
-                <div class="tour__copy">
-                  <p class="tour__kicker"><span>01</span> Today</p>
-                  <h3>The day, already sorted.</h3>
-                  <p>
-                    Type one line: <code>Ship the invoice fix !3 45m tomorrow #Northwind</code>.
-                    The tokens become priority, estimate, due date and project. The rest stays the
-                    title. Today shows the task it will create before you commit to it, then ranks
-                    what is left and prints the reason for every score.
-                  </p>
-                  <ul class="bullets">
-                    <li>
-                      <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
-                      Quick add parses as you type, with a preview of the saved task.
-                    </li>
-                    <li>
-                      <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
-                      Next-up weighs overdue, due today, priority and effort. It says why.
-                    </li>
-                    <li>
-                      <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
-                      A focus block writes to the session log, attributed to its project.
-                    </li>
-                  </ul>
-                  <a
-                    class="text-link"
-                    href="https://github.com/1-Pankaj/Devlofy/blob/master/src/lib/parse-task.ts"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Read the parser
-                    <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"></use></svg>
-                    <span class="sr-only">(opens in a new tab)</span>
-                  </a>
-                </div>
-                <div class="tour__media">
-                  <div class="shot">
-                    <img
-                      src="assets/app/today.webp"
-                      width="2320"
-                      height="1450"
-                      alt="Today: a running focus block, the next task with its reason, and the week's focus time."
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  </div>
-                </div>
-              </div>
-            </article>
-
-            <article class="stack__item">
-              <div class="tour tour--flip" data-spotlight>
-                <div class="tour__copy">
-                  <p class="tour__kicker"><span>02</span> The ledger</p>
-                  <h3>The invoice was already written.</h3>
-                  <p>
-                    A block is marked billable when it starts, at the project's rate, falling back
-                    to the client's. The invoice is a view over the session log, never a stored
-                    document. Change a rate and the total follows. Delete a block and its line goes
-                    with it. 2h 40m at ₹2,500/h is ₹6,666.67, and every rupee traces to a session.
-                  </p>
-                  <ul class="bullets">
-                    <li>
-                      <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
-                      The rate lives on the project, with the client as the fallback.
-                    </li>
-                    <li>
-                      <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
-                      Billable at the start of a block, not reconstructed afterwards.
-                    </li>
-                    <li>
-                      <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
-                      Totals are a query. There is no second invoice to keep in sync.
-                    </li>
-                  </ul>
-                  <a
-                    class="text-link"
-                    href="https://github.com/1-Pankaj/Devlofy/blob/master/src/lib/money.ts"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Read the money module
-                    <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"></use></svg>
-                    <span class="sr-only">(opens in a new tab)</span>
-                  </a>
-                </div>
-                <div class="tour__media">
-                  <div class="shot">
-                    <img
-                      src="assets/app/invoice.webp"
-                      width="1700"
-                      height="1577"
-                      alt="Invoice draft: ₹6,666.67 from 2.67 billable hours, with line items and the unpriced time called out."
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  </div>
-                </div>
-              </div>
-            </article>
-
-            <article class="stack__item">
-              <div class="tour" data-spotlight>
-                <div class="tour__copy">
-                  <p class="tour__kicker"><span>03</span> Bench</p>
-                  <h3>Eleven tools. No tab.</h3>
-                  <p>
-                    JSON, SQL, diff, regex, text, base64, JWT, SHA-256, timestamps, cron and colour.
-                    Each one computes while you type, offline, with no Run button and no stale
-                    result to read. The hash tool is checked against the published vectors, and the
-                    diff renderer is the same one the GitHub editor uses.
-                  </p>
-                  <ul class="bullets">
-                    <li>
-                      <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
-                      Eleven tools across data, text, security, time and design.
-                    </li>
-                    <li>
-                      <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
-                      No network, no dependency, and no half-parsed YAML.
-                    </li>
-                    <li>
-                      <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
-                      A kept snippet reopens inside the tool that made it.
-                    </li>
-                  </ul>
-                  <a
-                    class="text-link"
-                    href="https://github.com/1-Pankaj/Devlofy/blob/master/src/lib/bench/tools.ts"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Browse the tool registry
-                    <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"></use></svg>
-                    <span class="sr-only">(opens in a new tab)</span>
-                  </a>
-                </div>
-                <div class="tour__media">
-                  <div class="shot">
-                    <img
-                      src="assets/app/bench.webp"
-                      width="1700"
-                      height="1553"
-                      alt="Bench running the JSON tool: input, indent options, and formatted output computed as you type."
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  </div>
-                </div>
-              </div>
-            </article>
-          </div>
-        </div>
-      </section>
-
-      <!-- ================================================================ -->
-      <!-- Quick-add grammar                                                -->
-      <!-- ================================================================ -->
-      <section class="section grammar-section" id="grammar" aria-labelledby="grammar-title">
-        <div class="shell">
-          <header class="section-head section-head--split" data-reveal>
-            <div>
-              <p class="label"><span>02</span> The grammar</p>
-              <h2 id="grammar-title">Type less.<br />Mean more.</h2>
-            </div>
-            <p class="lede">
-              Quick add is real grammar, not a search box. It reads priority, estimate, due date
-              and project from one line, and leaves everything else alone. This is the same parser
-              the app ships, running on this page.
-            </p>
-          </header>
-
-          <div class="grammar" data-demo>
-            <div class="composer">
-              <div class="composer__bar">
-                <span class="composer__label">Quick add</span>
-                <span class="composer__hint">one line, then Enter</span>
-              </div>
-
-              <label class="sr-only" for="quick-add">Try the quick-add grammar</label>
-              <input
-                class="composer__input"
-                id="quick-add"
-                name="quick-add"
-                type="text"
-                autocomplete="off"
-                autocapitalize="off"
-                spellcheck="false"
-                value="Ship the invoice fix !3 45m tomorrow #Northwind"
-              />
-
-              <div class="composer__tokens" id="demo-chips" aria-label="Parsed tokens">
-                <span class="chip chip--ember">high</span>
-                <span class="chip">45m</span>
-                <span class="chip">tomorrow</span>
-                <span class="chip chip--accent">Northwind Portal</span>
-              </div>
-
-              <p class="composer__note" id="demo-note" hidden></p>
-
-              <div class="composer__result">
-                <p class="composer__result-label">What gets saved</p>
-                <p class="composer__title" id="demo-title">Ship the invoice fix</p>
-                <dl class="composer__fields" id="demo-fields">
-                  <div>
-                    <dt>priority</dt>
-                    <dd>high</dd>
-                  </div>
-                  <div>
-                    <dt>estimate</dt>
-                    <dd>45 min</dd>
-                  </div>
-                  <div>
-                    <dt>due</dt>
-                    <dd>tomorrow</dd>
-                  </div>
-                  <div>
-                    <dt>project</dt>
-                    <dd>Northwind Portal</dd>
-                  </div>
-                </dl>
-              </div>
-
-              <p class="composer__fine" id="grammar-note">
-                Tokens are only removed when they parse. An unmatched
-                <code>#tag</code> stays in the title.
-              </p>
-            </div>
-
-            <aside class="grammar__side" aria-label="Grammar rules and examples">
-              <p class="grammar__side-label">Try an example</p>
-              <div class="examples">
-                <button
-                  type="button"
-                  data-example="Ship the invoice fix !3 45m tomorrow #Northwind"
-                >
-                  <span>Ship the invoice fix</span>
-                  <code>!3 45m tomorrow #Northwind</code>
-                </button>
-                <button type="button" data-example="Draft the changelog 20m fri #Devlofy">
-                  <span>Draft the changelog</span>
-                  <code>20m fri #Devlofy</code>
-                </button>
-                <button type="button" data-example="Plan the boss fight 1.5h +3d #Starlight">
-                  <span>Plan the boss fight</span>
-                  <code>1.5h +3d #Starlight</code>
-                </button>
-                <button type="button" data-example="Read the docs #Archive">
-                  <span>Read the docs</span>
-                  <code>#Archive</code>
-                  <em>unmatched tag</em>
-                </button>
-              </div>
-
-              <dl class="rules">
-                <div>
-                  <dt><code>!3</code> <code>!2</code> <code>!1</code></dt>
-                  <dd>High, normal, someday. The default is normal.</dd>
-                </div>
-                <div>
-                  <dt><code>45m</code> <code>1.5h</code></dt>
-                  <dd>Estimate in minutes or hours. Five minutes is the floor.</dd>
-                </div>
-                <div>
-                  <dt><code>today</code> <code>tomorrow</code></dt>
-                  <dd>Also <code>fri</code>, or <code>+3d</code> for a relative day.</dd>
-                </div>
-                <div>
-                  <dt><code>#Northwind</code></dt>
-                  <dd>
-                    Matches a project by name or prefix. No match means it stays in the title.
-                  </dd>
-                </div>
-              </dl>
-            </aside>
-          </div>
-        </div>
-      </section>
-
-      <!-- ================================================================ -->
-      <!-- Bento features                                                   -->
-      <!-- ================================================================ -->
-      <section class="section features" id="features" aria-labelledby="features-title">
-        <div class="shell">
-          <header class="section-head section-head--split" data-reveal>
-            <div>
-              <p class="label"><span>03</span> Everything else</p>
-              <h2 id="features-title">Small machine.<br />Sharp edges.</h2>
-            </div>
-            <p class="lede">
-              Six more parts under the same roof, all reading the same rows. No sync engine, no
-              message queue, no service to keep alive.
-            </p>
-          </header>
-
-          <div class="bento">
-            <article class="feature" data-spotlight data-reveal>
-              <div class="feature__icon feature__icon--violet">
-                <svg class="icon" aria-hidden="true"><use href="#i-sparkle"></use></svg>
-              </div>
-              <h3>Next up, with a reason</h3>
-              <p>
-                A documented weight table ranks what is overdue, due today, high priority or nearly
-                done. Every score prints its reason on the row, so the order is arguable instead of
-                mysterious.
-              </p>
-              <p class="feature__foot">
-                <span>122 checks pin it</span>
-                <a
-                  class="text-link"
-                  href="https://github.com/1-Pankaj/Devlofy/blob/master/src/lib/engine/next-up.ts"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Source
-                  <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"></use></svg>
-                  <span class="sr-only">(opens in a new tab)</span>
-                </a>
-              </p>
-            </article>
-
-            <article class="feature" data-spotlight data-reveal style="--reveal-delay: 60ms">
-              <div class="feature__icon feature__icon--ember">
-                <svg class="icon" aria-hidden="true"><use href="#i-coins"></use></svg>
-              </div>
-              <h3>A rate, not a spreadsheet</h3>
-              <p>
-                Project rate, client fallback, billable at the start of a block. 2h 40m at ₹2,500/h
-                is ₹6,666.67, and every rupee traces back to a session you can open and read.
-              </p>
-              <p class="feature__foot">
-                <span>Money is a view</span>
-                <a
-                  class="text-link"
-                  href="https://github.com/1-Pankaj/Devlofy/blob/master/src/lib/money.ts"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Source
-                  <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"></use></svg>
-                  <span class="sr-only">(opens in a new tab)</span>
-                </a>
-              </p>
-            </article>
-
-            <article class="feature" data-spotlight data-reveal style="--reveal-delay: 120ms">
-              <div class="feature__icon feature__icon--violet">
-                <svg class="icon" aria-hidden="true"><use href="#i-file-text"></use></svg>
-              </div>
-              <h3>Notes that stay markdown</h3>
-              <p>
-                Headings, lists, to-dos, quotes and code, saved as the lines you typed. One input is
-                mounted at a time. <code>[[Links]]</code> become backlinks through one escaped
-                query, and a note from v0.1 still opens.
-              </p>
-              <p class="feature__foot">
-                <span>190 note checks</span>
-                <a
-                  class="text-link"
-                  href="https://github.com/1-Pankaj/Devlofy/blob/master/src/lib/notes/blocks.ts"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Source
-                  <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"></use></svg>
-                  <span class="sr-only">(opens in a new tab)</span>
-                </a>
-              </p>
-            </article>
-
-            <article class="feature" data-spotlight data-reveal>
-              <div class="feature__icon feature__icon--green">
-                <svg class="icon" aria-hidden="true"><use href="#i-shield-check"></use></svg>
-              </div>
-              <h3>Is anything of mine down?</h3>
-              <p>
-                Sentinel watches your own URLs, when you open the board and not before. Native reads
-                the status code. A browser can only say reachable, and the board says so. Verdicts
-                are stored; incidents are derived.
-              </p>
-              <p class="feature__foot">
-                <span>90 checks · 500 kept</span>
-                <a
-                  class="text-link"
-                  href="https://github.com/1-Pankaj/Devlofy/blob/master/src/lib/sentinel/status.ts"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Source
-                  <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"></use></svg>
-                  <span class="sr-only">(opens in a new tab)</span>
-                </a>
-              </p>
-            </article>
-
-            <article class="feature" data-spotlight data-reveal style="--reveal-delay: 60ms">
-              <div class="feature__icon feature__icon--violet">
-                <svg class="icon" aria-hidden="true"><use href="#i-magnifying-glass"></use></svg>
-              </div>
-              <h3>Five kinds, one field</h3>
-              <p>
-                Projects, clients, notes, tasks and watch targets in one query, plus Bench's eleven
-                tools. Every result acts: open it, or tick the task off where it sits. No dead ends.
-              </p>
-              <p class="feature__foot">
-                <span>Nothing is a dead end</span>
-                <a
-                  class="text-link"
-                  href="https://github.com/1-Pankaj/Devlofy/blob/master/src/lib/db/repo.ts"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Source
-                  <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"></use></svg>
-                  <span class="sr-only">(opens in a new tab)</span>
-                </a>
-              </p>
-            </article>
-
-            <article class="feature" data-spotlight data-reveal style="--reveal-delay: 120ms">
-              <div class="feature__icon feature__icon--green">
-                <svg class="icon" aria-hidden="true"><use href="#i-leaf"></use></svg>
-              </div>
-              <h3>Growth without the guilt</h3>
-              <p>
-                Five stages from seed to canopy, driven by the minutes you actually worked. Miss a
-                day and nothing wilts. The signpost grows one plate for every active project.
-              </p>
-              <p class="feature__foot">
-                <span>5 stages · 11 GLB props</span>
-                <a
-                  class="text-link"
-                  href="https://github.com/1-Pankaj/Devlofy/blob/master/src/lib/garden/model.ts"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Source
-                  <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"></use></svg>
-                  <span class="sr-only">(opens in a new tab)</span>
-                </a>
-              </p>
-            </article>
-          </div>
-        </div>
-      </section>
-
-      <!-- ================================================================ -->
-      <!-- Garden                                                           -->
-      <!-- ================================================================ -->
-      <section class="section garden" id="garden" aria-labelledby="garden-title">
-        <div class="garden__field" aria-hidden="true"></div>
-        <canvas class="garden__canvas" data-fireflies aria-hidden="true"></canvas>
-
-        <div class="shell garden__inner">
-          <div class="garden__copy" data-reveal>
-            <p class="label label--night"><span>04</span> The garden</p>
-            <h2 id="garden-title">Hours in.<br /><em>Canopy out.</em></h2>
-            <p class="lede lede--night">
-              The tree is built from your focus history, not a streak counter. Five stages, from
-              seed to canopy, weighted by the minutes you actually worked. Miss a week and nothing
-              wilts.
-            </p>
-
-            <div class="growth" data-growth>
-              <p class="growth__label">What grows it</p>
-              <div class="growth__row">
-                <span class="growth__name">Focus minutes</span>
-                <span class="growth__bar"><i style="--value: 55%"></i></span>
-                <span class="growth__value">55%</span>
-              </div>
-              <div class="growth__row">
-                <span class="growth__name">Streak</span>
-                <span class="growth__bar"><i style="--value: 30%"></i></span>
-                <span class="growth__value">30%</span>
-              </div>
-              <div class="growth__row">
-                <span class="growth__name">Today</span>
-                <span class="growth__bar"><i style="--value: 15%"></i></span>
-                <span class="growth__value">15%</span>
-              </div>
-              <p class="growth__note">
-                Weighted by <code>growthFromStats()</code>. No penalty state, no dead plant.
-              </p>
-            </div>
-
-            <ol class="stages" aria-label="The five garden stages">
-              <li>Seed</li>
-              <li>Sprout</li>
-              <li>Sapling</li>
-              <li>Young</li>
-              <li>Canopy</li>
-            </ol>
-
-            <ul class="garden__facts">
-              <li>
-                <svg class="icon" aria-hidden="true"><use href="#i-tree-structure"></use></svg>
-                Five Blender-authored stages, with a procedural fallback.
-              </li>
-              <li>
-                <svg class="icon" aria-hidden="true"><use href="#i-leaf"></use></svg>
-                Eleven authored GLB props; the bench and signpost are built in code.
-              </li>
-              <li>
-                <svg class="icon" aria-hidden="true"><use href="#i-database"></use></svg>
-                One hanging plate per active project, up to five.
-              </li>
-            </ul>
-          </div>
-
-          <div class="garden__stage" data-reveal style="--reveal-delay: 120ms">
-            <div class="garden__glow" aria-hidden="true"></div>
-            <figure class="device device--garden">
-              <div class="device__frame">
-                <span class="device__notch" aria-hidden="true"></span>
-                <img
-                  src="assets/app/phone-garden.webp"
-                  width="780"
-                  height="1688"
-                  alt="The Garden on a phone: a low-poly tree, a bench, and a signpost with project plates."
-                  loading="lazy"
-                  decoding="async"
-                />
-              </div>
-              <figcaption class="device__caption">
-                The seeded demo after five days of focus.
-              </figcaption>
-            </figure>
-          </div>
-        </div>
-      </section>
-
-      <!-- ================================================================ -->
-      <!-- Checks                                                           -->
-      <!-- ================================================================ -->
-      <section class="section checks" id="checks" aria-labelledby="checks-title">
-        <div class="shell">
-          <header class="section-head section-head--split" data-reveal>
-            <div>
-              <p class="label"><span>05</span> Verification</p>
-              <h2 id="checks-title">482 checks<br />you can run.</h2>
-            </div>
-            <div class="checks__intro">
-              <p class="lede">
-                The rules live in pure functions outside the screens, and every rule has a known
-                answer. Four suites, no test runner, no dependency. The same command runs in CI.
-              </p>
-              <code class="command">bash tools/checks/self-check.sh</code>
-            </div>
-          </header>
-
-          <div class="checks__body">
-            <div class="checks__viz-wrap" data-reveal>
-              <div class="checks__viz" data-checks-grid aria-hidden="true"></div>
-              <div class="checks__legend" aria-hidden="true">
-                <span><i class="swatch swatch--bench"></i>Bench</span>
-                <span><i class="swatch swatch--engine"></i>Engine</span>
-                <span><i class="swatch swatch--notes"></i>Notes</span>
-                <span><i class="swatch swatch--sentinel"></i>Sentinel</span>
-              </div>
-              <p class="checks__sum">
-                <span>80</span> + <span>122</span> + <span>190</span> + <span>90</span> =
-                <strong>482</strong>
-              </p>
-            </div>
-
-            <div class="checks__list" data-reveal style="--reveal-delay: 80ms">
-              <article class="check-row">
-                <div class="check-row__top">
-                  <h3>Bench</h3>
-                  <p class="check-row__count">80</p>
-                </div>
-                <p>
-                  Published SHA-1 and SHA-256 vectors, RFC base64 and URL rules, cron against real
-                  timestamps, contrast ratios, and diff and patch round-trips.
-                </p>
-                <code>src/lib/bench/self-check.ts</code>
-              </article>
-
-              <article class="check-row">
-                <div class="check-row__top">
-                  <h3>Engine</h3>
-                  <p class="check-row__count">122</p>
-                </div>
-                <p>
-                  The full weight table, every reason string, the overdue decay and its floor, each
-                  tie-break, and the sentences rhythm must not say below six blocks.
-                </p>
-                <code>src/lib/engine/self-check.ts</code>
-              </article>
-
-              <article class="check-row">
-                <div class="check-row__top">
-                  <h3>Notes</h3>
-                  <p class="check-row__count">190</p>
-                </div>
-                <p>
-                  Every body-to-body edit, plus two safety rules: only the lines you touched are
-                  rewritten, and a note always has at least one block.
-                </p>
-                <code>src/lib/notes/self-check.ts</code>
-              </article>
-
-              <article class="check-row">
-                <div class="check-row__top">
-                  <h3>Sentinel</h3>
-                  <p class="check-row__count">90</p>
-                </div>
-                <p>
-                  Verdicts, the 15-minute window, incident runs, latency spread, URL parsing, and the
-                  standing that More and Today both render.
-                </p>
-                <code>src/lib/sentinel/self-check.ts</code>
-              </article>
-            </div>
-          </div>
-
-          <p class="checks__note" data-reveal>
-            Known answers, not snapshots: each suite is plain TypeScript that returns
-            <code>{ name, pass, detail }[]</code> and runs under Node.
-          </p>
-        </div>
-      </section>
-
-      <!-- ================================================================ -->
-      <!-- Install                                                          -->
-      <!-- ================================================================ -->
-      <section class="section install-section" id="install" aria-labelledby="install-title">
-        <div class="shell">
-          <div class="install">
-            <div class="install__copy" data-reveal>
-              <p class="label"><span>06</span> Install</p>
-              <h2 id="install-title">Clone, install,<br />run.</h2>
-              <p class="lede">
-                There is no store build yet. Clone the repository and run it: Expo starts Android
-                and web from the same source.
-              </p>
-              <a
-                class="text-link"
-                href="https://github.com/1-Pankaj/Devlofy#readme"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Read the README
-                <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"></use></svg>
-                <span class="sr-only">(opens in a new tab)</span>
-              </a>
-            </div>
-
-            <div class="install__aside" data-reveal style="--reveal-delay: 80ms">
-              <p class="install__aside-label">What you need</p>
-              <ul class="requirements">
-                <li>
-                  <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
-                  <span><strong>Node 22</strong> and npm</span>
-                </li>
-                <li>
-                  <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
-                  <span><strong>Android</strong> device or emulator, with Expo</span>
-                </li>
-                <li>
-                  <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
-                  <span><strong>A browser</strong> for web. SQLite runs as wasm.</span>
-                </li>
-                <li>
-                  <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg>
-                  <span><strong>Nothing else</strong>: no sign-up, no API key</span>
-                </li>
-              </ul>
-
-              <p class="install__note">
-                Android is the primary target and web is a first-class partner. iOS is kept
-                buildable, but has not been tested on a device yet.
-              </p>
-            </div>
-
-            <div class="terminal-wrap" data-reveal style="--reveal-delay: 140ms">
-              <div class="terminal">
-                <div class="terminal__bar">
-                  <span class="terminal__lights" aria-hidden="true"><i></i><i></i><i></i></span>
-                  <span class="terminal__title">bash · fresh clone</span>
-                  <button class="terminal__copy" type="button" data-copy-target="#install-commands">
-                    <svg class="icon" aria-hidden="true"><use href="#i-copy"></use></svg>
-                    <span>Copy</span>
-                  </button>
-                </div>
-                <div class="terminal__body">
-                  <pre class="terminal__code" id="install-commands"><code><span class="tok">git</span> clone <span class="url">https://github.com/1-Pankaj/Devlofy.git</span>
-<span class="tok">cd</span> Devlofy
-<span class="tok">npm</span> install
-<span class="tok">npx</span> expo start</code></pre>
-
-                  <div class="terminal__keys">
-                    <p class="terminal__keys-label">In the Expo terminal</p>
-                    <dl class="terminal__keys-list">
-                      <div>
-                        <dt><kbd>a</kbd></dt>
-                        <dd>Open Android</dd>
-                      </div>
-                      <div>
-                        <dt><kbd>w</kbd></dt>
-                        <dd>Open web</dd>
-                      </div>
-                      <div>
-                        <dt><kbd>r</kbd></dt>
-                        <dd>Reload the app</dd>
-                      </div>
-                      <div>
-                        <dt><kbd>?</kbd></dt>
-                        <dd>All commands</dd>
-                      </div>
-                    </dl>
-                  </div>
-                </div>
-                <div class="terminal__foot">
-                  <span class="status-dot" aria-hidden="true"></span>
-                  <span>Node 22 · Expo SDK 58 · runs locally</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ================================================================ -->
-      <!-- FAQ                                                              -->
-      <!-- ================================================================ -->
-      <section class="section faq" id="faq" aria-labelledby="faq-title">
-        <div class="shell faq__inner">
-          <header class="faq__head" data-reveal>
-            <p class="label"><span>07</span> Questions</p>
-            <h2 id="faq-title">The honest<br />answers.</h2>
-            <p class="lede">
-              Including the parts that are not finished. If a claim is not in the repository, it is
-              not on this page.
-            </p>
-
-            <p class="faq__aside">
-              <span>Still unanswered?</span>
-              <a
-                class="text-link"
-                href="https://github.com/1-Pankaj/Devlofy/issues"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Open an issue
-                <svg class="icon" aria-hidden="true"><use href="#i-arrow-up-right"></use></svg>
-                <span class="sr-only">(opens in a new tab)</span>
-              </a>
-            </p>
-          </header>
-
-          <div class="faq__list" data-reveal style="--reveal-delay: 80ms">
-            <details class="faq__item" open>
-              <summary>
-                <span>Is there a download?</span>
-                <svg class="icon faq__caret" aria-hidden="true"><use href="#i-caret-down"></use></svg>
-              </summary>
-              <div class="faq__body">
-                <p>
-                  Not yet. v0.8.0 has no APK and no store listing, so this page does not offer one.
-                  Clone the repository and run it with Expo. A signed build is a later step, not
-                  part of this release.
-                </p>
-              </div>
-            </details>
-
-            <details class="faq__item">
-              <summary>
-                <span>Does it need an account or a connection?</span>
-                <svg class="icon faq__caret" aria-hidden="true"><use href="#i-caret-down"></use></svg>
-              </summary>
-              <div class="faq__body">
-                <p>
-                  No Devlofy account and no backend. Everything works offline except GitHub and
-                  Sentinel, which make requests only when you open them. Your data is one SQLite
-                  file on the device.
-                </p>
-              </div>
-            </details>
-
-            <details class="faq__item">
-              <summary>
-                <span>Is there any cloud AI?</span>
-                <svg class="icon faq__caret" aria-hidden="true"><use href="#i-caret-down"></use></svg>
-              </summary>
-              <div class="faq__body">
-                <p>
-                  No. The Engine is a documented weight table and a set of pure functions over your
-                  own rows. Every score prints a reason you can read, disagree with and change.
-                </p>
-              </div>
-            </details>
-
-            <details class="faq__item">
-              <summary>
-                <span>What happens if I miss a day?</span>
-                <svg class="icon faq__caret" aria-hidden="true"><use href="#i-caret-down"></use></svg>
-              </summary>
-              <div class="faq__body">
-                <p>
-                  Nothing wilts. Growth is 55% focus minutes, 30% streak and 15% today, so a gap
-                  slows the tree rather than killing it. Trophies come from real history, not from a
-                  counter you have to protect.
-                </p>
-              </div>
-            </details>
-
-            <details class="faq__item">
-              <summary>
-                <span>Can I get my data out?</span>
-                <svg class="icon faq__caret" aria-hidden="true"><use href="#i-caret-down"></use></svg>
-              </summary>
-              <div class="faq__body">
-                <p>
-                  Yes. <code>exportAll()</code> writes a JSON dump of every table you own, with a
-                  format version. On Android the database file is yours to copy, back up or delete
-                  without asking; on the web, the export is the way out.
-                </p>
-              </div>
-            </details>
-
-            <details class="faq__item">
-              <summary>
-                <span>Why Android and web?</span>
-                <svg class="icon faq__caret" aria-hidden="true"><use href="#i-caret-down"></use></svg>
-              </summary>
-              <div class="faq__body">
-                <p>
-                  The app is personal-first. A phone gets the tab bar; a desktop-width screen gets a
-                  side rail. Both are in scope. iOS is kept iOS-safe in the code, but it is not a
-                  tested platform yet.
-                </p>
-              </div>
-            </details>
-
-            <details class="faq__item">
-              <summary>
-                <span>What is deliberately missing?</span>
-                <svg class="icon faq__caret" aria-hidden="true"><use href="#i-caret-down"></use></svg>
-              </summary>
-              <div class="faq__body">
-                <p>
-                  Background checks, notifications, sync, an iOS build and a store release. Each
-                  one has a written reason; sync is a decision, not a missing screen. Sentinel
-                  checks while you look, and says exactly that.
-                </p>
-              </div>
-            </details>
-          </div>
-        </div>
-      </section>
-
-      <!-- ================================================================ -->
-      <!-- Closing                                                          -->
-      <!-- ================================================================ -->
-      <section class="closing" aria-labelledby="closing-title">
-        <div class="closing__field" aria-hidden="true"></div>
-        <div class="shell closing__inner">
-          <img
-            class="closing__mark"
-            src="assets/brand/mark-night.png"
-            alt=""
-            width="64"
-            height="64"
-          />
-          <h2 id="closing-title">Your work is already yours.</h2>
-          <p>
-            No account to create. Nothing to migrate. Clone it, run it, and every row stays on
-            your machine.
-          </p>
-          <div class="closing__actions">
-            <a
-              class="btn btn--primary"
-              href="https://github.com/1-Pankaj/Devlofy"
-              target="_blank"
-              rel="noreferrer"
-            >
-              <svg class="icon" aria-hidden="true"><use href="#i-github"></use></svg>
-              Get the source
-              <span class="sr-only">(opens in a new tab)</span>
-            </a>
-            <a class="btn btn--outline" href="#install">
-              Install in three commands
-              <svg class="icon" aria-hidden="true"><use href="#i-arrow-right"></use></svg>
-            </a>
-          </div>
-          <p class="closing__meta">v0.8.0 · MIT · Built with Expo</p>
-        </div>
-      </section>
-    </main>
-
-    <footer class="footer">
-      <div class="shell footer__inner">
-        <div class="footer__brand">
-          <a class="brand brand--footer" href="#top" aria-label="Devlofy, back to top">
-            <img
-              class="brand__mark"
-              src="assets/brand/mark-night.png"
-              alt=""
-              width="26"
-              height="26"
-            />
-            <span class="brand__name">Devlofy</span>
-          </a>
-          <p class="footer__tagline">
-            The command center for solo developers. Local data, plain files, no cloud.
-          </p>
-        </div>
-
-        <nav class="footer__nav" aria-label="Footer">
-          <a href="#product">Product</a>
-          <a href="#features">Features</a>
-          <a href="#garden">Garden</a>
-          <a href="#checks">Checks</a>
-          <a href="#install">Install</a>
-          <a href="#faq">FAQ</a>
-        </nav>
-
-        <div class="footer__links">
-          <a
-            href="https://github.com/1-Pankaj/Devlofy"
-            target="_blank"
-            rel="noreferrer"
-          >
-            GitHub
-            <svg class="icon" aria-hidden="true"><use href="#i-arrow-square-out"></use></svg>
-            <span class="sr-only">(opens in a new tab)</span>
-          </a>
-          <a
-            href="https://github.com/1-Pankaj/Devlofy/issues"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Issues
-            <svg class="icon" aria-hidden="true"><use href="#i-arrow-square-out"></use></svg>
-            <span class="sr-only">(opens in a new tab)</span>
-          </a>
-          <a
-            href="https://github.com/1-Pankaj/Devlofy/blob/master/LICENSE"
-            target="_blank"
-            rel="noreferrer"
-          >
-            MIT license
-            <svg class="icon" aria-hidden="true"><use href="#i-arrow-square-out"></use></svg>
-            <span class="sr-only">(opens in a new tab)</span>
-          </a>
-        </div>
-      </div>
-
-      <div class="shell footer__fine">
-        <p>
-          Screenshots are the real app on the seeded demo data. Figures are from the repository at
-          v0.8.0.
-        </p>
-        <p>
-          Type: <a href="assets/fonts/OFL.txt">Mona Sans</a>, SIL OFL 1.1. Icons:
-          <a href="assets/phosphor/LICENSE">Phosphor</a>, MIT. No trackers, no CDN, no third-party
-          requests.
-        </p>
-      </div>
-    </footer>
-
-    <script src="main.js" defer></script>
-  </body>
+    </div>
+    <div class="micro" data-reveal>
+      <span><svg class="octicon"><use href="#i-law"/></svg> MIT license</span>
+      <span><svg class="octicon"><use href="#i-tag"/></svg> v0.8.0</span>
+      <span><svg class="octicon"><use href="#i-globe"/></svg> Android &amp; Web</span>
+      <span><svg class="octicon"><use href="#i-rocket"/></svg> iOS planned</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer class="footer">
+  <div class="container f-inner">
+    <span class="f-left"><svg class="octicon"><use href="#i-mark-github"/></svg> © 2026 Pankaj Israni · Devlofy</span>
+    <nav class="f-links" aria-label="Footer">
+      <a href="https://github.com/1-Pankaj/Devlofy" target="_blank" rel="noopener">Repository</a>
+      <a href="https://github.com/1-Pankaj/Devlofy/releases" target="_blank" rel="noopener">Releases</a>
+      <a href="https://github.com/1-Pankaj/Devlofy/issues" target="_blank" rel="noopener">Issues</a>
+      <a href="https://github.com/1-Pankaj/Devlofy/blob/master/LICENSE" target="_blank" rel="noopener">MIT License</a>
+      <a href="https://github.com/1-Pankaj/Devlofy/blob/master/NOTICE" target="_blank" rel="noopener">Notices</a>
+      <a href="#top">Back to top</a>
+    </nav>
+    <span class="f-made">Made for people who build alone <svg class="octicon"><use href="#i-heart"/></svg></span>
+  </div>
+  <div class="container f-sub">
+    This site is MIT licensed, like Devlofy itself. Built with <a href="https://github.com/primer/octicons" target="_blank" rel="noopener">Octicons</a> (MIT © GitHub), <a href="https://github.com/github/mona-sans" target="_blank" rel="noopener">Mona Sans</a> (SIL OFL 1.1), <a href="https://gsap.com" target="_blank" rel="noopener">GSAP</a>, <a href="https://lenis.darkroom.engineering" target="_blank" rel="noopener">Lenis</a> and <a href="https://swiperjs.com" target="_blank" rel="noopener">Swiper</a> (MIT) — full notices in the page source.
+  </div>
+</footer>
+
+<!-- ============ COMMAND PALETTE OVERLAY ============ -->
+<div class="cmdk-backdrop" id="cmdkBackdrop"></div>
+<div class="cmdk" id="cmdk" role="dialog" aria-modal="true" aria-label="Command palette">
+  <div class="cmdk-input">
+    <svg class="octicon"><use href="#i-search"/></svg>
+    <input id="cmdkInput" type="text" placeholder="Search tools and actions…" autocomplete="off" spellcheck="false">
+  </div>
+  <div class="cmdk-list" id="cmdkList"></div>
+  <div class="cmdk-foot">
+    <span><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
+    <span><kbd>↵</kbd> select</span>
+    <span><kbd>esc</kbd> close</span>
+  </div>
+</div>
+<div class="toast" id="toast"><svg class="octicon"><use href="#i-check-circle-fill"/></svg><span id="toastMsg"></span></div>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lenis@1.1.18/dist/lenis.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
+<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (s, c) { return (c || document).querySelector(s); };
+  var $$ = function (s, c) { return Array.prototype.slice.call((c || document).querySelectorAll(s)); };
+  var clamp = function (v, a, b) { return Math.min(b, Math.max(a, v)); };
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var finePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  var hasGsap = !!(window.gsap && window.ScrollTrigger);
+
+  if (hasGsap && !reduced) {
+    document.documentElement.classList.add('gsap');
+    gsap.registerPlugin(ScrollTrigger);
+  }
+
+  /* ---------- Smooth scrolling (Lenis) ---------- */
+  var lenis = null;
+  if (!reduced && window.Lenis) {
+    /* 0.95s: smoothed but responsive — 1.1+ reads as laggy */
+    lenis = new Lenis({ duration: 0.95, smoothWheel: true });
+    window.__lenis = lenis;
+    if (hasGsap) {
+      lenis.on('scroll', ScrollTrigger.update);
+      gsap.ticker.add(function (t) { lenis.raf(t * 1000); });
+      gsap.ticker.lagSmoothing(0);
+    } else {
+      (function raf(t) { lenis.raf(t); requestAnimationFrame(raf); })(0);
+    }
+  }
+
+  /* ---------- Smooth in-page anchors + tab state ---------- */
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest('a[href^="#"]');
+    if (!a) return;
+    var id = a.getAttribute('href');
+    if (!id || id.length < 2) return;
+    var target = document.querySelector(id);
+    if (!target) return;
+    e.preventDefault();
+    if (lenis) lenis.scrollTo(target, { offset: -118, duration: 1.15 });
+    else target.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' });
+    if (a.classList.contains('tab')) {
+      $$('.tab').forEach(function (t) { t.classList.remove('active'); });
+      a.classList.add('active');
+    }
+    if (history.replaceState) history.replaceState(null, '', id);
+  });
+
+  /* ---------- Header shadow (rAF-throttled) ---------- */
+  var repoHead = $('#repoHead'), headTick = false;
+  window.addEventListener('scroll', function () {
+    if (headTick) return;
+    headTick = true;
+    requestAnimationFrame(function () {
+      headTick = false;
+      repoHead.classList.toggle('scrolled', window.scrollY > 8);
+    });
+  }, { passive: true });
+
+  /* ---------- Hero entrance ---------- */
+  if (hasGsap && !reduced) {
+    gsap.to('.hero-title .mask > span', { y: 0, duration: 1.15, ease: 'power4.out', delay: .12 });
+  } else {
+    $$('.hero-title .mask > span').forEach(function (s) { s.style.transform = 'none'; });
+  }
+
+  /* ---------- Scroll reveals ----------
+     No clearProps: the stylesheet hides these elements via [data-reveal], so
+     clearing the inline transform would snap them back down 22px after the
+     reveal finished. Inline end-state must persist. */
+  if (hasGsap && !reduced) {
+    ScrollTrigger.batch('[data-reveal]', {
+      start: 'top 90%',
+      once: true,
+      onEnter: function (els) {
+        gsap.to(els, { opacity: 1, y: 0, duration: .75, ease: 'power3.out', stagger: .07, overwrite: true });
+      }
+    });
+  } else {
+    $$('[data-reveal]').forEach(function (el) { el.style.opacity = 1; el.style.transform = 'none'; });
+  }
+
+  /* ---------- Live GitHub numbers ---------- */
+  function fmt(n) { return n >= 1000 ? (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k' : String(n); }
+  fetch('https://api.github.com/repos/1-Pankaj/Devlofy')
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (d) {
+      if (!d) return;
+      $$('[data-gh]').forEach(function (el) {
+        var v = d[el.getAttribute('data-gh')];
+        if (typeof v === 'number') { el.textContent = fmt(v); el.hidden = false; }
+      });
+    }).catch(function () {});
+
+  /* ---------- Heatmap: focused hours, contribution-graph style ---------- */
+  var WEEKS = 53;
+  var grid = $('#hmGrid'), monthsBox = $('#hmMonths'), panel = $('.hm-panel');
+  function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; var t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  var rng = mulberry32(20261028);
+  var MN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var today = new Date(); today.setHours(12, 0, 0, 0);
+  var start = new Date(today); start.setDate(start.getDate() - (WEEKS * 7 - 1));
+  start.setDate(start.getDate() - start.getDay()); // align first column to Sunday
+  var frag = document.createDocumentFragment(), total = 0, dayCount = 0;
+  var lastMonth = -1, lastLabelW = -9;
+  for (var w = 0; w < WEEKS; w++) {
+    for (var d = 0; d < 7; d++) {
+      var date = new Date(start); date.setDate(start.getDate() + w * 7 + d);
+      var cell = document.createElement('i');
+      cell.className = 'hm-cell';
+      if (date > today) { frag.appendChild(cell); continue; }
+      var trend = w / WEEKS;
+      var weekend = (d === 0 || d === 6);
+      var vacation = (w >= 24 && w <= 26) ? 0.12 : 1;      /* a real summer break */
+      var sprint = (w % 9 === 7 || w % 9 === 8) ? 1 : 0;   /* deadline weeks */
+      var r = rng();
+      var h = r * 2.1 + trend * 2.6 + sprint * (weekend ? 0.6 : 1.9);
+      if (weekend) h *= 0.32;
+      h *= vacation;
+      if (!weekend && rng() < 0.08) h += 2.4;              /* deep-work days */
+      if (rng() < 0.14) h *= 0.15;                          /* life happens */
+      h = clamp(h, 0, 9);
+      var lvl = h < 0.5 ? 0 : h < 2 ? 1 : h < 4 ? 2 : h < 6.2 ? 3 : 4;
+      total += h; dayCount++;
+      cell.setAttribute('data-l', lvl);
+      cell.setAttribute('data-date', MN[date.getMonth()] + ' ' + date.getDate() + ', ' + date.getFullYear());
+      var mins = Math.round(h * 60 / 15) * 15;
+      var hrs = Math.floor(mins / 60), mns = mins % 60;
+      cell.setAttribute('data-time', hrs ? hrs + 'h' + (mns ? ' ' + mns + 'm' : '') : (mns + 'm'));
+      frag.appendChild(cell);
+      if (d === 0 && date.getMonth() !== lastMonth && w < WEEKS - 1 && w > 0 && w - lastLabelW >= 3) {
+        lastMonth = date.getMonth(); lastLabelW = w;
+        var lbl = document.createElement('span');
+        lbl.textContent = MN[lastMonth];
+        lbl.style.gridColumn = (w + 1);
+        monthsBox.appendChild(lbl);
+      }
+    }
+  }
+  grid.appendChild(frag);
+  var cells = $$('.hm-cell', grid);
+  if (hasGsap && !reduced) {
+    gsap.fromTo(cells, { opacity: 0, scale: .25 }, {
+      opacity: 1, scale: 1, duration: .5, ease: 'power2.out',
+      stagger: { amount: 1.5, grid: [7, WEEKS], from: 'start' },
+      scrollTrigger: { trigger: panel, start: 'top 82%', once: true }
+    });
+  } else {
+    cells.forEach(function (c) { c.style.opacity = 1; c.style.transform = 'none'; });
+  }
+  /* total count-up */
+  var totalEl = $('[data-hours-total]');
+  var shown = { v: 0 };
+  function renderTotal() { totalEl.textContent = Math.round(shown.v).toLocaleString('en-US'); }
+  if (hasGsap && !reduced) {
+    shown.v = 0;
+    gsap.to(shown, { v: Math.round(total), duration: 1.8, ease: 'power2.out', delay: .5, onUpdate: renderTotal });
+  } else { renderTotal(); }
+  /* tooltip */
+  var tip = document.createElement('div');
+  tip.className = 'hm-tip';
+  document.body.appendChild(tip);
+  grid.addEventListener('mouseover', function (e) {
+    var c = e.target.closest('.hm-cell');
+    if (!c || !c.getAttribute('data-time')) { tip.style.opacity = 0; return; }
+    tip.innerHTML = c.getAttribute('data-time') + ' focused<small>' + c.getAttribute('data-date') + '</small>';
+    tip.style.opacity = 1;
+  });
+  var tipRaf = 0, tipX = 0, tipY = 0;
+  grid.addEventListener('mousemove', function (e) {
+    tipX = e.clientX; tipY = e.clientY;
+    if (tipRaf) return;
+    tipRaf = requestAnimationFrame(function () {
+      tipRaf = 0;
+      tip.style.left = Math.min(tipX + 14, window.innerWidth - 170) + 'px';
+      tip.style.top = (tipY - 14 - tip.offsetHeight) + 'px';
+    });
+  });
+  grid.addEventListener('mouseleave', function () { tip.style.opacity = 0; });
+
+  /* ---------- Command palette ---------- */
+  var ITEMS = [
+    { g: 'Actions', icon: 'checklist', label: 'Open Today — plan the day' },
+    { g: 'Actions', icon: 'clock', label: 'Start a 45 minute focus' },
+    { g: 'Actions', icon: 'sun', label: 'Water the garden' },
+    { g: 'Actions', icon: 'file', label: 'Draft an invoice' },
+    { g: 'Actions', icon: 'star', label: 'Star Devlofy on GitHub', hint: 'repo', url: 'https://github.com/1-Pankaj/Devlofy' },
+    { g: 'Bench', icon: 'code', label: 'JSON formatter' },
+    { g: 'Bench', icon: 'database', label: 'SQL playground' },
+    { g: 'Bench', icon: 'search', label: 'Regex tester' },
+    { g: 'Bench', icon: 'diff', label: 'Diff viewer' },
+    { g: 'Bench', icon: 'file', label: 'Text tools' },
+    { g: 'Bench', icon: 'lock', label: 'Encode / decode' },
+    { g: 'Bench', icon: 'key', label: 'JWT decoder' },
+    { g: 'Bench', icon: 'hash', label: 'Hash generator' },
+    { g: 'Bench', icon: 'clock', label: 'Epoch converter' },
+    { g: 'Bench', icon: 'calendar', label: 'Cron builder' },
+    { g: 'Bench', icon: 'paintbrush', label: 'Colour picker' }
+  ];
+  var backdrop = $('#cmdkBackdrop'), cmdk = $('#cmdk'), cmdkInput = $('#cmdkInput'), cmdkList = $('#cmdkList');
+  var active = 0, current = [];
+  function palRender(q) {
+    q = (q || '').trim().toLowerCase();
+    current = ITEMS.filter(function (it) { return !q || it.label.toLowerCase().indexOf(q) > -1; });
+    active = 0;
+    if (!current.length) { cmdkList.innerHTML = '<div class="cmdk-empty">Nothing matches &ldquo;' + q.replace(/</g, '&lt;') + '&rdquo; — but the real palette has 11 tools.</div>'; return; }
+    var html = '', lastG = '';
+    current.forEach(function (it, i) {
+      if (it.g !== lastG) { html += '<div class="cmdk-group">' + it.g + '</div>'; lastG = it.g; }
+      html += '<div class="cmdk-item' + (i === active ? ' active' : '') + '" data-i="' + i + '">' +
+        '<svg class="octicon"><use href="#i-' + it.icon + '"/></svg>' + it.label +
+        '<span class="hint">' + (it.hint || 'offline') + '</span></div>';
+    });
+    cmdkList.innerHTML = html;
+  }
+  function palOpen() {
+    backdrop.classList.add('open'); cmdk.classList.add('open');
+    cmdkInput.value = ''; palRender('');
+    if (lenis) lenis.stop();
+    cmdkInput.focus();
+  }
+  function palClose() { backdrop.classList.remove('open'); cmdk.classList.remove('open'); if (lenis) lenis.start(); }
+  function palPick(i) {
+    var it = current[i]; if (!it) return;
+    palClose();
+    if (it.url) { window.open(it.url, '_blank', 'noopener'); toast('Thank you — every star counts.'); }
+    else toast('That one lives inside the app — grab Devlofy to use it for real.');
+  }
+  window.addEventListener('keydown', function (e) {
+    var typing = /input|textarea|select/i.test((e.target.tagName || ''));
+    if ((e.key === '/' && !typing && !cmdk.classList.contains('open')) ||
+        ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k')) {
+      e.preventDefault();
+      cmdk.classList.contains('open') ? palClose() : palOpen();
+      return;
+    }
+    if (!cmdk.classList.contains('open')) return;
+    if (e.key === 'Escape') palClose();
+    if (e.key === 'ArrowDown') { e.preventDefault(); active = Math.min(active + 1, current.length - 1); palPaint(); }
+    if (e.key === 'ArrowUp') { e.preventDefault(); active = Math.max(active - 1, 0); palPaint(); }
+    if (e.key === 'Enter') { e.preventDefault(); palPick(active); }
+  });
+  function palPaint() {
+    $$('.cmdk-item', cmdkList).forEach(function (el, i) {
+      el.classList.toggle('active', i === active);
+      if (i === active) el.scrollIntoView({ block: 'nearest' });
+    });
+  }
+  cmdkInput.addEventListener('input', function () { palRender(cmdkInput.value); });
+  cmdkList.addEventListener('click', function (e) {
+    var el = e.target.closest('.cmdk-item');
+    if (el) palPick(parseInt(el.getAttribute('data-i'), 10));
+  });
+  backdrop.addEventListener('click', palClose);
+  $('#searchBtn').addEventListener('click', palOpen);
+  $('#openPalBtn').addEventListener('click', palOpen);
+
+  /* ---------- Bench preview card (live) ----------
+     Click opens the real palette; the highlighted row walks the list like
+     real keyboard navigation. Paused on hover, off-screen, hidden tab. */
+  var palCard = $('#palCard');
+  if (palCard) {
+    var pRows = $$('.pal-row', palCard), pr = 0, palTimer = null, palHover = false, palSeen = false;
+    function palPaintPreview() { pRows.forEach(function (el, i) { el.classList.toggle('active', i === pr); }); }
+    function palStart() {
+      if (reduced || palTimer || !palSeen || !pRows.length) return;
+      palTimer = setInterval(function () {
+        if (palHover || document.hidden) return;
+        pr = (pr + 1) % pRows.length;
+        palPaintPreview();
+      }, 1900);
+    }
+    function palStop() { clearInterval(palTimer); palTimer = null; }
+    palPaintPreview();
+    palCard.addEventListener('click', palOpen);
+    palCard.addEventListener('mouseenter', function () { palHover = true; });
+    palCard.addEventListener('mouseleave', function () { palHover = false; });
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (en) {
+        palSeen = en[0].isIntersecting;
+        palSeen ? palStart() : palStop();
+      }, { threshold: 0.2 }).observe(palCard);
+    } else { palSeen = true; palStart(); }
+  }
+
+  /* ---------- Toast ---------- */
+  var toastEl = $('#toast'), toastMsg = $('#toastMsg'), toastT;
+  function toast(msg) {
+    toastMsg.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastT);
+    toastT = setTimeout(function () { toastEl.classList.remove('show'); }, 2600);
+  }
+
+  /* ---------- Copy button ---------- */
+  var copyBtn = $('#copyBtn');
+  if (copyBtn) copyBtn.addEventListener('click', function () {
+    var txt = 'git clone https://github.com/1-Pankaj/Devlofy.git\ncd Devlofy\nnpm install\nnpx expo start';
+    function ok() {
+      copyBtn.classList.add('ok');
+      copyBtn.innerHTML = '<svg class="octicon"><use href="#i-check-circle-fill"/></svg>Copied';
+      setTimeout(function () {
+        copyBtn.classList.remove('ok');
+        copyBtn.innerHTML = '<svg class="octicon"><use href="#i-copy"/></svg>Copy';
+      }, 2200);
+    }
+    if (navigator.clipboard) navigator.clipboard.writeText(txt).then(ok, ok);
+    else ok();
+  });
+
+  /* ---------- Tree growth ---------- */
+  var tree = $('#gardenTree');
+  if (tree) {
+    if (reduced || !('IntersectionObserver' in window)) tree.classList.add('grown');
+    else {
+      var tio = new IntersectionObserver(function (en) {
+        if (en[0].isIntersecting) { setTimeout(function () { tree.classList.add('grown'); }, 200); tio.disconnect(); }
+      }, { threshold: 0.35 });
+      tio.observe(tree);
+    }
+  }
+
+  /* ---------- Swiper (changelog) ---------- */
+  if (window.Swiper) {
+    new Swiper('.swiper', {
+      slidesPerView: 1.05,
+      spaceBetween: 16,
+      centeredSlides: false,
+      grabCursor: true,
+      loop: true,
+      autoplay: reduced ? false : { delay: 4200, pauseOnMouseEnter: true, disableOnInteraction: false },
+      pagination: { el: '.swiper-pagination', clickable: true },
+      breakpoints: { 640: { slidesPerView: 2 }, 1024: { slidesPerView: 3 } }
+    });
+  }
+
+  /* ---------- Magnetic buttons ---------- */
+  if (finePointer && !reduced) {
+    $$('.magnetic').forEach(function (el) {
+      el.addEventListener('mouseenter', function () {
+        el.style.transition = 'transform .18s ease-out';
+      });
+      el.addEventListener('mousemove', function (e) {
+        var r = el.getBoundingClientRect();
+        el.style.transform = 'translate(' + (e.clientX - r.left - r.width / 2) * 0.16 + 'px,' + (e.clientY - r.top - r.height / 2) * 0.22 + 'px)';
+      });
+      el.addEventListener('mouseleave', function () {
+        el.style.transition = 'transform .5s cubic-bezier(.19,1,.22,1)';
+        el.style.transform = 'translate(0,0)';
+      });
+    });
+  }
+
+  /* ---------- Marquee duplicate + refresh ---------- */
+  var track = $('#mqTrack');
+  if (track) track.appendChild($('.mq-seg', track).cloneNode(true));
+  window.addEventListener('load', function () { if (hasGsap) ScrollTrigger.refresh(); });
+  /* late font swap changes text metrics — re-measure trigger positions */
+  if (hasGsap && document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(function () { ScrollTrigger.refresh(); });
+  }
+})();
+</script>
+</body>
 </html>

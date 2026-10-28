@@ -3,26 +3,18 @@
 The static marketing page for Devlofy, published to GitHub Pages at
 <https://1-pankaj.github.io/Devlofy/>.
 
-It is deliberately plain: `index.html`, `styles.css`, `main.js` and `assets/`.
-No framework, no build step, no package manager and no runtime dependency. Fonts,
-icons and screenshots are vendored, so the page makes **no third-party requests**
-and renders the same offline as it does on Pages.
+One file: `index.html` — markup, CSS, JavaScript and the Octicon sprite all
+inline. No build step, no package manager, no framework.
 
 ```
 site/
-  index.html                    the whole page, including the inline icon sprite
-  styles.css                    design tokens and every section
-  main.js                       parser demo, header, reveals, stack, spotlight, fireflies
-  assets/app/                   screenshots captured from the running app (WebP)
-  assets/brand/                 night mark + favicon
-  assets/fonts/                 Mona Sans and Mona Sans Mono (SIL OFL 1.1)
-  assets/phosphor/              source SVGs + MIT licence for the inlined sprite
-  assets/og.png                 the 1200x630 social card
+  index.html    the whole page
+  README.md     this file
 ```
 
 ## Preview
 
-Serve the folder over HTTP. A `file://` URL will not load the woff2 fonts.
+Serve the folder over HTTP:
 
 ```bash
 python -m http.server 4173 --directory site
@@ -30,108 +22,50 @@ python -m http.server 4173 --directory site
 npx serve site
 ```
 
-Then open <http://localhost:4173/>. Every path is relative, so the page also
-works under a subpath — which is how Pages serves it at `/Devlofy/`.
-
-The page needs no COOP/COEP headers; only the app's web build does.
+Then open <http://localhost:4173/>.
 
 ## Deploy
 
 `.github/workflows/pages.yml` uploads `site/` as the Pages artifact on every push
-to `master` that touches the page (or on a manual dispatch). Set **Settings →
-Pages → Source: GitHub Actions** once; after that the URL above updates itself.
-Only `site/` is published — never the app source, the docs vault or the tooling.
+to `master` that touches the page (or on a manual dispatch). Only `site/` is
+published — never the app source, the docs vault or the tooling.
 
-## Design
+## What the page loads
 
-A GitHub-shaped page, not an editorial one:
+Everything of substance is inline, but the page does make third-party requests.
+Keep this list in step with reality if the page changes:
 
-- **Dark hero**, near-black `#08090c` with a violet wash, a fading dot field and
-  the product window floating over its lower edge.
-- **Light product sections** on white and `#f6f8fa`, with 1px borders, 10–14px
-  radii and quiet shadows.
-- **Dark garden and closing**, so the two 3D-heavy moments bookend the page.
-- **Type**: Mona Sans throughout, Mona Sans Mono for labels, code and figures.
-  Body is 18px, ledes 20–21px, section headings 60px on desktop and 36px on
-  mobile, the hero 88px / 34px. Small labels are 12px and never carry copy.
-- **Motion**: one duration against two curves in `styles.css`; no springs, no
-  overshoot. Everything is disabled under `prefers-reduced-motion: reduce`.
+| Request | Used for |
+| --- | --- |
+| `fonts.googleapis.com` + `fonts.gstatic.com` | Mona Sans (SIL OFL 1.1) |
+| `cdn.jsdelivr.net` — GSAP 3.13 + ScrollTrigger | scroll reveals, magnetic buttons |
+| `cdn.jsdelivr.net` — Lenis 1.1.18 | smooth scrolling |
+| `cdn.jsdelivr.net` — Swiper 11 | changelog carousel |
+| `api.github.com/repos/1-Pankaj/Devlofy` | star / fork / watch / issue counters |
 
-All colour, spacing and type values live in `:root` at the top of `styles.css`.
-Change them there, not in a section rule.
+Blocked or offline, the page still reads: the reveal animation is skipped, the
+changelog slides stack vertically, and the counters show a dash.
 
-## Interactions
+## Page map
 
-The component ideas came from [Skiper UI](https://skiper-ui.com/) and
-[Aceternity UI](https://ui.aceternity.com/), reimplemented from scratch in
-vanilla CSS/JS so the page keeps its no-dependency rule:
+`#top` hero · `#inside` the nine modules · `#readme` README panel + About ·
+`#bench` eleven tools · `#garden` the tree · `#changelog` releases ·
+`#privacy` security · `#checks` verification · closing CTA + footer.
 
-- a bounded pointer parallax on the hero product window;
-- a sticky deck of three tour cards, each covering the last;
-- pointer-tracked spotlight cards in the feature grid;
-- a seamless evidence ticker (paused when it leaves the viewport);
-- a conic "tracing beam" border around the install terminal;
-- word-by-word line reveals and a firefly canvas in the garden.
-
-The quick-add box is the one piece of real logic: `main.js` contains a port of
-`src/lib/parse-task.ts` and renders the chips before anything would be saved.
-When the grammar changes in the app, port the change here in the same commit.
-If JavaScript is off, the page still reads: the demo keeps its example and the
-checks matrix hides rather than showing an empty panel.
+A command palette opens on `/` or `Ctrl/⌘ K` and lists the Bench tools and the
+page's own sections.
 
 ## Rules for edits
 
-- **Paths stay relative.** Pages serves this from `/Devlofy/`, not a domain root.
-- **Copy must be checkable against the repository.** No invented customers,
-  downloads, benchmarks or dates. Current figures and where they come from:
-
-  | Claim | Source |
-  | --- | --- |
-  | v0.8.0, Expo SDK 58, React Native 0.88, MIT | `package.json`, `LICENSE` |
-  | 482 checks = 80 Bench + 122 Engine + 190 Notes + 90 Sentinel | `tools/checks/self-check.sh` |
-  | 11 Bench tools | `src/lib/bench/tools.ts` |
-  | 5 garden stages, 11 authored GLB props + bench/signpost in code | `assets/models/`, `src/lib/garden/props.ts` |
-  | 55 / 30 / 15 growth split | `src/lib/garden/model.ts` |
-  | 15-minute Sentinel freshness, 500 checks kept per target | `src/lib/sentinel/` |
-  | 2h 40m at ₹2,500/h = ₹6,666.67 | `src/lib/db/seed.ts`, `src/lib/money.ts` |
-
-- **A failed read is not an empty one.** The page has no reads, but the same
-  house rule applies to any future live data: say it failed, do not paint zero.
-- **No CDN, analytics, trackers or third-party runtime requests**, and no new
-  dependency. Add a local asset instead.
-- **One filled action per view.** The violet button is the action; everything
-  else is a quiet link or an outline button.
-
-## Assets and licences
-
-| Asset | Source | Notes |
-| --- | --- | --- |
-| `assets/fonts/mona-sans*.woff2` | [github/mona-sans](https://github.com/github/mona-sans) | Vendored unmodified; `OFL.txt` beside them |
-| `assets/phosphor/*.svg` + inline sprite | [phosphor-icons/core](https://github.com/phosphor-icons/core) | MIT (`assets/phosphor/LICENSE`); source files are not fetched at runtime |
-| `assets/app/*.webp` | This app | Captured at 2× from the seeded demo data, then encoded to WebP |
-| `assets/brand/favicon.png` | `assets/images/favicon.png` | Copy of the generated app icon |
-| `assets/brand/mark-night.png` | Generated | Transparent night mark used in the header, footer and OG card |
-| `assets/og.png` | Generated | `python tools/brand/make-og.py` |
-
-The screenshots show what a new install sees (`src/lib/db/seed.ts`). If the seed
-or the relevant screen changes, re-capture them rather than editing the image.
-
-`make-og.py` caches Mona Sans under the system temp directory and fetches it
-from GitHub the first time; that is a development-time request, not something
-the page does. Re-run it after a headline or number changes:
-
-```bash
-python tools/brand/make-og.py
-```
-
-## Before committing
-
-```bash
-python -m http.server 4173 --directory site
-```
-
-- Check the console is clean and the page has no horizontal overflow at 1440,
-  920 and 390px.
-- Toggle reduced motion and JavaScript off; the page must still read.
-- Run the repository gates from the root: `npx tsc --noEmit`, `npx eslint .`,
-  `tools/checks/self-check.sh`.
+- **Copy must be checkable against the repository.** Version, SDK, check counts,
+  tool counts and licence come from `package.json`, `tools/checks/self-check.sh`,
+  `src/lib/bench/tools.ts`, `LICENSE` and `CHANGELOG.md`. No invented customers,
+  downloads or benchmarks.
+- **Anchors and `site/` paths stay as they are.** Pages serves this from
+  `/Devlofy/`; the canonical and `og:url` point there.
+- **One filled action per view.** The primary button is the action; everything
+  else is a quiet button or a link.
+- **Motion is optional.** Reveals, the marquee and the tree all respect
+  `prefers-reduced-motion: reduce`.
+- Re-check at 1440, 920 and 390px before pushing; there should be no horizontal
+  overflow and no console errors beyond a blocked request.
