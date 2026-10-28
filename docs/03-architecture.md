@@ -15,7 +15,7 @@ created: 2026-10-17
 | Database | **expo-sqlite** everywhere | Native: real SQLite. Web: wasm + OPFS |
 | 3D | **three + @react-three/fiber** via expo-gl | One scene, two renderers (see below) |
 | Network | **Two features, both opt-in and neither required.** `/github` — two-way but branch-bounded, cached as a dated snapshot ([[07-decisions]] ADR-019 → 020); `/sentinel` — requests to *your own* URLs, taken only when you look at the board, stored locally as your own history ([[07-decisions]] ADR-023). Everything else runs with the radio off | Local-first is the product |
-| UI system | **Material 3 Expressive** — tonal surfaces, one FAB per screen, owned primitives ([[04-design-language]]) | Non-generic, no component kit, no web look |
+| UI system | **Primer-grade neutrals, Devlofy violet** — white surfaces held by a 1px hairline, small radii, mono metadata, one FAB per screen, owned primitives ([[04-design-language]] ADR-027) | Non-generic, no component kit, no web look |
 | Icons | **phosphor-react-native** (light/regular) | Precise lines, brand-consistent |
 | Fonts | Geist + JetBrains Mono | UI and display / machine-truth |
 | Lists | **@shopify/flash-list** | Virtualized where it matters |
@@ -46,8 +46,8 @@ Any new platform-specific capability (notifications, file system, haptics) follo
 Research findings baked into the implementation:
 
 - Android's desktop windowing (Android 14+ tablets, DeX, desktop-class Chromebooks) runs apps in **resizable freeform windows** — the app must never assume a fixed width or a bottom edge. Everything here uses `useWindowDimensions` and flex.
-- **Window size classes** (Material 3): the app maps them in `src/lib/layout/breakpoints.ts` → `compact` / `medium` / `expanded`.
-- `useDesktopMode()` = user setting (`auto` follows expanded) → the tab layout renders `DesktopShell` (side rail, `Slot`) instead of the bottom tab bar. Rail + content, centered max-width 920.
+- **Window size classes**: compact < 600, medium 600–839, expanded ≥ 840 — mapped in `src/lib/layout/breakpoints.ts` to `compact` / `medium` / `expanded`.
+- `useDesktopMode()` = user setting (`auto` follows expanded). The **root layout** (`src/app/_layout.tsx`) renders `DesktopRail` beside the `Stack`, so a pushed screen sits beside the navigation rather than under it; the tab layout simply hides its bottom bar in desktop mode. Rail 248px + content, centred max-width 920.
 - Keyboard/mouse: interactive elements are `Pressable`/`PressableScale` with accessibility roles; rows highlight (not scale) for pointer contexts. Hover polish is backlog.
 - Orientation is `"default"` (tablets rotate); the manifest keeps `resizeableActivity` default-on.
 
@@ -76,7 +76,7 @@ src/
                           #   BottomSheet/SheetRow/SheetOption (the app's one sheet: scrim,
                           #   rising surface, title, close), Segmented, Screen, CodeBlock,
                           #   DiffView, …
-    nav/                  # nav-items, BottomTabBar, DesktopShell
+    nav/                  # nav-items (shared destinations + prefix-aware active path), BottomTabBar, DesktopRail (desktop-shell.tsx)
     garden/               # garden-scene.tsx (R3F)
     focus/                # heatmap, project chips, Next up (the Engine's card), rhythm card
     bench/                # eleven tool screens + the "keep this" panel + shared tool chrome

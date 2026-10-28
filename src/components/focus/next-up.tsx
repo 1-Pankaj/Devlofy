@@ -8,6 +8,10 @@
  *
  * Starting from here attributes the block to the *task* as well as the project,
  * which is what lets the app later compare what was estimated with what happened.
+ *
+ * Drawn as a recommendation, not a card: a brand rule down the leading edge, the
+ * rank in mono, and the reasons under a "chosen because" label. The answer is
+ * stated; its evidence is shown, not implied.
  */
 import { Target } from 'phosphor-react-native';
 import { useState } from 'react';
@@ -18,7 +22,7 @@ import { Eyebrow, StatusPill } from '@/components/ui/pill';
 import { AppButton } from '@/components/ui/app-button';
 import { AppText } from '@/components/ui/app-text';
 import { Panel } from '@/components/ui/panel';
-import { spacing, useTheme } from '@/theme';
+import { radius, spacing, useTheme } from '@/theme';
 
 /** Reason → pill tone, so "overdue" reads hotter than "quick win". */
 function reasonTone(reason: string): 'danger' | 'ember' | 'accent' | 'neutral' {
@@ -59,59 +63,93 @@ export function NextUp({
   const { task, reasons } = picked;
 
   return (
-    <Panel style={{ gap: spacing.md }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-          <Target size={14} color={colors.accent} weight="bold" />
-          <Eyebrow tone="accent">Next up</Eyebrow>
+    <Panel coreStyle={{ padding: 0, overflow: 'hidden' }}>
+      <View style={{ flexDirection: 'row' }}>
+        <View style={{ width: 3, backgroundColor: colors.accent }} />
+        <View style={{ flex: 1, padding: spacing.lg, gap: spacing.md }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: spacing.md,
+            }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+              <Target size={14} color={colors.accent} weight="bold" />
+              <Eyebrow tone="accent">next up</Eyebrow>
+            </View>
+            <AppText variant="code" tone="tertiary">
+              {ranked.length > 1 ? `${pool.length}/${ranked.length} ranked` : 'only one'}
+            </AppText>
+          </View>
+
+          <View style={{ gap: spacing.xs }}>
+            <AppText variant="headline" numberOfLines={2}>
+              {task.title}
+            </AppText>
+            <AppText variant="code" tone="tertiary">
+              {[task.project_name, task.est_minutes ? `est ${task.est_minutes}m` : null]
+                .filter(Boolean)
+                .join(' · ') || 'no project'}
+            </AppText>
+          </View>
+
+          {reasons.length > 0 ? (
+            <View style={{ gap: spacing.xs + 1 }}>
+              <AppText variant="monoLabel" tone="tertiary" style={{ fontSize: 9.5 }}>
+                chosen because
+              </AppText>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs }}>
+                {reasons.map((reason) => (
+                  <StatusPill key={reason} label={reason} tone={reasonTone(reason)} />
+                ))}
+              </View>
+            </View>
+          ) : null}
+
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: spacing.sm,
+              paddingTop: spacing.md,
+              borderTopWidth: 1,
+              borderTopColor: colors.hairline,
+            }}>
+            <AppButton
+              label="Focus on this"
+              icon={Target}
+              variant="tonal"
+              disabled={disabled}
+              onPress={() => onStart(picked)}
+              style={{ opacity: starting ? 0.6 : 1 }}
+            />
+            {ranked.length > 1 ? (
+              <AppButton
+                label="Another"
+                variant="text"
+                disabled={disabled}
+                onPress={() =>
+                  setSkipped((current) =>
+                    current.length >= ranked.length ? [task.id] : [...current, task.id],
+                  )
+                }
+              />
+            ) : null}
+            <View style={{ flex: 1 }} />
+            <View
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: radius.full,
+                backgroundColor: colors.accentBorder,
+              }}
+            />
+            <AppText variant="monoLabel" tone="tertiary" style={{ fontSize: 9.5 }}>
+              engine
+            </AppText>
+          </View>
         </View>
-        {ranked.length > 1 ? (
-          <AppText variant="caption" tone="tertiary">
-            {pool.length > 1 ? `${pool.length} ranked` : 'last one'}
-          </AppText>
-        ) : null}
-      </View>
-
-      <View style={{ gap: spacing.xs }}>
-        <AppText variant="headline" numberOfLines={2}>
-          {task.title}
-        </AppText>
-        <AppText variant="caption" tone="tertiary" numberOfLines={1}>
-          {[task.project_name, task.est_minutes ? `${task.est_minutes}m` : null]
-            .filter(Boolean)
-            .join(' · ') || 'No project'}
-        </AppText>
-      </View>
-
-      {reasons.length > 0 ? (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs }}>
-          {reasons.map((reason) => (
-            <StatusPill key={reason} label={reason} tone={reasonTone(reason)} />
-          ))}
-        </View>
-      ) : null}
-
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-        <AppButton
-          label="Focus on this"
-          icon={Target}
-          variant="tonal"
-          disabled={disabled}
-          onPress={() => onStart(picked)}
-          style={{ opacity: starting ? 0.6 : 1 }}
-        />
-        {ranked.length > 1 ? (
-          <AppButton
-            label="Show me another"
-            variant="text"
-            disabled={disabled}
-            onPress={() =>
-              setSkipped((current) =>
-                current.length >= ranked.length ? [task.id] : [...current, task.id],
-              )
-            }
-          />
-        ) : null}
       </View>
     </Panel>
   );

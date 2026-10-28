@@ -26,17 +26,38 @@ function isInBand(rhythm: Rhythm, hour: number): boolean {
   return startHour + 3 <= 24 ? hour >= startHour && hour < endHour : hour >= startHour || hour < endHour;
 }
 
+function hourLabel(hour: number): string {
+  return `${String(hour).padStart(2, '0')}:00`;
+}
+
 export function RhythmCard({ rhythm, insights }: { rhythm: Rhythm; insights: string[] }) {
   const { colors } = useTheme();
   const max = Math.max(1, ...rhythm.byHour);
+  const calibrated = rhythm.peak && rhythm.calibrated;
 
   return (
     <Panel style={{ gap: spacing.lg }}>
-      <View style={{ gap: spacing.xxs }}>
-        <Eyebrow>Rhythm</Eyebrow>
-        <AppText variant="headline">
-          {rhythm.peak && rhythm.calibrated ? 'When you actually work' : 'Learning your hours'}
-        </AppText>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          gap: spacing.md,
+        }}>
+        <View style={{ gap: spacing.xxs, flex: 1 }}>
+          <Eyebrow>rhythm</Eyebrow>
+          <AppText variant="headline">{calibrated ? 'When you actually work' : 'Learning your hours'}</AppText>
+        </View>
+        {calibrated && rhythm.peak ? (
+          <View style={{ alignItems: 'flex-end', gap: 2 }}>
+            <AppText variant="code" tone="accent">
+              {hourLabel(rhythm.peak.startHour)}–{hourLabel(rhythm.peak.endHour)}
+            </AppText>
+            <AppText variant="monoLabel" tone="tertiary" style={{ fontSize: 9 }}>
+              peak band
+            </AppText>
+          </View>
+        ) : null}
       </View>
 
       <View style={{ gap: spacing.sm }}>
@@ -50,10 +71,11 @@ export function RhythmCard({ rhythm, insights }: { rhythm: Rhythm; insights: str
             return (
               <View
                 key={hour}
+                accessibilityLabel={`${hourLabel(hour)}: ${minutes} minutes`}
                 style={{
                   flex: 1,
                   height,
-                  borderRadius: 2,
+                  borderRadius: radius.xs,
                   backgroundColor:
                     minutes === 0
                       ? colors.surfaceSunken
@@ -69,7 +91,7 @@ export function RhythmCard({ rhythm, insights }: { rhythm: Rhythm; insights: str
           {rhythm.byHour.map((_, hour) => (
             <View key={hour} style={{ flex: 1, alignItems: 'center' }}>
               {LABELLED_HOURS.includes(hour) ? (
-                <AppText variant="caption" tone="tertiary" style={{ fontSize: 10 }}>
+                <AppText variant="code" tone="tertiary" style={{ fontSize: 9 }}>
                   {String(hour).padStart(2, '0')}
                 </AppText>
               ) : null}
@@ -90,9 +112,9 @@ export function RhythmCard({ rhythm, insights }: { rhythm: Rhythm; insights: str
             <View key={line} style={{ flexDirection: 'row', gap: spacing.sm }}>
               <View
                 style={{
-                  width: 3,
-                  borderRadius: radius.full,
-                  backgroundColor: colors.accentBorder,
+                  width: 2,
+                  borderRadius: 1,
+                  backgroundColor: colors.accent,
                 }}
               />
               <AppText variant="subhead" tone="secondary" style={{ flex: 1 }}>

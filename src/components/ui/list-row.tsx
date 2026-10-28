@@ -1,10 +1,12 @@
 /**
- * ListRow — grouped-list row (hairlines, not cards). Rows highlight rather
- * than scale; use PressableScale only for standalone buttons.
+ * ListRow — a row in a grouped list. Hairlines, not cards.
+ *
+ * The row is 50–56px tall, the icon well is 30px on a 6px radius, and the
+ * separator starts where the *text* starts — so a column of rows reads as one
+ * table rather than a stack of lightly separated lines.
  *
  * Identity reads before text: pass `avatar` for a person or project (tinted
- * initials) or `icon` for a glyph in a tinted well. `tone` tints that well —
- * match the icon's colour to it.
+ * initials) or `icon` for a glyph in a well. `tone` tints that well.
  */
 import type { ReactNode } from 'react';
 import { Pressable, View } from 'react-native';
@@ -13,7 +15,7 @@ import { radius, spacing, useTheme } from '@/theme';
 import { AppText } from './app-text';
 import { Avatar } from './avatar';
 
-export type RowTone = 'neutral' | 'accent' | 'ember' | 'info';
+export type RowTone = 'neutral' | 'accent' | 'ember' | 'info' | 'danger';
 
 export type ListRowProps = {
   title: string;
@@ -31,6 +33,9 @@ export type ListRowProps = {
   showSeparator?: boolean;
 };
 
+const WELL = 30;
+const ROW_PAD = 14;
+
 export function ListRow({
   title,
   subtitle,
@@ -45,13 +50,15 @@ export function ListRow({
   const { colors } = useTheme();
 
   const well = {
-    neutral: { background: colors.surfaceElevated },
-    accent: { background: colors.accentSoft },
-    ember: { background: colors.emberSoft },
-    info: { background: colors.infoSoft },
+    neutral: { background: colors.surfaceElevated, ink: colors.textSecondary },
+    accent: { background: colors.accentSoft, ink: colors.accent },
+    ember: { background: colors.emberSoft, ink: colors.ember },
+    info: { background: colors.infoSoft, ink: colors.info },
+    danger: { background: colors.dangerSoft, ink: colors.danger },
   }[tone];
 
   const leading = avatar ? 'avatar' : icon ? 'icon' : 'none';
+  const inset = leading === 'none' ? ROW_PAD : ROW_PAD + WELL + spacing.md;
 
   return (
     <Pressable
@@ -66,15 +73,16 @@ export function ListRow({
           flexDirection: 'row',
           alignItems: 'center',
           gap: spacing.md,
-          paddingHorizontal: spacing.lg,
-          paddingVertical: spacing.md,
+          paddingHorizontal: ROW_PAD,
+          paddingVertical: 11,
+          minHeight: 52,
         }}>
-        {leading === 'avatar' ? <Avatar name={avatar!} /> : null}
+        {leading === 'avatar' ? <Avatar name={avatar!} size={WELL} /> : null}
         {leading === 'icon' ? (
           <View
             style={{
-              width: 36,
-              height: 36,
+              width: WELL,
+              height: WELL,
               borderRadius: radius.md,
               borderCurve: 'continuous',
               backgroundColor: well.background,
@@ -84,27 +92,21 @@ export function ListRow({
             {icon}
           </View>
         ) : null}
-        <View style={{ flex: 1, gap: 2 }}>
+        <View style={{ flex: 1, gap: 1 }}>
           <AppText variant="subheadMedium" numberOfLines={1}>
             {title}
           </AppText>
           {subtitle ? (
-            <AppText variant="caption" tone="secondary" numberOfLines={1}>
+            <AppText variant="caption" tone="secondary" numberOfLines={2}>
               {subtitle}
             </AppText>
           ) : null}
-          {footer ? <View style={{ marginTop: 3 }}>{footer}</View> : null}
+          {footer ? <View style={{ marginTop: 4 }}>{footer}</View> : null}
         </View>
         {trailing}
       </View>
       {showSeparator ? (
-        <View
-          style={{
-            height: 1,
-            marginLeft: leading === 'none' ? spacing.lg : spacing.lg + 36 + spacing.md,
-            backgroundColor: colors.hairline,
-          }}
-        />
+        <View style={{ height: 1, marginLeft: inset, backgroundColor: colors.hairline }} />
       ) : null}
     </Pressable>
   );

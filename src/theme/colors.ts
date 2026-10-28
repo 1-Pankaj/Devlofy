@@ -1,31 +1,40 @@
 /**
- * Devlofy palette — Material 3 tonal roles.
+ * Devlofy palette — Primer-grade neutrals, Devlofy violet.
  *
- * The scheme is built the way Material 3 builds one: a **primary** hue that
- * tints the whole neutral ramp, plus a **tertiary** hue reserved for one
- * meaning. Surfaces are tonal containers, not borders — a card reads as raised
- * because it sits a step lighter (light theme) or lighter-and-warmer (dark
- * theme) than the canvas, never because it has a 1px outline.
+ * The old scheme was Material 3: a lavender canvas tinted by the brand, and
+ * cards that read as raised because they sat a tone lighter than the page. This
+ * one is the opposite discipline, borrowed from the language of developer
+ * tools — the website's language, not GitHub's identity:
  *
- *   primary    indigo   — the brand: navigation, primary action, progress
- *   tertiary   amber    — time and focus: a running session, the timer
- *   error      red      — destructive and failure only
+ *   - a **neutral** canvas (#F6F6F8) that the brand never tints;
+ *   - **white surfaces held by a 1px hairline**, not by elevation;
+ *   - near-black ink, a muted secondary, and one quiet tertiary for metadata;
+ *   - **one** brand hue — the violet of the app icon — and two reserved
+ *     meanings: amber for time, red for failure.
  *
- * Every value is a token. Components read them from `useTheme()`; nothing
- * hardcodes a colour.
+ * Nothing here copies GitHub's values (no #f6f8fa, no #0969da, no #1a7f37) and
+ * no GitHub mark is used: the shape of the interface is "tool", the colour is
+ * Devlofy's own.
  */
 
 export type ColorScheme = 'dark' | 'light';
 
 export type ThemeColors = {
-  /** Canvas. The lowest tonal step. */
+  /** Canvas. Neutral, never tinted by the brand. */
   background: string;
-  /** Cards and sheets — one step above the canvas. */
+  /** Cards and sheets — white, held by a hairline. */
   surface: string;
   /** Interactive fills and wells inside a card (chips, avatars, inputs). */
   surfaceElevated: string;
-  /** Recessed tracks: segmented rails, progress troughs, insets. */
+  /** Recessed tracks: progress troughs, insets, segmented rails. */
   surfaceSunken: string;
+  /**
+   * The plate that travels under the selected option of a segmented control.
+   * Its own token because it must sit **above** the rail in both schemes, and
+   * the neutral ladder is only eight levels a step: `surface` is not the raised
+   * plane when the page is near-black.
+   */
+  controlThumb: string;
   /** Dividers between rows. */
   hairline: string;
   /** Stronger separators and control outlines. */
@@ -37,18 +46,18 @@ export type ThemeColors = {
 
   /** The brand: active navigation, the one primary action, progress. */
   accent: string;
-  /** Primary container — the soft brand fill (FAB, hero, icon wells). */
+  /** Soft brand fill — the icon well, a selected row, a focus ring. */
   accentSoft: string;
   /** The brand at outline strength. */
   accentBorder: string;
   /** Content sitting *on* `accent` (a solid brand fill). */
   accentContrast: string;
-  /** Brand-tinted shadow. Shadows carry the hue of what casts them. */
+  /** Brand-tinted shadow. */
   accentShadow: string;
 
   /** Focus and time. Warm amber, the palette's second hue. */
   ember: string;
-  /** Tertiary container — the soft amber fill. */
+  /** Soft amber fill. */
   emberSoft: string;
 
   info: string;
@@ -60,61 +69,63 @@ export type ThemeColors = {
 };
 
 const light: ThemeColors = {
-  background: '#F5F2FB',
+  background: '#F6F6F8',
   surface: '#FFFFFF',
-  surfaceElevated: '#EAE8F1',
-  surfaceSunken: '#E4E1EB',
-  hairline: '#E7E4EF',
-  hairlineStrong: '#C6C5D0',
+  surfaceElevated: '#F1F1F4',
+  surfaceSunken: '#E9E9EE',
+  controlThumb: '#FFFFFF',
+  hairline: '#E4E4EA',
+  hairlineStrong: '#CFCFD8',
 
-  text: '#1B1B22',
-  textSecondary: '#46464F',
-  textTertiary: '#767680',
+  text: '#15151A',
+  textSecondary: '#4B4B57',
+  textTertiary: '#797985',
 
-  accent: '#4B5AA0',
-  accentSoft: '#DFE0FF',
-  accentBorder: '#B3B7E8',
+  accent: '#5B3DF5',
+  accentSoft: '#EFEBFF',
+  accentBorder: '#CFC4FF',
   accentContrast: '#FFFFFF',
-  accentShadow: 'rgba(75, 90, 160, 0.26)',
+  accentShadow: 'rgba(91, 61, 245, 0.22)',
 
-  ember: '#A85A08',
-  emberSoft: '#FFDDB8',
+  ember: '#8F5A06',
+  emberSoft: '#FDF0DA',
 
-  info: '#31628F',
-  infoSoft: '#D6E4F7',
-  danger: '#BA1A1A',
-  dangerSoft: '#FFDAD6',
+  info: '#0B5FA5',
+  infoSoft: '#E3F0FB',
+  danger: '#C0322A',
+  dangerSoft: '#FDECE9',
 
-  scrim: 'rgba(27, 27, 34, 0.45)',
+  scrim: 'rgba(17, 17, 22, 0.44)',
 };
 
 const dark: ThemeColors = {
-  background: '#131318',
-  surface: '#1F1F26',
-  surfaceElevated: '#2A2931',
-  surfaceSunken: '#35343D',
-  hairline: '#2E2D35',
-  hairlineStrong: '#46464F',
+  background: '#0C0C10',
+  surface: '#141419',
+  surfaceElevated: '#1C1C23',
+  surfaceSunken: '#24242C',
+  controlThumb: '#2E2E38',
+  hairline: '#26262F',
+  hairlineStrong: '#3A3A46',
 
-  text: '#E5E1EA',
-  textSecondary: '#C6C5D0',
-  textTertiary: '#90909A',
+  text: '#ECECF1',
+  textSecondary: '#B7B7C2',
+  textTertiary: '#85858F',
 
-  accent: '#BCC2FF',
-  accentSoft: '#33418A',
-  accentBorder: '#5A66AE',
-  accentContrast: '#16267B',
-  accentShadow: 'rgba(0, 0, 0, 0.5)',
+  accent: '#A794FF',
+  accentSoft: '#241D4D',
+  accentBorder: '#40357A',
+  accentContrast: '#120C33',
+  accentShadow: 'rgba(0, 0, 0, 0.55)',
 
-  ember: '#FFB870',
-  emberSoft: '#6B3C00',
+  ember: '#F0B45E',
+  emberSoft: '#33240D',
 
-  info: '#A8CAF0',
-  infoSoft: '#2A4257',
-  danger: '#FFB4AB',
-  dangerSoft: '#6E2420',
+  info: '#7FB8E8',
+  infoSoft: '#12293D',
+  danger: '#FF8A80',
+  dangerSoft: '#3D1512',
 
-  scrim: 'rgba(0, 0, 0, 0.6)',
+  scrim: 'rgba(0, 0, 0, 0.62)',
 };
 
 export const palettes: Record<ColorScheme, ThemeColors> = { dark, light };

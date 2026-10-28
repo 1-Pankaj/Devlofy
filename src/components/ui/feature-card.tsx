@@ -6,17 +6,11 @@
  * same 17px glyph as "Your name" and "Theme". A reader scans rows and sees
  * settings, so the two biggest things in the app read as the two smallest.
  *
- * What makes this a card instead of a row, in order of how much it matters:
- *
- *   - an icon well on the accent/ember/danger soft tones, not the neutral one;
- *   - a **live** line — the pill carries the feature's present state ("1 down ·
- *     3 up", "11 tools · 3 kept"), so the card answers before you tap it;
- *   - a taller, more padded body, which on its own breaks the scan pattern of a
- *     settings list.
- *
- * The card never decides its own status: the caller passes the pill's text and
- * tone, and both callers (More, Today) get them from the same pure function
- * (`standingLine`), so the card and the strip can never disagree.
+ * The card answers before you tap it: the icon well carries the feature's tone,
+ * and the footer is a **live line** — a dot and the present state, in mono —
+ * never a decorative subtitle. The card never decides its own status: the caller
+ * passes the text and tone, both derived from the same pure function that feeds
+ * the Today strip.
  */
 import { CaretRight, type IconProps } from 'phosphor-react-native';
 import type { ComponentType } from 'react';
@@ -25,7 +19,7 @@ import { View } from 'react-native';
 import { radius, spacing, useTheme } from '@/theme';
 import { AppText } from './app-text';
 import { Panel } from './panel';
-import { statusColors, StatusPill, type StatusTone } from './pill';
+import { statusColors, type StatusTone } from './pill';
 import { PressableScale } from './pressable-scale';
 
 export type FeatureCardProps = {
@@ -33,9 +27,9 @@ export type FeatureCardProps = {
   title: string;
   /** What it does, in one line. */
   promise: string;
-  /** What it is doing right now — the pill. Omitted when there is nothing true to say. */
+  /** What it is doing right now — the live footer. Omitted when there is nothing true to say. */
   stat?: string;
-  /** Tints the icon well and the pill together. Defaults to the brand accent. */
+  /** Tints the icon well and the live dot together. Defaults to the brand accent. */
   tone?: StatusTone;
   onPress: () => void;
   accessibilityLabel?: string;
@@ -59,37 +53,53 @@ export function FeatureCard({
         haptic="light"
         accessibilityLabel={accessibilityLabel ?? `${title}: ${promise}`}
         onPress={onPress}>
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: spacing.md,
-            padding: spacing.lg,
-          }}>
-          <View
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: radius.md,
-              borderCurve: 'continuous',
-              backgroundColor: background,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-            <Icon size={22} color={foreground} weight="light" />
-          </View>
-
-          <View style={{ flex: 1, gap: spacing.xxs }}>
-            <AppText variant="subheadMedium" numberOfLines={1}>
+        <View style={{ padding: spacing.md + 2, gap: spacing.sm }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+            <View
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: radius.md,
+                borderCurve: 'continuous',
+                backgroundColor: background,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+              <Icon size={17} color={foreground} weight="regular" />
+            </View>
+            <AppText variant="headline" numberOfLines={1} style={{ flex: 1 }}>
               {title}
             </AppText>
-            <AppText variant="caption" tone="secondary" numberOfLines={2}>
-              {promise}
-            </AppText>
-            {stat ? <StatusPill label={stat} tone={tone} style={{ marginTop: spacing.xs }} /> : null}
+            <CaretRight size={13} color={colors.textTertiary} weight="bold" />
           </View>
 
-          <CaretRight size={14} color={colors.textTertiary} weight="bold" />
+          <AppText variant="caption" tone="secondary" numberOfLines={2}>
+            {promise}
+          </AppText>
+
+          {stat ? (
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                paddingTop: spacing.sm,
+                borderTopWidth: 1,
+                borderTopColor: colors.hairline,
+              }}>
+              <View
+                style={{
+                  width: 5,
+                  height: 5,
+                  borderRadius: 2.5,
+                  backgroundColor: foreground,
+                }}
+              />
+              <AppText variant="code" style={{ color: foreground, fontSize: 11.5 }}>
+                {stat}
+              </AppText>
+            </View>
+          ) : null}
         </View>
       </PressableScale>
     </Panel>

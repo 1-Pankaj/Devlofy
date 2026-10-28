@@ -12,7 +12,7 @@ This folder is an **Obsidian vault**. Open it directly in Obsidian (`Open folder
 - [[01-vision]] — what Devlofy is, who it's for, the wedge.
 - [[02-scope]] — what's in, what's out, which phase, which platform.
 - [[03-architecture]] — the stack, adapter architecture, folder map, commands.
-- [[04-design-language]] — **Material 3 Expressive**: the visual system and its rules.
+- [[04-design-language]] — **neutral ground, hairline boxes, one violet**: the visual system and its rules.
 - [[05-blender-pipeline]] — how 3D models get made and integrated.
 - [[06-data-model]] — SQLite schema, migrations, sync-readiness.
 - [[07-decisions]] — the decision log (ADRs).

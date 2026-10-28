@@ -192,7 +192,7 @@ export default function ProjectFormScreen() {
           />
 
           <View style={{ gap: spacing.sm }}>
-            <AppText variant="eyebrow" tone="tertiary">
+            <AppText variant="monoLabel" tone="tertiary">
               Client
             </AppText>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
@@ -213,7 +213,7 @@ export default function ProjectFormScreen() {
           </View>
 
           <View style={{ gap: spacing.sm }}>
-            <AppText variant="eyebrow" tone="tertiary">
+            <AppText variant="monoLabel" tone="tertiary">
               Status
             </AppText>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
@@ -270,7 +270,7 @@ export default function ProjectFormScreen() {
           />
 
           <View style={{ gap: spacing.sm }}>
-            <AppText variant="eyebrow" tone="tertiary">
+            <AppText variant="monoLabel" tone="tertiary">
               Due
             </AppText>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>

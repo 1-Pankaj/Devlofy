@@ -202,7 +202,7 @@ export default function TargetFormScreen() {
           </View>
 
           <View style={{ gap: spacing.sm }}>
-            <AppText variant="eyebrow" tone="tertiary">
+            <AppText variant="monoLabel" tone="tertiary">
               Watching
             </AppText>
             <Segmented<'on' | 'off'>

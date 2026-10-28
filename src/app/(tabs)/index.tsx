@@ -1,10 +1,13 @@
 /**
  * Today — the morning read.
  *
- * Material 3 arrangement: one tonal hero block carrying the focus ring and the
- * live timer, a two-up tally row, the week's bars, then a horizontal shelf of
- * recent sessions and the day's queue. The single primary action is the FAB —
- * nothing else on this screen is filled.
+ * The order is the day: one instrument for focus, the Engine's recommendation,
+ * the queue, then the record of what already happened. The page is drawn, not
+ * inflated — white panels on a neutral canvas, a hairline between every pair of
+ * ideas, and exactly one filled control (the action button).
+ *
+ * Motion here is measurement, not decoration: the figures count, the week's bars
+ * grow, the goal meter fills, and the live block keeps a slow amber breath.
  */
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
@@ -13,17 +16,14 @@ import {
   ArrowUp,
   CaretRight,
   CheckCircle,
-  Flame,
   MagnifyingGlass,
   Play,
   Plus,
   Stop,
   Timer,
 } from 'phosphor-react-native';
-import type { ComponentType } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, TextInput, View } from 'react-native';
-import type { IconProps } from 'phosphor-react-native';
 import Animated, {
   FadeOut,
   LinearTransition,
@@ -38,7 +38,6 @@ import { GardenScene } from '@/components/garden/garden-scene';
 import { NextUp } from '@/components/focus/next-up';
 import { ProjectChips } from '@/components/focus/project-chips';
 import { SentinelStrip } from '@/components/sentinel/standing-strip';
-import { AnimatedNumber } from '@/components/ui/animated-number';
 import { AppText } from '@/components/ui/app-text';
 import { emptyArt } from '@/components/ui/empty-art';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -46,13 +45,14 @@ import { ErrorState } from '@/components/ui/error-state';
 import { Fab } from '@/components/ui/fab';
 import { LiveDot } from '@/components/ui/live-dot';
 import { Loading } from '@/components/ui/loading';
+import { Meter } from '@/components/ui/meter';
 import { Panel } from '@/components/ui/panel';
 import { Eyebrow, StatusPill } from '@/components/ui/pill';
 import { PressableScale } from '@/components/ui/pressable-scale';
-import { ProgressRing } from '@/components/ui/progress-ring';
 import { Screen } from '@/components/ui/screen';
 import { SectionHeader } from '@/components/ui/section';
 import { FadeUp } from '@/components/ui/stagger';
+import { StatRow } from '@/components/ui/stat';
 import { useLiveQuery } from '@/lib/db/hooks';
 import {
   countDoneToday,
@@ -107,15 +107,7 @@ function dayInitial(dayKey: string): string {
  * One bar of the trailing week. It grows from nothing on mount so the week
  * reads as activity arriving rather than a static chart.
  */
-function FocusBar({
-  height,
-  kind,
-  delay,
-}: {
-  height: number;
-  kind: 'today' | 'past' | 'empty';
-  delay: number;
-}) {
+function FocusBar({ height, kind, delay }: { height: number; kind: 'today' | 'past' | 'empty'; delay: number }) {
   const { colors } = useTheme();
   const grow = useSharedValue(0);
 
@@ -139,53 +131,112 @@ function FocusBar({
   return (
     <Animated.View
       style={[
-        {
-          width: '100%',
-          borderRadius: radius.sm,
-          backgroundColor: fill,
-        },
+        { width: '100%', borderRadius: radius.xs, backgroundColor: fill },
         growStyle,
       ]}
     />
   );
 }
 
-/** One of the two tally blocks — a tinted icon well over a big figure. */
-function Tally({
-  label,
-  value,
-  icon: Icon,
-  tone,
+/** The instrument at the top of the page: today's focus, and what it is doing. */
+function FocusPanel({
+  active,
+  elapsedSeconds,
+  focusMinutes,
+  goalProgress,
+  remainingMinutes,
+  goalReached,
+  dailyGoalMinutes,
+  projectName,
+  startedAt,
 }: {
-  label: string;
-  value: number;
-  icon: ComponentType<IconProps>;
-  tone: 'brand' | 'ember';
+  active: boolean;
+  elapsedSeconds: number;
+  focusMinutes: number;
+  goalProgress: number;
+  remainingMinutes: number;
+  goalReached: boolean;
+  dailyGoalMinutes: number;
+  projectName?: string | null;
+  startedAt?: string | null;
 }) {
   const { colors } = useTheme();
-  const well = tone === 'brand' ? colors.accentSoft : colors.emberSoft;
-  const ink = tone === 'brand' ? colors.accent : colors.ember;
 
   return (
-    <Panel style={{ flex: 1 }} pad="md">
-      <View style={{ gap: spacing.md }}>
+    <Panel coreStyle={{ padding: 0, overflow: 'hidden' }}>
+      <View style={{ padding: spacing.lg, gap: spacing.md }}>
         <View
           style={{
-            width: 40,
-            height: 40,
-            borderRadius: radius.md,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: well,
+            flexDirection: 'row',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            gap: spacing.md,
           }}>
-          <Icon size={20} color={ink} weight="fill" />
+          <View style={{ gap: spacing.xxs }}>
+            <Eyebrow>{active ? 'Focus — running' : 'Focus — today'}</Eyebrow>
+            <AppText variant="timer">
+              {active ? formatTimer(elapsedSeconds) : formatMinutes(focusMinutes)}
+            </AppText>
+          </View>
+          <StatusPill
+            label={active ? 'running' : goalReached ? 'goal met' : 'idle'}
+            tone={active ? 'ember' : goalReached ? 'accent' : 'neutral'}
+            dot={active}
+            style={{ marginTop: 2 }}
+          />
         </View>
-        <View style={{ gap: spacing.xxs }}>
-          <AnimatedNumber value={value} variant="numberLg" color={colors.text} />
-          <AppText variant="caption" tone="tertiary" numberOfLines={1}>
-            {label}
+
+        <Meter
+          value={goalProgress}
+          tone={active ? 'ember' : 'accent'}
+          height={6}
+          trackColor={colors.surfaceSunken}
+        />
+
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}>
+          <AppText variant="code" tone="tertiary">
+            goal {formatMinutes(dailyGoalMinutes)}
+          </AppText>
+          <AppText variant="code" tone={active ? 'ember' : 'tertiary'}>
+            {active
+              ? `started ${formatClock(startedAt ?? '')}${projectName ? ` · ${projectName}` : ''}`
+              : goalReached
+                ? `${formatMinutes(focusMinutes)} banked`
+                : `${formatMinutes(remainingMinutes)} to go`}
           </AppText>
         </View>
+      </View>
+
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: spacing.sm,
+          paddingHorizontal: spacing.lg,
+          paddingVertical: spacing.md,
+          borderTopWidth: 1,
+          borderTopColor: colors.hairline,
+          backgroundColor: colors.surfaceElevated,
+        }}>
+        {active ? (
+          <>
+            <LiveDot color={colors.ember} size={7} />
+            <AppText variant="caption" tone="secondary" style={{ flex: 1 }}>
+              A block is open. End it with the amber button — the minutes are already counted.
+            </AppText>
+          </>
+        ) : (
+          <>
+            <View
+              style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: colors.accent }}
+            />
+            <AppText variant="caption" tone="secondary" style={{ flex: 1 }}>
+              {focusMinutes > 0
+                ? `${formatMinutes(focusMinutes)} banked today. Every minute waters the garden.`
+                : 'Nothing banked yet. Start from the queue, or pick a project below.'}
+            </AppText>
+          </>
+        )}
       </View>
     </Panel>
   );
@@ -385,14 +436,17 @@ export default function TodayScreen() {
             onPress={() => router.push('/search')}>
             <View
               style={{
-                width: 36,
-                height: 36,
-                borderRadius: radius.full,
+                width: 34,
+                height: 34,
+                borderRadius: radius.md,
+                borderCurve: 'continuous',
+                borderWidth: 1,
+                borderColor: colors.hairline,
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: colors.surfaceElevated,
+                backgroundColor: colors.surface,
               }}>
-              <MagnifyingGlass size={17} color={colors.textSecondary} weight="bold" />
+              <MagnifyingGlass size={15} color={colors.textSecondary} weight="bold" />
             </View>
           </PressableScale>
         ),
@@ -407,65 +461,36 @@ export default function TodayScreen() {
         />
       }>
       {writeProblem ? (
-        <AppText variant="caption" tone="danger">
-          {writeProblem}
-        </AppText>
-      ) : null}
-
-      {/* Hero: the timer on a tonal block */}
-      <FadeUp index={0}>
         <View
           style={{
-            backgroundColor: colors.accentSoft,
-            borderRadius: radius.xl,
-            borderCurve: 'continuous',
-            padding: spacing.lg,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: spacing.sm,
+            paddingHorizontal: spacing.md,
+            paddingVertical: spacing.sm,
+            borderRadius: radius.md,
+            borderWidth: 1,
+            borderColor: colors.danger,
+            backgroundColor: colors.dangerSoft,
           }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.lg }}>
-            <ProgressRing
-              progress={goalProgress}
-              size={108}
-              stroke={9}
-              color={colors.ember}
-              trackColor={colors.accentBorder}>
-              <View style={{ alignItems: 'center' }}>
-                <AnimatedNumber value={focusMinutes} variant="title" color={colors.accent} />
-                <AppText variant="caption" tone="accent" style={{ opacity: 0.72 }}>
-                  min
-                </AppText>
-              </View>
-            </ProgressRing>
-            <View style={{ flex: 1, gap: spacing.xs }}>
-              {active ? (
-                <>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-                    <LiveDot color={colors.ember} />
-                    <Eyebrow tone="accent">Focus running</Eyebrow>
-                  </View>
-                  <AppText variant="numberLg" tone="accent">
-                    {formatTimer(elapsedSeconds)}
-                  </AppText>
-                  <AppText variant="caption" tone="accent" style={{ opacity: 0.72 }}>
-                    started {formatClock(active.started_at)}
-                    {active.project_name ? ` · ${active.project_name}` : ''}
-                  </AppText>
-                </>
-              ) : (
-                <>
-                  <Eyebrow tone="accent">Today&apos;s focus</Eyebrow>
-                  <AppText variant="title" tone="accent">
-                    {goalReached ? 'Goal reached' : `${formatMinutes(remainingMinutes)} to go`}
-                  </AppText>
-                  <AppText variant="subhead" tone="accent" style={{ opacity: 0.78 }}>
-                    {focusMinutes > 0
-                      ? `${formatMinutes(focusMinutes)} banked today.`
-                      : 'Every focused minute grows the tree in the garden.'}
-                  </AppText>
-                </>
-              )}
-            </View>
-          </View>
+          <AppText variant="caption" tone="danger" style={{ flex: 1 }}>
+            {writeProblem}
+          </AppText>
         </View>
+      ) : null}
+
+      <FadeUp index={0}>
+        <FocusPanel
+          active={!!active}
+          elapsedSeconds={elapsedSeconds}
+          focusMinutes={focusMinutes}
+          goalProgress={goalProgress}
+          remainingMinutes={remainingMinutes}
+          goalReached={goalReached}
+          dailyGoalMinutes={dailyGoalMinutes}
+          projectName={active?.project_name}
+          startedAt={active?.started_at}
+        />
       </FadeUp>
 
       {/* Attribution for the next block — hidden while one is already running */}
@@ -479,133 +504,19 @@ export default function TodayScreen() {
           then, and a recommendation you cannot act on is just noise. */}
       {!active && engine.status === 'ready' ? (
         <FadeUp index={1}>
-          <NextUp
-            ranked={engine.ranked}
-            starting={starting}
-            onStart={handleStartFromTask}
-          />
-        </FadeUp>
-      ) : null}
-
-      {/* Two-up tally */}
-      <FadeUp index={1}>
-        <View style={{ flexDirection: 'row', gap: spacing.md }}>
-          <Tally
-            label="day streak"
-            value={streak.data ?? 0}
-            icon={Flame}
-            tone="ember"
-          />
-          <Tally
-            label="tasks done today"
-            value={doneToday.data ?? 0}
-            icon={CheckCircle}
-            tone="brand"
-          />
-        </View>
-      </FadeUp>
-
-      {/* Sentinel — the one thing here that can be true without being opened.
-          Absent entirely until a URL is watched; a red pill when one is down. */}
-      <FadeUp index={2}>
-        <SentinelStrip onPress={() => router.push('/sentinel')} />
-      </FadeUp>
-
-      {/* The week */}
-      <FadeUp index={3}>
-        <Panel>
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'flex-start',
-              justifyContent: 'space-between',
-            }}>
-            <View style={{ gap: spacing.xxs }}>
-              <Eyebrow>Momentum</Eyebrow>
-              <AppText variant="headline">Last seven days</AppText>
-            </View>
-            <View style={{ alignItems: 'flex-end', gap: spacing.xxs }}>
-              <AppText variant="subheadMedium">{formatMinutes(weekTotal)}</AppText>
-              <AppText variant="caption" tone="tertiary">
-                focused
-              </AppText>
-            </View>
-          </View>
-
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'flex-end',
-              gap: spacing.sm,
-              marginTop: spacing.xl,
-            }}>
-            {weekDays.map((day, index) => {
-              const height =
-                day.minutes === 0 ? 6 : Math.max(14, Math.round((day.minutes / weekMax) * 68));
-              return (
-                <View key={day.day} style={{ flex: 1, alignItems: 'center', gap: spacing.sm }}>
-                  <FocusBar
-                    height={height}
-                    kind={day.minutes === 0 ? 'empty' : day.isToday ? 'today' : 'past'}
-                    delay={index * 55}
-                  />
-                  <AppText variant="caption" tone={day.isToday ? 'accent' : 'tertiary'}>
-                    {dayInitial(day.day)}
-                  </AppText>
-                </View>
-              );
-            })}
-          </View>
-        </Panel>
-      </FadeUp>
-
-      {/* Recent sessions: a shelf, not a list */}
-      {(recent.data?.length ?? 0) > 0 ? (
-        <FadeUp index={4}>
-          <View>
-            <SectionHeader eyebrow="History" title="Recent sessions" />
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: spacing.md }}>
-              {recent.data!.map((entry) => (
-                <Panel key={entry.id} pad="md" style={{ width: 152 }}>
-                  <View style={{ gap: spacing.md }}>
-                    <View
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: radius.md,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        backgroundColor: colors.emberSoft,
-                      }}>
-                      <Timer size={18} color={colors.ember} weight="fill" />
-                    </View>
-                    <View style={{ gap: spacing.xxs }}>
-                      <AppText variant="headline">{formatMinutes(entry.minutes ?? 0)}</AppText>
-                      <AppText variant="caption" tone="tertiary" numberOfLines={1}>
-                        {entry.project_name ? `${entry.project_name} · ` : ''}
-                        {formatSessionWhen(entry.started_at)}
-                      </AppText>
-                    </View>
-                  </View>
-                </Panel>
-              ))}
-            </ScrollView>
-          </View>
+          <NextUp ranked={engine.ranked} starting={starting} onStart={handleStartFromTask} />
         </FadeUp>
       ) : null}
 
       {/* Plan: quick-add + queue */}
-      <FadeUp index={5}>
+      <FadeUp index={2}>
         <View>
           <SectionHeader
-            eyebrow="Plan"
+            eyebrow="plan"
             title="Today"
             trailing={
               tasks.data && tasks.data.length > 0 ? (
-                <AppText variant="caption" tone="secondary">
+                <AppText variant="code" tone="tertiary">
                   {tasks.data.length} open
                 </AppText>
               ) : undefined
@@ -614,24 +525,25 @@ export default function TodayScreen() {
           <Panel coreStyle={{ padding: 0, overflow: 'hidden' }}>
             <View
               style={{
-                borderBottomWidth: taskFocused ? 2 : 1,
+                borderBottomWidth: 1,
                 borderBottomColor: taskFocused ? colors.accent : colors.hairline,
+                backgroundColor: taskFocused ? colors.surface : colors.surfaceElevated,
               }}>
               <View
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
-                  gap: spacing.md,
-                  paddingLeft: spacing.lg,
-                  paddingRight: spacing.md,
+                  gap: spacing.sm,
+                  paddingLeft: spacing.md,
+                  paddingRight: spacing.sm,
                 }}>
-                <Plus size={16} color={colors.textTertiary} weight="bold" />
+                <Plus size={15} color={colors.textTertiary} weight="bold" />
                 <TextInput
                   value={title}
                   onChangeText={setTitle}
                   onFocus={() => setTaskFocused(true)}
                   onBlur={() => setTaskFocused(false)}
-                  placeholder="Add a task — try “Ship the invoice !3 45m #Northwind”"
+                  placeholder="Add a task — “Ship the invoice !3 45m #Northwind”"
                   placeholderTextColor={colors.textTertiary}
                   selectionColor={colors.accent}
                   cursorColor={colors.accent}
@@ -641,10 +553,10 @@ export default function TodayScreen() {
                   accessibilityLabel="New task title"
                   style={{
                     flex: 1,
-                    paddingVertical: 13,
+                    paddingVertical: 12,
                     color: colors.text,
                     fontFamily: fonts.bodyRegular,
-                    fontSize: 16,
+                    fontSize: 15,
                   }}
                 />
                 {parsed.title.length > 0 ? (
@@ -654,14 +566,14 @@ export default function TodayScreen() {
                     onPress={handleAddTask}>
                     <View
                       style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: radius.full,
+                        width: 30,
+                        height: 30,
+                        borderRadius: radius.md,
                         backgroundColor: colors.accent,
                         alignItems: 'center',
                         justifyContent: 'center',
                       }}>
-                      <ArrowUp size={15} color={colors.accentContrast} weight="bold" />
+                      <ArrowUp size={14} color={colors.accentContrast} weight="bold" />
                     </View>
                   </PressableScale>
                 ) : null}
@@ -674,18 +586,14 @@ export default function TodayScreen() {
                     alignItems: 'center',
                     flexWrap: 'wrap',
                     gap: spacing.xs,
-                    paddingHorizontal: spacing.lg,
-                    paddingBottom: spacing.md,
+                    paddingHorizontal: spacing.md,
+                    paddingBottom: spacing.sm,
                   }}>
-                  <AppText variant="caption" tone="tertiary">
+                  <AppText variant="code" tone="tertiary" style={{ fontSize: 11 }}>
                     files as
                   </AppText>
                   {parsed.tokens.map((token, index) => (
-                    <StatusPill
-                      key={`${token.kind}-${index}`}
-                      label={token.label}
-                      tone={token.tone}
-                    />
+                    <StatusPill key={`${token.kind}-${index}`} label={token.label} tone={token.tone} />
                   ))}
                   {parsed.unknownProject ? (
                     <StatusPill label={`no project “${parsed.unknownProject}”`} tone="danger" />
@@ -714,12 +622,11 @@ export default function TodayScreen() {
                 return (
                   <Animated.View
                     key={task.id}
-                    layout={LinearTransition.duration(duration.base).reduceMotion(
-                      ReduceMotion.System,
-                    )}
+                    layout={LinearTransition.duration(duration.base).reduceMotion(ReduceMotion.System)}
                     exiting={FadeOut.duration(duration.fast).reduceMotion(ReduceMotion.System)}>
                     <Pressable
                       onPress={() => handleComplete(task.id)}
+                      accessibilityRole="button"
                       accessibilityLabel={`Complete ${task.title}`}
                       style={({ pressed }) => ({
                         backgroundColor: pressed ? colors.surfaceElevated : 'transparent',
@@ -729,15 +636,15 @@ export default function TodayScreen() {
                           flexDirection: 'row',
                           alignItems: 'center',
                           gap: spacing.md,
-                          paddingHorizontal: spacing.lg,
-                          paddingVertical: spacing.md,
+                          paddingHorizontal: spacing.md,
+                          paddingVertical: 11,
                         }}>
                         <View
                           style={{
-                            width: 22,
-                            height: 22,
-                            borderRadius: radius.full,
-                            borderWidth: 1.5,
+                            width: 18,
+                            height: 18,
+                            borderRadius: radius.xs,
+                            borderWidth: 1.2,
                             borderColor: colors.hairlineStrong,
                           }}
                         />
@@ -752,19 +659,16 @@ export default function TodayScreen() {
                           ) : null}
                         </View>
                         {due ? (
-                          <StatusPill
-                            label={due.label}
-                            tone={due.overdue ? 'danger' : 'neutral'}
-                          />
+                          <StatusPill label={due.label} tone={due.overdue ? 'danger' : 'neutral'} />
                         ) : null}
-                        {task.priority >= 2 ? <StatusPill label="high" tone="ember" /> : null}
+                        {task.priority >= 2 ? <StatusPill label="P1" tone="ember" /> : null}
                       </View>
                     </Pressable>
                     {index < tasks.data!.length - 1 ? (
                       <View
                         style={{
                           height: 1,
-                          marginLeft: 50,
+                          marginLeft: spacing.md + 18 + spacing.md,
                           backgroundColor: colors.hairline,
                         }}
                       />
@@ -777,14 +681,126 @@ export default function TodayScreen() {
         </View>
       </FadeUp>
 
+      {/* Momentum: the week, then the two figures that explain it */}
+      <FadeUp index={3}>
+        <Panel coreStyle={{ padding: 0, overflow: 'hidden' }}>
+          <View style={{ padding: spacing.lg, paddingBottom: spacing.md, gap: spacing.md }}>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+              <View style={{ gap: spacing.xxs }}>
+                <Eyebrow>momentum</Eyebrow>
+                <AppText variant="headline">Last seven days</AppText>
+              </View>
+              <AppText variant="code" tone="secondary">
+                {formatMinutes(weekTotal)} focused
+              </AppText>
+            </View>
+
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'flex-end',
+                gap: spacing.xs,
+                height: 80,
+                borderBottomWidth: 1,
+                borderBottomColor: colors.hairline,
+                paddingBottom: spacing.sm,
+              }}>
+              {weekDays.map((day, index) => {
+                const height =
+                  day.minutes === 0 ? 4 : Math.max(10, Math.round((day.minutes / weekMax) * 62));
+                return (
+                  <View key={day.day} style={{ flex: 1, alignItems: 'center', gap: spacing.xs }}>
+                    <FocusBar
+                      height={height}
+                      kind={day.minutes === 0 ? 'empty' : day.isToday ? 'today' : 'past'}
+                      delay={index * 45}
+                    />
+                    <AppText
+                      variant="monoLabel"
+                      tone={day.isToday ? 'accent' : 'tertiary'}
+                      style={{ fontSize: 9.5 }}>
+                      {dayInitial(day.day)}
+                    </AppText>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+
+          <View
+            style={{
+              flexDirection: 'row',
+              borderTopWidth: 1,
+              borderTopColor: colors.hairline,
+              backgroundColor: colors.surfaceElevated,
+              paddingHorizontal: spacing.lg,
+              paddingVertical: spacing.md,
+            }}>
+            <StatRow style={{ flex: 1 }}>
+              <View style={{ gap: 1 }}>
+                <AppText variant="title">{streak.data ?? 0}</AppText>
+                <AppText variant="monoLabel" tone="tertiary">
+                  day streak
+                </AppText>
+              </View>
+              <View style={{ gap: 1 }}>
+                <AppText variant="title">{doneToday.data ?? 0}</AppText>
+                <AppText variant="monoLabel" tone="tertiary">
+                  done today
+                </AppText>
+              </View>
+            </StatRow>
+          </View>
+        </Panel>
+      </FadeUp>
+
+      {/* Sentinel — the one thing here that can be true without being opened.
+          Absent entirely until a URL is watched; a red pill when one is down. */}
+      <FadeUp index={4}>
+        <SentinelStrip onPress={() => router.push('/sentinel')} />
+      </FadeUp>
+
+      {/* Recent sessions: a shelf, not a list */}
+      {(recent.data?.length ?? 0) > 0 ? (
+        <FadeUp index={5}>
+          <View>
+            <SectionHeader eyebrow="history" title="Recent sessions" />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: spacing.sm }}>
+              {recent.data!.map((entry) => (
+                <Panel key={entry.id} pad="md" rounding="md" style={{ width: 148 }}>
+                  <View style={{ gap: spacing.sm }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Timer size={13} color={colors.ember} weight="fill" />
+                      <AppText variant="monoLabel" tone="tertiary" style={{ fontSize: 9.5 }}>
+                        session
+                      </AppText>
+                    </View>
+                    <View style={{ gap: 2 }}>
+                      <AppText variant="title">{formatMinutes(entry.minutes ?? 0)}</AppText>
+                      <AppText variant="caption" tone="tertiary" numberOfLines={1}>
+                        {entry.project_name ? `${entry.project_name} · ` : ''}
+                        {formatSessionWhen(entry.started_at)}
+                      </AppText>
+                    </View>
+                  </View>
+                </Panel>
+              ))}
+            </ScrollView>
+          </View>
+        </FadeUp>
+      ) : null}
+
       {/* Garden teaser */}
       <FadeUp index={6}>
-        <Panel rounding="xl" coreStyle={{ padding: 0, overflow: 'hidden' }}>
+        <Panel rounding="lg" coreStyle={{ padding: 0, overflow: 'hidden' }}>
           <PressableScale
             haptic="selection"
             accessibilityLabel="Open the focus garden"
             onPress={() => router.push('/garden')}>
-            <View style={{ height: 200 }}>
+            <View style={{ height: 176 }}>
               <GardenScene
                 seed={seed}
                 growth={stage.growth}
@@ -801,19 +817,20 @@ export default function TodayScreen() {
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: spacing.lg,
+                paddingHorizontal: spacing.md,
+                paddingVertical: spacing.md,
                 borderTopWidth: 1,
                 borderTopColor: colors.hairline,
               }}>
-              <View style={{ gap: spacing.xxs }}>
-                <Eyebrow>Focus garden</Eyebrow>
+              <View style={{ gap: 2 }}>
+                <Eyebrow>focus garden</Eyebrow>
                 <AppText variant="subheadMedium">{stage.label}</AppText>
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-                <AppText variant="caption" tone="secondary">
+                <AppText variant="code" tone="tertiary">
                   {formatMinutes(totalFocus.data ?? 0)} logged
                 </AppText>
-                <CaretRight size={14} color={colors.textTertiary} weight="bold" />
+                <CaretRight size={13} color={colors.textTertiary} weight="bold" />
               </View>
             </View>
           </PressableScale>
@@ -824,12 +841,12 @@ export default function TodayScreen() {
       <FadeUp index={7}>
         <View
           style={{
-            gap: spacing.sm,
+            gap: spacing.xs,
             paddingLeft: spacing.md,
-            borderLeftWidth: 3,
-            borderLeftColor: colors.emberSoft,
+            borderLeftWidth: 2,
+            borderLeftColor: colors.ember,
           }}>
-          <Eyebrow tone="ember">Craft tip</Eyebrow>
+          <Eyebrow tone="ember">craft tip</Eyebrow>
           <AppText variant="subhead" tone="secondary">
             {tip}
           </AppText>

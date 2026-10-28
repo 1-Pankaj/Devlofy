@@ -1,25 +1,29 @@
 /**
- * Elevation — Material 3 levels, expressed as CSS `boxShadow` strings (never
- * legacy shadow/elevation props).
+ * Elevation — barely there, and only where something truly floats.
  *
- * Shadows are *tinted*, not black: in light they carry the primary hue, in dark
- * they stay neutral because the canvas is already near-black. Tone does most of
- * the layering work; elevation is the second signal, never the first.
+ * A Primer-shaped interface separates surfaces with a **hairline**, not with a
+ * shadow: a card is white on a neutral canvas, outlined by `hairline`, and
+ * casts nothing. Shadows survive in exactly two places — the action button that
+ * floats over content, and a sheet or popover that leaves the page plane.
+ *
+ * The old tinted, double-layer card shadows were doing the layering work that
+ * borders now do; keeping them would have re-introduced the soft Material look
+ * the new palette was chosen to remove.
  */
 import { palettes, type ThemeColors } from './colors';
 
 export function makeShadows(colors: ThemeColors) {
   const isDark = colors.background === palettes.dark.background;
   return {
-    /** Level 1 — resting cards. */
-    card: isDark
-      ? '0 1px 2px rgba(0, 0, 0, 0.4)'
-      : '0 1px 2px rgba(30, 27, 75, 0.06), 0 1px 3px rgba(30, 27, 75, 0.09)',
-    /** Level 3 — the thing being interacted with. */
+    /** Resting cards: a whisper, only to stop a white card vibrating on white. */
+    card: isDark ? '0 1px 2px rgba(0, 0, 0, 0.35)' : '0 1px 2px rgba(21, 21, 26, 0.04)',
+    /** A surface that has left the page plane (sheet, menu, popover). */
     raised: isDark
-      ? '0 4px 12px rgba(0, 0, 0, 0.5)'
-      : '0 2px 6px rgba(30, 27, 75, 0.10), 0 1px 2px rgba(30, 27, 75, 0.06)',
-    /** The floating action button — brand-tinted, level 3. */
-    brand: isDark ? `0 6px 18px ${colors.accentShadow}` : `0 6px 16px ${colors.accentShadow}`,
+      ? '0 16px 40px rgba(0, 0, 0, 0.6), 0 1px 0 rgba(255, 255, 255, 0.04)'
+      : '0 16px 40px rgba(21, 21, 26, 0.14), 0 2px 6px rgba(21, 21, 26, 0.06)',
+    /** The floating action button — the one brand-tinted shadow in the app. */
+    brand: isDark
+      ? '0 10px 24px rgba(0, 0, 0, 0.55)'
+      : `0 8px 20px ${colors.accentShadow}`,
   } as const;
 }

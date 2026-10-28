@@ -30,6 +30,12 @@ export function CodeBlock({
   highlight = true,
   /** Don't draw the gutter — for pasted snippets. */
   showLineNumbers = true,
+  /**
+   * Wrap instead of scrolling sideways. For a **single token** — a digest, a
+   * base64 answer — where there is no line structure worth preserving and a
+   * clipped value means the tool failed to answer.
+   */
+  wrap = false,
 }: {
   code: string;
   path?: string;
@@ -37,6 +43,7 @@ export function CodeBlock({
   style?: StyleProp<ViewStyle>;
   highlight?: boolean;
   showLineNumbers?: boolean;
+  wrap?: boolean;
 }) {
   const { colors } = useTheme();
   const [budget, setBudget] = useState(LINE_BUDGET);
@@ -97,6 +104,66 @@ export function CodeBlock({
     );
   }
 
+  /**
+   * `wordBreak` is a web-only property React Native's types do not know; on
+   * native, a Text already breaks a long unbroken word at the container edge,
+   * so the cast only carries the one platform that needs telling.
+   */
+  const wrapContainer = wrap
+    ? ({ wordBreak: 'break-all' } as unknown as ViewStyle)
+    : null;
+
+  const body = (
+    <View style={{ paddingVertical: spacing.md }}>
+      {rows.map((tokens, index) => (
+        <View
+          key={index}
+          style={[{ flexDirection: 'row', paddingHorizontal: spacing.md }, wrapContainer]}>
+          {showLineNumbers ? (
+            <AppText
+              selectable={false}
+              style={{
+                width: gutterWidth,
+                fontFamily: fonts.monoRegular,
+                fontSize: 12,
+                lineHeight: 20,
+                color: colors.textTertiary,
+                textAlign: 'right',
+                paddingRight: spacing.md,
+              }}>
+              {index + 1}
+            </AppText>
+          ) : null}
+          <AppText
+            selectable
+            style={[
+              {
+                fontFamily: fonts.monoRegular,
+                fontSize: 12,
+                lineHeight: 20,
+                color: colors.text,
+              },
+              wrap ? { flexShrink: 1, minWidth: 0 } : null,
+            ]}>
+            {tokens.map((token, tokenIndex) => (
+              <AppText
+                key={tokenIndex}
+                style={{
+                  fontFamily: weightFor[token.kind] ?? fonts.monoRegular,
+                  fontSize: 12,
+                  lineHeight: 20,
+                  color: colourFor[token.kind],
+                }}>
+                {token.text}
+              </AppText>
+            ))}
+            {tokens.length === 0 ? ' ' : null}
+          </AppText>
+        </View>
+      ))}
+    </View>
+  );
+
   return (
     <View
       style={[
@@ -107,51 +174,13 @@ export function CodeBlock({
         },
         style,
       ]}>
-      <ScrollView horizontal showsHorizontalScrollIndicator bounces={false}>
-        <View style={{ paddingVertical: spacing.md }}>
-          {rows.map((tokens, index) => (
-            <View key={index} style={{ flexDirection: 'row', paddingHorizontal: spacing.md }}>
-              {showLineNumbers ? (
-                <AppText
-                  selectable={false}
-                  style={{
-                    width: gutterWidth,
-                    fontFamily: fonts.monoRegular,
-                    fontSize: 12,
-                    lineHeight: 20,
-                    color: colors.textTertiary,
-                    textAlign: 'right',
-                    paddingRight: spacing.md,
-                  }}>
-                  {index + 1}
-                </AppText>
-              ) : null}
-              <AppText
-                selectable
-                style={{
-                  fontFamily: fonts.monoRegular,
-                  fontSize: 12,
-                  lineHeight: 20,
-                  color: colors.text,
-                }}>
-                {tokens.map((token, tokenIndex) => (
-                  <AppText
-                    key={tokenIndex}
-                    style={{
-                      fontFamily: weightFor[token.kind] ?? fonts.monoRegular,
-                      fontSize: 12,
-                      lineHeight: 20,
-                      color: colourFor[token.kind],
-                    }}>
-                    {token.text}
-                  </AppText>
-                ))}
-                {tokens.length === 0 ? ' ' : null}
-              </AppText>
-            </View>
-          ))}
-        </View>
-      </ScrollView>
+      {wrap ? (
+        body
+      ) : (
+        <ScrollView horizontal showsHorizontalScrollIndicator bounces={false}>
+          {body}
+        </ScrollView>
+      )}
 
       {lines.length > visible.length ? (
         <PressableScale

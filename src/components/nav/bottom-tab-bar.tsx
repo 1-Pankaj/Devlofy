@@ -1,9 +1,9 @@
 /**
  * BottomTabBar — compact-width navigation.
  *
- * A solid, edge-anchored bar with a springy accent indicator that slides
- * between destinations (one shared value, UI thread, no re-render). The bar
- * sits in the layout, so nothing is ever hidden behind it.
+ * A flat bar held by a hairline, with one 22×2 brand rule that **travels**
+ * between destinations on the UI thread. There is no pill behind the active icon
+ * and no bounce: the rule is the selection, and it moves once per tap.
  *
  * Props are declared structurally instead of importing the navigator's types —
  * `@react-navigation/bottom-tabs` is nested under expo-router, not hoisted.
@@ -19,6 +19,7 @@ import { PressableScale } from '@/components/ui/pressable-scale';
 import { navItemForRoute } from './nav-items';
 
 const ITEM_HEIGHT = 46;
+const RULE_WIDTH = 22;
 
 export type BottomTabBarProps = {
   state: {
@@ -68,30 +69,38 @@ export function BottomTabBar({ state, emitter, navigateToTab }: BottomTabBarProp
     <View
       style={{
         backgroundColor: colors.surface,
+        borderTopWidth: 1,
+        borderTopColor: colors.hairline,
         paddingTop: spacing.sm,
         paddingBottom: Math.max(insets.bottom, spacing.sm),
         paddingHorizontal: spacing.sm,
       }}>
       <View
         onLayout={(event) => setTrackWidth(event.nativeEvent.layout.width)}
-        style={{ flexDirection: 'row', padding: pad, position: 'relative' }}>
+        style={{ flexDirection: 'row', paddingHorizontal: pad, position: 'relative' }}>
         {itemWidth > 0 ? (
           <Animated.View
             pointerEvents="none"
             style={[
               {
                 position: 'absolute',
-                top: pad,
+                top: 0,
                 left: pad,
                 width: itemWidth,
-                height: ITEM_HEIGHT,
-                borderRadius: radius.md,
-                borderCurve: 'continuous',
-                backgroundColor: colors.accentSoft,
+                height: 2,
+                alignItems: 'center',
               },
               indicatorStyle,
-            ]}
-          />
+            ]}>
+            <View
+              style={{
+                width: RULE_WIDTH,
+                height: 2,
+                borderRadius: radius.full,
+                backgroundColor: colors.accent,
+              }}
+            />
+          </Animated.View>
         ) : null}
 
         {items.map(({ route }) => {
@@ -111,7 +120,7 @@ export function BottomTabBar({ state, emitter, navigateToTab }: BottomTabBarProp
                 height: ITEM_HEIGHT,
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 3,
+                gap: 4,
               }}
               onPress={() => {
                 const event = emitter.emit({
@@ -123,8 +132,10 @@ export function BottomTabBar({ state, emitter, navigateToTab }: BottomTabBarProp
                   navigateToTab(route.key);
                 }
               }}>
-              <Icon size={23} color={color} weight={focused ? 'fill' : 'regular'} />
-              <AppText variant="captionMedium" style={{ fontSize: 11, lineHeight: 14, color }}>
+              <Icon size={21} color={color} weight={focused ? 'fill' : 'regular'} />
+              <AppText
+                variant="captionMedium"
+                style={{ fontSize: 11, lineHeight: 13, color }}>
                 {item.label}
               </AppText>
             </PressableScale>

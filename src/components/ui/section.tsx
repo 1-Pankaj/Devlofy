@@ -1,3 +1,10 @@
+/**
+ * SectionHeader — the line that starts a section.
+ *
+ * A mono eyebrow over a 17px heading, with a trailing action on the baseline.
+ * No card, no background: the header belongs to the page, and the panel under it
+ * is the thing you can touch.
+ */
 import type { ReactNode } from 'react';
 import { View } from 'react-native';
 
@@ -26,9 +33,9 @@ export function SectionHeader({
         alignItems: 'flex-end',
         justifyContent: 'space-between',
         gap: spacing.md,
-        marginBottom: spacing.md,
+        marginBottom: spacing.sm + 2,
       }}>
-      <View style={{ flex: 1, gap: 2 }}>
+      <View style={{ flex: 1, gap: 3 }}>
         {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
         <AppText variant="headline">{title}</AppText>
       </View>

@@ -10,12 +10,21 @@ import { ScrollView, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
 import { FormChip } from '@/components/ui/form-chip';
+import { Eyebrow } from '@/components/ui/pill';
 import { useLiveQuery } from '@/lib/db/hooks';
 import { listProjects } from '@/lib/db/repo';
 import { useSettings } from '@/state/settings';
 import { spacing } from '@/theme';
 
-export function ProjectChips({ label = 'Working on' }: { label?: string }) {
+export function ProjectChips({
+  label = 'Working on',
+  wrap = false,
+}: {
+  label?: string;
+  /** Wide panels wrap instead of scrolling: a chip cut mid-word under a stage
+   *  reads as a bug, not as an affordance. */
+  wrap?: boolean;
+}) {
   const projects = useLiveQuery((d) => listProjects(d));
   const focusProjectId = useSettings((s) => s.focusProjectId);
   const setFocusProjectId = useSettings((s) => s.setFocusProjectId);
@@ -29,30 +38,42 @@ export function ProjectChips({ label = 'Working on' }: { label?: string }) {
 
   return (
     <View style={{ gap: spacing.sm }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-        <AppText variant="eyebrow" tone="tertiary">
-          {label}
-        </AppText>
+      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm }}>
+        <Eyebrow>{label}</Eyebrow>
         {selected ? (
-          <AppText variant="caption" tone="tertiary">
-            · the block is filed under this project
+          <AppText variant="code" tone="tertiary" style={{ fontSize: 10.5 }}>
+            filed under this project
           </AppText>
         ) : null}
       </View>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: spacing.sm, paddingRight: spacing.lg }}>
-        <FormChip label="None" active={!selected} onPress={() => setFocusProjectId(null)} />
-        {rows.map((project) => (
-          <FormChip
-            key={project.id}
-            label={project.name}
-            active={selected === project.id}
-            onPress={() => setFocusProjectId(project.id)}
-          />
-        ))}
-      </ScrollView>
+      {wrap ? (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+          <FormChip label="None" active={!selected} onPress={() => setFocusProjectId(null)} />
+          {rows.map((project) => (
+            <FormChip
+              key={project.id}
+              label={project.name}
+              active={selected === project.id}
+              onPress={() => setFocusProjectId(project.id)}
+            />
+          ))}
+        </View>
+      ) : (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: spacing.sm, paddingRight: spacing.lg }}>
+          <FormChip label="None" active={!selected} onPress={() => setFocusProjectId(null)} />
+          {rows.map((project) => (
+            <FormChip
+              key={project.id}
+              label={project.name}
+              active={selected === project.id}
+              onPress={() => setFocusProjectId(project.id)}
+            />
+          ))}
+        </ScrollView>
+      )}
     </View>
   );
 }

@@ -37,6 +37,7 @@ import { Screen } from '@/components/ui/screen';
 import { SectionHeader } from '@/components/ui/section';
 import { Segmented } from '@/components/ui/segmented';
 import { FadeUp } from '@/components/ui/stagger';
+import { Stat, StatRow } from '@/components/ui/stat';
 import { useLiveQuery } from '@/lib/db/hooks';
 import { getClient, listSessionsInWindow, setSessionBillable } from '@/lib/db/repo';
 import { formatClock, formatDayLabel, formatMinutes } from '@/lib/format';
@@ -53,7 +54,7 @@ import {
 import { shareText } from '@/lib/share';
 import { messageOf } from '@/lib/use-async-data';
 import { CURRENCY_OPTIONS, useSettings } from '@/state/settings';
-import { radius, spacing, useTheme } from '@/theme';
+import { spacing, useTheme } from '@/theme';
 
 export default function InvoiceScreen() {
   const { clientId } = useLocalSearchParams<{ clientId?: string }>();
@@ -150,62 +151,60 @@ export default function InvoiceScreen() {
       ) : (
         <>
           <FadeUp index={1}>
-            <View
-              style={{
-                backgroundColor: colors.accentSoft,
-                borderRadius: radius.xl,
-                borderCurve: 'continuous',
-                padding: spacing.lg,
-                gap: spacing.lg,
-              }}>
-              <View style={{ gap: spacing.xxs }}>
-                <Eyebrow tone="accent">{periodLabel} · draft total</Eyebrow>
-                <AnimatedNumber
-                  value={totals.amount}
-                  variant="numberXl"
-                  precision={2}
-                  format={(value) => formatMoney(value, currency)}
-                  color={colors.accent}
-                />
+            <Panel coreStyle={{ padding: 0, overflow: 'hidden' }}>
+              <View style={{ padding: spacing.lg, gap: spacing.md }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'flex-start',
+                    justifyContent: 'space-between',
+                    gap: spacing.md,
+                  }}>
+                  <View style={{ gap: spacing.xxs, flex: 1 }}>
+                    <Eyebrow>draft total · {periodLabel.toLowerCase()}</Eyebrow>
+                    <AnimatedNumber
+                      value={totals.amount}
+                      variant="numberXl"
+                      precision={2}
+                      format={(value) => formatMoney(value, currency)}
+                    />
+                    <AppText variant="caption" tone="tertiary">
+                      {client.data?.name
+                        ? `billable time on ${client.data.name}`
+                        : 'priced from your own session log'}
+                    </AppText>
+                  </View>
+                  <StatusPill
+                    label={totals.sessions > 0 ? 'ready' : 'empty'}
+                    tone={totals.sessions > 0 ? 'accent' : 'neutral'}
+                  />
+                </View>
               </View>
+
               <View
                 style={{
-                  flexDirection: 'row',
-                  gap: spacing.lg,
-                  paddingTop: spacing.lg,
                   borderTopWidth: 1,
-                  borderTopColor: colors.accentBorder,
+                  borderTopColor: colors.hairline,
+                  backgroundColor: colors.surfaceElevated,
+                  paddingHorizontal: spacing.lg,
+                  paddingVertical: spacing.md,
                 }}>
-                <View style={{ flex: 1, gap: spacing.xxs }}>
-                  <AppText variant="headline" tone="accent">
-                    {formatHours(totals.minutes)}
-                  </AppText>
-                  <AppText variant="caption" tone="accent" style={{ opacity: 0.72 }}>
-                    billable
-                  </AppText>
-                </View>
-                <View style={{ flex: 1, gap: spacing.xxs }}>
-                  <AppText variant="headline" tone="accent">
-                    {totals.sessions}
-                  </AppText>
-                  <AppText variant="caption" tone="accent" style={{ opacity: 0.72 }}>
-                    blocks
-                  </AppText>
-                </View>
-                <View style={{ flex: 1, gap: spacing.xxs }}>
-                  <AppText variant="headline" tone="accent">
-                    {lines.length}
-                  </AppText>
-                  <AppText variant="caption" tone="accent" style={{ opacity: 0.72 }}>
-                    line items
-                  </AppText>
-                </View>
+                <StatRow>
+                  <Stat
+                    label="billable"
+                    value={totals.minutes}
+                    format={formatHours}
+                    variant="headline"
+                  />
+                  <Stat label="blocks" value={totals.sessions} variant="headline" />
+                  <Stat label="line items" value={lines.length} variant="headline" />
+                </StatRow>
               </View>
-            </View>
+            </Panel>
           </FadeUp>
 
           <FadeUp index={2}>
-            <View style={{ gap: spacing.md }}>
+            <Panel coreStyle={{ gap: spacing.sm }}>
               <AppButton
                 label={
                   process.env.EXPO_OS === 'web' ? 'Copy invoice text' : 'Share invoice text'
@@ -216,41 +215,52 @@ export default function InvoiceScreen() {
                 onPress={handleShare}
               />
               {note ? (
-                <AppText variant="caption" tone="secondary">
+                <AppText variant="code" tone="secondary">
                   {note}
                 </AppText>
               ) : null}
               {problem ? (
-                <AppText variant="caption" tone="danger">
+                <AppText variant="code" tone="danger">
                   {problem}
                 </AppText>
               ) : null}
-            </View>
+              {!note && !problem ? (
+                <AppText variant="caption" tone="tertiary">
+                  Plain text — paste it into an email or a document. Nothing leaves this device
+                  unless you send it.
+                </AppText>
+              ) : null}
+            </Panel>
           </FadeUp>
 
           {totals.unratedMinutes > 0 ? (
             <FadeUp index={2}>
-              <Panel variant="outlined" style={{ gap: spacing.md }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-                  <Warning size={15} color={colors.ember} weight="fill" />
-                  <Eyebrow tone="ember">Not priced</Eyebrow>
+              <Panel
+                variant="outlined"
+                coreStyle={{ flexDirection: 'row', overflow: 'hidden', padding: 0 }}>
+                <View style={{ width: 2, backgroundColor: colors.ember }} />
+                <View style={{ flex: 1, padding: spacing.lg, gap: spacing.sm }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                    <Warning size={14} color={colors.ember} weight="fill" />
+                    <Eyebrow tone="ember">not priced</Eyebrow>
+                  </View>
+                  <AppText variant="subhead" tone="secondary">
+                    {formatMinutes(totals.unratedMinutes)} in this period sits on projects with no
+                    rate, so it cannot be billed.
+                  </AppText>
+                  <AppButton
+                    label="Set a rate in Work"
+                    variant="text"
+                    onPress={() => router.push('/work')}
+                  />
                 </View>
-                <AppText variant="subhead" tone="secondary">
-                  {formatMinutes(totals.unratedMinutes)} in this period sits on projects with no
-                  rate, so it cannot be billed.
-                </AppText>
-                <AppButton
-                  label="Set a rate in Work"
-                  variant="text"
-                  onPress={() => router.push('/work')}
-                />
               </Panel>
             </FadeUp>
           ) : null}
 
           {totals.excludedMinutes > 0 ? (
             <FadeUp index={2}>
-              <AppText variant="caption" tone="tertiary">
+              <AppText variant="code" tone="tertiary">
                 {formatMinutes(totals.excludedMinutes)} excluded from this draft — tap a block
                 below to put it back.
               </AppText>
@@ -283,7 +293,7 @@ export default function InvoiceScreen() {
                         .join(' · ')}`}
                       showSeparator={index < lines.length - 1}
                       trailing={
-                        <AppText variant="mono" tone="secondary">
+                        <AppText variant="code" tone="secondary">
                           {formatMoney(line.amount, currency)}
                         </AppText>
                       }
@@ -301,7 +311,7 @@ export default function InvoiceScreen() {
                 eyebrow="evidence"
                 title="Blocks"
                 trailing={
-                  <AppText variant="caption" tone="secondary">
+                  <AppText variant="code" tone="tertiary">
                     tap to exclude
                   </AppText>
                 }
@@ -346,7 +356,7 @@ export default function InvoiceScreen() {
                         }
                         trailing={
                           priced ? (
-                            <AppText variant="mono" tone={billed ? 'secondary' : 'tertiary'}>
+                            <AppText variant="code" tone={billed ? 'secondary' : 'tertiary'}>
                               {billed ? formatMoney((row.minutes / 60) * (row.rate ?? 0), currency) : 'excluded'}
                             </AppText>
                           ) : (

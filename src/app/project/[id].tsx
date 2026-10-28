@@ -1,14 +1,20 @@
 /**
  * Project detail — progress, milestones, tasks.
+ *
+ * The page is a dossier: the title and its facts, one progress instrument, then
+ * the two lists that explain it. Progress is stated twice on purpose — a figure
+ * for reading and a meter for feeling — because "18 of 43" and a bar that is
+ * less than half full answer different questions.
  */
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { Check, PencilSimple } from 'phosphor-react-native';
 import { View } from 'react-native';
 
-import { BackRow } from '@/components/ui/back-button';
 import { AppText } from '@/components/ui/app-text';
+import { BackRow } from '@/components/ui/back-button';
 import { ErrorState } from '@/components/ui/error-state';
+import { Meter } from '@/components/ui/meter';
 import { Panel } from '@/components/ui/panel';
 import { Eyebrow, StatusPill, type StatusTone } from '@/components/ui/pill';
 import { PressableScale } from '@/components/ui/pressable-scale';
@@ -16,6 +22,7 @@ import { ProgressRing } from '@/components/ui/progress-ring';
 import { Screen } from '@/components/ui/screen';
 import { SectionHeader } from '@/components/ui/section';
 import { FadeUp } from '@/components/ui/stagger';
+import { Stat, StatRow } from '@/components/ui/stat';
 import { useLiveQuery } from '@/lib/db/hooks';
 import { getProject, listMilestones, listProjectTasks, setTaskDone } from '@/lib/db/repo';
 import { formatMinutes, formatShortDate } from '@/lib/format';
@@ -79,6 +86,8 @@ export default function ProjectDetailScreen() {
     stackTags.forEach((tag) => facts.push({ label: tag, tone: 'info' }));
   }
 
+  const milestonesHit = (milestones.data ?? []).filter((m) => m.status === 'hit').length;
+
   return (
     <Screen
       header={{
@@ -94,10 +103,13 @@ export default function ProjectDetailScreen() {
               style={{
                 width: 32,
                 height: 32,
-                borderRadius: radius.full,
+                borderRadius: radius.md,
+                borderCurve: 'continuous',
+                borderWidth: 1,
+                borderColor: colors.hairline,
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: colors.surfaceElevated,
+                backgroundColor: colors.surface,
               }}>
               <PencilSimple size={15} color={colors.textSecondary} weight="regular" />
             </View>
@@ -112,7 +124,7 @@ export default function ProjectDetailScreen() {
 
       {facts.length > 0 ? (
         <FadeUp index={0}>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs }}>
             {facts.map((fact) => (
               <StatusPill key={fact.label} label={fact.label} tone={fact.tone} />
             ))}
@@ -126,38 +138,56 @@ export default function ProjectDetailScreen() {
             <ErrorState what="this project" onRetry={() => project.refresh()} />
           </Panel>
         ) : (
-          <Panel coreStyle={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xl }}>
-            <ProgressRing progress={progress} size={92} stroke={7}>
-              <AppText variant="headline">{Math.round(progress * 100)}%</AppText>
-            </ProgressRing>
-            <View style={{ flex: 1, gap: spacing.xs }}>
-              <Eyebrow>Progress</Eyebrow>
-              <AppText variant="subhead">
-                {data ? `${data.done_count} of ${data.task_count} tasks done` : 'Loading…'}
-              </AppText>
-              <AppText variant="caption" tone="secondary">
-                {milestones.status === 'error'
-                  ? 'Milestones unavailable'
-                  : milestones.data && milestones.data.length > 0
-                    ? `${milestones.data.filter((m) => m.status === 'hit').length}/${milestones.data.length} milestones hit`
-                    : 'No milestones set'}
-              </AppText>
-              <AppText variant="caption" tone={data && data.focus_minutes > 0 ? 'ember' : 'tertiary'}>
-                {data && data.focus_minutes > 0
-                  ? [
-                      `${formatMinutes(data.focus_minutes)} focused`,
-                      `${data.focus_sessions} ${data.focus_sessions === 1 ? 'session' : 'sessions'}`,
-                      // Only worth saying when it is not simply everything.
-                      data.billable_minutes === 0
-                        ? null
-                        : data.billable_minutes === data.focus_minutes
-                          ? 'all billable'
-                          : `${formatMinutes(data.billable_minutes)} billable`,
-                    ]
-                      .filter(Boolean)
-                      .join(' · ')
-                  : 'No focus time logged yet'}
-              </AppText>
+          <Panel coreStyle={{ padding: 0, overflow: 'hidden' }}>
+            <View style={{ padding: spacing.lg, gap: spacing.md }}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: spacing.lg,
+                }}>
+                <View style={{ flex: 1, gap: spacing.xxs }}>
+                  <Eyebrow>progress</Eyebrow>
+                  <AppText variant="numberXl">{Math.round(progress * 100)}%</AppText>
+                  <AppText variant="code" tone="tertiary">
+                    {data ? `${data.done_count} of ${data.task_count} tasks done` : 'loading…'}
+                  </AppText>
+                </View>
+                <ProgressRing
+                  progress={progress}
+                  size={72}
+                  stroke={6}
+                  trackColor={colors.surfaceSunken}
+                />
+              </View>
+
+              <Meter value={progress} height={6} />
+            </View>
+
+            <View
+              style={{
+                borderTopWidth: 1,
+                borderTopColor: colors.hairline,
+                backgroundColor: colors.surfaceElevated,
+                paddingHorizontal: spacing.lg,
+                paddingVertical: spacing.md,
+              }}>
+              <StatRow>
+                <Stat
+                  label="focused"
+                  value={data?.focus_minutes ?? 0}
+                  format={formatMinutes}
+                  variant="headline"
+                />
+                <Stat label="sessions" value={data?.focus_sessions ?? 0} variant="headline" />
+                <Stat
+                  label="milestones"
+                  value={milestonesHit}
+                  format={(value) => `${value}/${milestones.data?.length ?? 0}`}
+                  variant="headline"
+                />
+              </StatRow>
             </View>
           </Panel>
         )}
@@ -175,51 +205,64 @@ export default function ProjectDetailScreen() {
       ) : milestones.data && milestones.data.length > 0 ? (
         <FadeUp index={2}>
           <View>
-            <SectionHeader eyebrow="timeline" title="Milestones" />
+            <SectionHeader
+              eyebrow="timeline"
+              title="Milestones"
+              trailing={
+                <AppText variant="code" tone="tertiary">
+                  {milestonesHit}/{milestones.data.length} hit
+                </AppText>
+              }
+            />
             <Panel coreStyle={{ padding: 0, overflow: 'hidden' }}>
-              {milestones.data.map((milestone, index) => (
-                <View key={milestone.id}>
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: spacing.md,
-                      paddingHorizontal: spacing.lg,
-                      paddingVertical: spacing.md,
-                    }}>
+              {milestones.data.map((milestone, index) => {
+                const hit = milestone.status === 'hit';
+                return (
+                  <View key={milestone.id}>
                     <View
                       style={{
-                        width: 26,
-                        height: 26,
-                        borderRadius: radius.full,
-                        borderWidth: 1.5,
-                        borderColor:
-                          milestone.status === 'hit' ? colors.accentBorder : colors.hairlineStrong,
-                        backgroundColor:
-                          milestone.status === 'hit' ? colors.accentSoft : 'transparent',
+                        flexDirection: 'row',
                         alignItems: 'center',
-                        justifyContent: 'center',
+                        gap: spacing.md,
+                        paddingHorizontal: spacing.md,
+                        paddingVertical: spacing.md,
+                        minHeight: 52,
                       }}>
-                      {milestone.status === 'hit' ? (
-                        <Check size={13} color={colors.accent} weight="bold" />
-                      ) : null}
+                      {/* A timeline dot, not a checkbox: milestones are events. */}
+                      <View
+                        style={{
+                          width: 30,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}>
+                        <View
+                          style={{
+                            width: 9,
+                            height: 9,
+                            borderRadius: radius.full,
+                            borderWidth: hit ? 0 : 1.5,
+                            borderColor: colors.hairlineStrong,
+                            backgroundColor: hit ? colors.accent : 'transparent',
+                          }}
+                        />
+                      </View>
+                      <View style={{ flex: 1, gap: 2 }}>
+                        <AppText variant="subheadMedium">{milestone.title}</AppText>
+                        <AppText variant="code" tone="tertiary" style={{ fontSize: 10.5 }}>
+                          {milestone.due_date ? formatShortDate(milestone.due_date) : 'no date'}
+                        </AppText>
+                      </View>
+                      <StatusPill
+                        label={hit ? 'hit' : 'pending'}
+                        tone={hit ? 'accent' : 'neutral'}
+                      />
                     </View>
-                    <View style={{ flex: 1, gap: 2 }}>
-                      <AppText variant="subheadMedium">{milestone.title}</AppText>
-                      <AppText variant="caption" tone="secondary">
-                        {milestone.due_date ? formatShortDate(milestone.due_date) : 'No date'}
-                      </AppText>
-                    </View>
-                    <StatusPill
-                      label={milestone.status === 'hit' ? 'hit' : 'pending'}
-                      tone={milestone.status === 'hit' ? 'accent' : 'neutral'}
-                    />
+                    {index < milestones.data!.length - 1 ? (
+                      <View style={{ height: 1, marginLeft: spacing.md + 30 + spacing.md, backgroundColor: colors.hairline }} />
+                    ) : null}
                   </View>
-                  {index < milestones.data!.length - 1 ? (
-                    <View style={{ height: 1, marginLeft: 62, backgroundColor: colors.hairline }} />
-                  ) : null}
-                </View>
-              ))}
+                );
+              })}
             </Panel>
           </View>
         </FadeUp>
@@ -227,7 +270,17 @@ export default function ProjectDetailScreen() {
 
       <FadeUp index={3}>
         <View>
-          <SectionHeader eyebrow="execution" title="Tasks" />
+          <SectionHeader
+            eyebrow="execution"
+            title="Tasks"
+            trailing={
+              tasks.data && tasks.data.length > 0 ? (
+                <AppText variant="code" tone="tertiary">
+                  {tasks.data.filter((task) => task.status !== 'done').length} open
+                </AppText>
+              ) : undefined
+            }
+          />
           <Panel coreStyle={{ padding: 0, overflow: 'hidden' }}>
             {tasks.status === 'error' && !tasks.data ? (
               <ErrorState what="tasks" onRetry={() => tasks.refresh()} />
@@ -245,21 +298,22 @@ export default function ProjectDetailScreen() {
                           flexDirection: 'row',
                           alignItems: 'center',
                           gap: spacing.md,
-                          paddingHorizontal: spacing.lg,
-                          paddingVertical: spacing.md,
+                          paddingHorizontal: spacing.md,
+                          paddingVertical: 11,
+                          minHeight: 50,
                         }}>
                         <View
                           style={{
-                            width: 26,
-                            height: 26,
-                            borderRadius: radius.full,
-                            borderWidth: 1.5,
-                            borderColor: done ? colors.accentBorder : colors.hairlineStrong,
-                            backgroundColor: done ? colors.accentSoft : 'transparent',
+                            width: 18,
+                            height: 18,
+                            borderRadius: radius.xs,
+                            borderWidth: 1.2,
+                            borderColor: done ? colors.accent : colors.hairlineStrong,
+                            backgroundColor: done ? colors.accent : 'transparent',
                             alignItems: 'center',
                             justifyContent: 'center',
                           }}>
-                          {done ? <Check size={13} color={colors.accent} weight="bold" /> : null}
+                          {done ? <Check size={11} color={colors.accentContrast} weight="bold" /> : null}
                         </View>
                         <AppText
                           variant="subheadMedium"
@@ -271,14 +325,20 @@ export default function ProjectDetailScreen() {
                           {task.title}
                         </AppText>
                         {task.est_minutes ? (
-                          <AppText variant="mono" tone="tertiary">
+                          <AppText variant="code" tone="tertiary">
                             {task.est_minutes}m
                           </AppText>
                         ) : null}
                       </View>
                     </PressableScale>
                     {index < tasks.data!.length - 1 ? (
-                      <View style={{ height: 1, marginLeft: 62, backgroundColor: colors.hairline }} />
+                      <View
+                        style={{
+                          height: 1,
+                          marginLeft: spacing.md + 18 + spacing.md,
+                          backgroundColor: colors.hairline,
+                        }}
+                      />
                     ) : null}
                   </View>
                 );

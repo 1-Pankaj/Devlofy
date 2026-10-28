@@ -48,7 +48,7 @@ function chipStyle(colors: ThemeColors) {
     gap: 5,
     paddingHorizontal: spacing.md,
     height: 30,
-    borderRadius: radius.full,
+    borderRadius: radius.sm,
     backgroundColor: colors.surfaceElevated,
     borderWidth: 1,
     borderColor: colors.hairline,

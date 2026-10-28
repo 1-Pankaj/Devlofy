@@ -40,6 +40,8 @@ import { SectionHeader } from '@/components/ui/section';
 import { useLiveQuery } from '@/lib/db/hooks';
 import { searchEverything, setTaskDone, type SearchHit } from '@/lib/db/repo';
 import { searchTools, toolById } from '@/lib/bench/tools';
+import { useBreakpoint } from '@/lib/layout/breakpoints';
+import { searchShortcutLabel } from '@/lib/search-shortcut';
 import { fonts, radius, spacing, useTheme } from '@/theme';
 
 /**
@@ -63,6 +65,7 @@ export default function SearchScreen() {
   const db = useSQLiteContext();
   const router = useRouter();
   const { colors } = useTheme();
+  const compact = useBreakpoint() === 'compact';
 
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
@@ -129,54 +132,59 @@ export default function SearchScreen() {
         <BackRow label="Close" />
       </View>
 
-      <Panel coreStyle={{ padding: 0, overflow: 'hidden' }}>
-        <View
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: spacing.sm,
+          height: 50,
+          paddingHorizontal: spacing.md,
+          borderRadius: radius.md,
+          borderCurve: 'continuous',
+          borderWidth: 1,
+          borderColor: focused ? colors.accent : colors.hairlineStrong,
+          backgroundColor: colors.surface,
+          boxShadow: focused ? `0 0 0 3px ${colors.accentSoft}` : undefined,
+        }}>
+        <MagnifyingGlass size={17} color={colors.textTertiary} weight="bold" />
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          placeholder="Projects, notes, tasks, tools…"
+          placeholderTextColor={colors.textTertiary}
+          selectionColor={colors.accent}
+          cursorColor={colors.accent}
+          autoFocus
+          autoCapitalize="none"
+          returnKeyType="search"
+          accessibilityLabel="Search everything"
           style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: spacing.md,
-            paddingLeft: spacing.lg,
-            paddingRight: spacing.lg,
-            borderBottomWidth: focused ? 2 : 1,
-            borderBottomColor: focused ? colors.accent : colors.hairline,
-          }}>
-          <MagnifyingGlass size={17} color={colors.textTertiary} weight="bold" />
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            onFocus={() => setFocused(true)}
-            onBlur={() => setFocused(false)}
-            placeholder="Projects, notes, tasks, tools…"
-            placeholderTextColor={colors.textTertiary}
-            selectionColor={colors.accent}
-            cursorColor={colors.accent}
-            autoFocus
-            autoCapitalize="none"
-            returnKeyType="search"
-            accessibilityLabel="Search everything"
+            flex: 1,
+            color: colors.text,
+            fontFamily: fonts.bodyRegular,
+            fontSize: 16,
+          }}
+        />
+        {/* A key cap is only honest where the key exists: a phone has no ⌘ and
+            no Ctrl, so the field keeps its placeholder and drops the cap. */}
+        {process.env.EXPO_OS === 'web' && !compact && query.length === 0 ? (
+          <View
             style={{
-              flex: 1,
-              paddingVertical: 14,
-              color: colors.text,
-              fontFamily: fonts.bodyRegular,
-              fontSize: 16,
-            }}
-          />
-          {process.env.EXPO_OS === 'web' && query.length === 0 ? (
-            <View
-              style={{
-                paddingHorizontal: spacing.sm,
-                paddingVertical: 3,
-                borderRadius: radius.sm,
-                backgroundColor: colors.surfaceElevated,
-              }}>
-              <AppText variant="caption" tone="tertiary">
-                ⌘K
-              </AppText>
-            </View>
-          ) : null}
-        </View>
-      </Panel>
+              paddingHorizontal: spacing.sm,
+              paddingVertical: 2,
+              borderRadius: radius.xs,
+              borderWidth: 1,
+              borderColor: colors.hairline,
+              backgroundColor: colors.surfaceElevated,
+            }}>
+            <AppText variant="code" tone="tertiary" style={{ fontSize: 10 }}>
+              {searchShortcutLabel}
+            </AppText>
+          </View>
+        ) : null}
+      </View>
 
       {searching ? (
         <Panel>
@@ -212,7 +220,7 @@ export default function SearchScreen() {
               eyebrow={group.eyebrow}
               title={group.title}
               trailing={
-                <AppText variant="caption" tone="secondary">
+                <AppText variant="code" tone="tertiary">
                   {group.hits.length}
                 </AppText>
               }
@@ -272,7 +280,7 @@ export default function SearchScreen() {
       )}
 
       {total > 0 ? (
-        <AppText variant="caption" tone="tertiary">
+        <AppText variant="code" tone="tertiary">
           {total} {total === 1 ? 'result' : 'results'} · everything stays on this device
         </AppText>
       ) : null}

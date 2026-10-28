@@ -80,7 +80,7 @@ export function EncodeTool({ initial, snippetId = null }: { initial?: string; sn
 
       {answer !== null && answer.length > 0 ? (
         <ToolAnswer label={direction === 'encode' ? 'Encoded' : 'Decoded'} text={answer} note={note ?? undefined}>
-          <CodeBlock code={answer} highlight={false} showLineNumbers={false} />
+          <CodeBlock code={answer} highlight={false} showLineNumbers={false} wrap />
         </ToolAnswer>
       ) : null}
 

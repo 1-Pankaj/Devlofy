@@ -1,5 +1,5 @@
 /**
- * Window size classes (Material 3): compact < 600, medium 600–839, expanded ≥ 840.
+ * Window size classes: compact < 600, medium 600–839, expanded ≥ 840.
  * `useDesktopMode` resolves the user setting ("auto" follows the breakpoint) and
  * gates the side-rail shell — tablets, desktop-class Android, and wide web.
  */

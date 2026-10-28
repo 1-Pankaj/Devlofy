@@ -24,16 +24,17 @@ export function BackRow({ label = 'Back' }: { label?: string }) {
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
         <View
           style={{
-            width: 36,
-            height: 36,
-            borderRadius: radius.full,
-            backgroundColor: colors.surfaceElevated,
+            width: 34,
+            height: 34,
+            borderRadius: radius.md,
+            borderCurve: 'continuous',
+            backgroundColor: colors.surface,
             borderWidth: 1,
             borderColor: colors.hairline,
             alignItems: 'center',
             justifyContent: 'center',
           }}>
-          <CaretLeft size={17} color={colors.text} weight="bold" />
+          <CaretLeft size={16} color={colors.text} weight="bold" />
         </View>
         <AppText variant="captionMedium" tone="secondary">
           {label}

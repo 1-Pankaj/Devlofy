@@ -43,7 +43,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BlockEditor } from '@/components/notes/block-editor';
+import { BlockEditor, BLOCK_GUTTER } from '@/components/notes/block-editor';
 import { ExtractSheet, type ExtractPreview } from '@/components/notes/extract-sheet';
 import { LinkSheet, OutlineSheet } from '@/components/notes/link-sheet';
 import { NoteMeta } from '@/components/notes/note-meta';
@@ -55,6 +55,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { Eyebrow } from '@/components/ui/pill';
 import { PressableScale } from '@/components/ui/pressable-scale';
+import { DOCUMENT_MAX_WIDTH } from '@/components/ui/screen';
 import { useLiveQuery } from '@/lib/db/hooks';
 import {
   createNote,
@@ -71,6 +72,7 @@ import {
   updateNote,
 } from '@/lib/db/repo';
 import { countWords, formatDayLabel } from '@/lib/format';
+import { useBreakpoint } from '@/lib/layout/breakpoints';
 import { NOTE_TEMPLATES, type NoteTemplate } from '@/lib/note-templates';
 import { openTasks, outlineOf, parseBlocks, toggleTask, visibleText } from '@/lib/notes/blocks';
 import type { Focus } from '@/lib/notes/blocks';
@@ -160,6 +162,7 @@ export default function NoteEditorScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
+  const expanded = useBreakpoint() === 'expanded';
   const focusProjectId = useSettings((state) => state.focusProjectId);
   const setFocusProjectId = useSettings((state) => state.setFocusProjectId);
 
@@ -555,6 +558,16 @@ export default function NoteEditorScreen() {
   const openExtractCount = useMemo(() => openTasks(body).length, [body]);
   const backlinkRows = backlinks.data ?? [];
 
+  /**
+   * A note is a document, not a canvas: on a wide screen it takes the document
+   * measure — narrower than a page of lists — so the text keeps a reading width
+   * and the format bar rides with the writing instead of stretching to the
+   * window.
+   */
+  const column = expanded
+    ? ({ width: '100%', maxWidth: DOCUMENT_MAX_WIDTH, alignSelf: 'center' } as const)
+    : null;
+
   if (note.status === 'loading' && !data) {
     return (
       <View
@@ -677,10 +690,13 @@ export default function NoteEditorScreen() {
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View
-          style={{
-            paddingHorizontal: spacing.xl,
-            paddingTop: insets.top + spacing.sm,
-          }}>
+          style={[
+            {
+              paddingHorizontal: spacing.xl,
+              paddingTop: insets.top + spacing.sm,
+            },
+            column,
+          ]}>
           <View
             style={{
               flexDirection: 'row',
@@ -701,60 +717,69 @@ export default function NoteEditorScreen() {
             </View>
           </View>
 
-          <TextInput
-            value={draft?.title ?? ''}
-            onChangeText={(value) => update({ title: value })}
-            placeholder="Untitled note"
-            placeholderTextColor={colors.textTertiary}
-            selectionColor={colors.accent}
-            cursorColor={colors.accent}
-            returnKeyType="next"
-            autoFocus={freshNote}
-            selectTextOnFocus={freshNote}
-            accessibilityLabel="Note title"
-            style={{
-              marginTop: spacing.lg,
-              padding: 0,
-              color: colors.text,
-              fontFamily: fonts.displaySemibold,
-              fontSize: 30,
-              lineHeight: 37,
-              letterSpacing: -0.6,
-            }}
-          />
+          {/* The document's own column: title, links and stats line up with the
+              first character of every block, while the marker gutter stays
+              empty above them. */}
+          <View style={{ paddingLeft: BLOCK_GUTTER }}>
+            <TextInput
+              value={draft?.title ?? ''}
+              onChangeText={(value) => update({ title: value })}
+              placeholder="Untitled note"
+              placeholderTextColor={colors.textTertiary}
+              selectionColor={colors.accent}
+              cursorColor={colors.accent}
+              returnKeyType="next"
+              autoFocus={freshNote}
+              selectTextOnFocus={freshNote}
+              accessibilityLabel="Note title"
+              style={{
+                marginTop: spacing.lg,
+                padding: 0,
+                color: colors.text,
+                fontFamily: fonts.displaySemibold,
+                fontSize: 30,
+                lineHeight: 37,
+                letterSpacing: -0.6,
+              }}
+            />
 
-          <NoteMeta
-            tags={effectiveTags}
-            clientId={effectiveClientId}
-            projectId={effectiveProjectId}
-            clientName={clientName}
-            projectName={projectName}
-            clients={(clientList.data ?? []).map((c) => ({ id: c.id, name: c.name }))}
-            projects={projectOptions.map((p) => ({ id: p.id, name: p.name }))}
-            suggestions={tagPool.data ?? []}
-            onAddTag={handleAddTag}
-            onRemoveTag={handleRemoveTag}
-            onPickClient={handlePickClient}
-            onPickProject={handlePickProject}
-          />
+            <NoteMeta
+              tags={effectiveTags}
+              clientId={effectiveClientId}
+              projectId={effectiveProjectId}
+              clientName={clientName}
+              projectName={projectName}
+              clients={(clientList.data ?? []).map((c) => ({ id: c.id, name: c.name }))}
+              projects={projectOptions.map((p) => ({ id: p.id, name: p.name }))}
+              suggestions={tagPool.data ?? []}
+              onAddTag={handleAddTag}
+              onRemoveTag={handleRemoveTag}
+              onPickClient={handlePickClient}
+              onPickProject={handlePickProject}
+            />
 
-          <View style={{ paddingVertical: spacing.md }}>
-            <AppText variant="mono" tone={flash ? 'accent' : 'tertiary'}>
-              {flash ??
-                `${words} ${words === 1 ? 'word' : 'words'} · ${blocks.length} ${
-                  blocks.length === 1 ? 'block' : 'blocks'
-                } · edited ${formatDayLabel(data.updated_at)}`}
-            </AppText>
+            <View style={{ paddingVertical: spacing.md }}>
+              <AppText variant="mono" tone={flash ? 'accent' : 'tertiary'}>
+                {flash ??
+                  `${words} ${words === 1 ? 'word' : 'words'} · ${blocks.length} ${
+                    blocks.length === 1 ? 'block' : 'blocks'
+                  } · edited ${formatDayLabel(data.updated_at)}`}
+              </AppText>
+            </View>
           </View>
         </View>
 
         {reading ? (
           <ScrollView
             style={{ flex: 1 }}
-            contentContainerStyle={{
-              paddingHorizontal: spacing.xl,
-              paddingBottom: insets.bottom + spacing.xxxl,
-            }}>
+            contentContainerStyle={[
+              {
+                paddingLeft: spacing.xl + BLOCK_GUTTER,
+                paddingRight: spacing.xl,
+                paddingBottom: insets.bottom + spacing.xxxl,
+              },
+              column,
+            ]}>
             <ReadingView
               body={body}
               onToggleTask={toggleCheck}
@@ -765,7 +790,7 @@ export default function NoteEditorScreen() {
             {footer}
           </ScrollView>
         ) : (
-          <View style={{ flex: 1, paddingHorizontal: spacing.xl }}>
+          <View style={[{ flex: 1, paddingHorizontal: spacing.xl }, column]}>
             <BlockEditor
               body={body}
               onChange={handleEditorChange}

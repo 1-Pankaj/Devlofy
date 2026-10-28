@@ -47,6 +47,14 @@ import { fonts, radius, spacing, useTheme, type ThemeColors } from '@/theme';
 type Pending = { index: number; start: number; end: number };
 type SheetState = { index: number; mode: 'actions' | 'types'; query: string };
 
+/**
+ * The marker gutter left of the text column — the checkbox, bullet or number.
+ * Exported so the title and meta of a note can sit on the **text** column rather
+ * than on the page edge: a document whose heading starts 32px left of its own
+ * paragraphs reads as two documents.
+ */
+export const BLOCK_GUTTER = 24 + spacing.sm;
+
 export type BlockEditorProps = {
   body: string;
   onChange: (next: Focus) => void;

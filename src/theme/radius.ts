@@ -1,22 +1,25 @@
 /**
- * Shape scale — Material 3.
+ * Shape scale — small, deliberate, engineered.
  *
- * Radii are deliberately *varied*: tight on small elements, generous on the
- * containers that hold them, so nesting reads as concentric curves rather than
- * one uniform rounding everywhere.
+ * Containers are nearly rectangular. A 6px radius on a card and an 8px radius on
+ * the surface that holds it is what makes a tool look *drawn* rather than
+ * inflated; the old 16/28px radii are what made it look like a Material app.
+ *
+ * `full` still exists for pills and chips — but it is now the exception, used
+ * for a status tag or a truncated avatar, never for a button or a panel.
  */
 export const radius = {
-  /** Hairline bars, tiny indicators. */
-  xs: 4,
-  /** Small controls, rail rows. */
-  sm: 8,
-  /** Inputs, list wells, inner elements. */
-  md: 12,
-  /** Cards, containers. */
-  lg: 16,
+  /** Hairline bars, tags, tiny indicators. */
+  xs: 3,
+  /** Small controls, inline chips. */
+  sm: 4,
+  /** Inputs, list wells, buttons, icon wells. */
+  md: 6,
+  /** Cards, containers, the action button. */
+  lg: 8,
   /** Hero surfaces, sheets, the large statement blocks. */
-  xl: 28,
-  /** Pills: buttons, chips, the FAB. */
+  xl: 12,
+  /** Pills: status tags, avatars, the running-session dot. */
   full: 999,
 } as const;
 

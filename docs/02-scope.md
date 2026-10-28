@@ -13,7 +13,7 @@ created: 2026-10-17
 | **Web** | Stable, equal partner | PWA install on iPhone for dogfooding; same codebase. |
 | **iOS (native)** | Later | Untouched until Android is solid. Code is kept iOS-safe. |
 
-**Desktop mode is v0.1 scope** (user requirement): expanded widths get a side-rail shell instead of the bottom bar. Window size classes: compact < 600, medium < 840, expanded ≥ 840 (Material 3). Auto/On/Off switch in More → Settings. See [[03-architecture]] for the mechanics.
+**Desktop mode is v0.1 scope** (user requirement): expanded widths get a side-rail shell instead of the bottom bar. Window size classes: compact < 600, medium < 840, expanded ≥ 840. Auto/On/Off switch in More → Settings. See [[03-architecture]] for the mechanics.
 
 ## v0.1 — foundation (built 2026-10-17)
 
@@ -32,7 +32,7 @@ created: 2026-10-17
 - **The queue is a day view** — dated work first (overdue on top), then the undated backlog by priority; rows carry a due pill (`2d overdue`, `today`, `tomorrow`, `in 4d`, `Oct 24`).
 - **Focus attribution** — the project the next block belongs to is chosen once and persisted, so Today and Garden agree; sessions store `project_id`, which is what makes per-project time real.
 - **Time tracked per project** — Work rows and the project page state focused minutes and session count.
-- **Rhythm heatmap** — twelve weeks of focus as a 4-step tonal grid on Garden, with the best day and the number of days focused.
+- **Rhythm heatmap** — twelve weeks of focus as a 4-step colour grid on Garden, with the best day and the number of days focused.
 - **Daily focus goal** — 1h / 1.5h / 2h / 3h in More, driving the Today ring and "to go".
 - **Precise motion** — every overshoot removed: no spring anywhere, just timing curves for everything ([[04-design-language]]).
 

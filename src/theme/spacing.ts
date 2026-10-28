@@ -1,6 +1,7 @@
 /**
- * One 4-point grid. Screen edge padding is `xl` (20) everywhere; a layout that
- * needs an in-between value uses the nearest step or gets a named step here.
+ * One 4-point grid. Screen edge padding is `lg` (16) and card padding is `lg`;
+ * a layout that needs an in-between value uses the nearest step or gets a named
+ * step here.
  */
 export const spacing = {
   xxs: 2,

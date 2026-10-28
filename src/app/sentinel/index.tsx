@@ -28,6 +28,7 @@ import { Panel } from '@/components/ui/panel';
 import { Screen } from '@/components/ui/screen';
 import { FadeUp } from '@/components/ui/stagger';
 import { CHECKS_KEPT } from '@/lib/db/repo';
+import { useBreakpoint } from '@/lib/layout/breakpoints';
 import { formatAgo, minutesSince } from '@/lib/sentinel/status';
 import { useSentinelBoard } from '@/lib/sentinel/use-sentinel';
 import { spacing } from '@/theme';
@@ -35,6 +36,7 @@ import { spacing } from '@/theme';
 export default function SentinelBoardScreen() {
   const router = useRouter();
   const board = useSentinelBoard();
+  const expanded = useBreakpoint() === 'expanded';
   const count = board.rows.length;
 
   // The board's clock, so "checked 4m ago" ages on its own and the cards below
@@ -68,9 +70,12 @@ export default function SentinelBoardScreen() {
           onPress={() => router.push('/sentinel/site-form')}
         />
       }>
-      <FadeUp index={0}>
-        <BackRow label="More" />
-      </FadeUp>
+      {/* The rail already says "More" on a wide page. */}
+      {expanded ? null : (
+        <FadeUp index={0}>
+          <BackRow label="More" />
+        </FadeUp>
+      )}
 
       {board.status === 'loading' ? (
         <FadeUp index={1}>
@@ -84,25 +89,26 @@ export default function SentinelBoardScreen() {
         </FadeUp>
       ) : (
         <>
-          <FadeUp index={1}>
-            <View style={{ gap: spacing.sm }}>
-              <AppButton
-                label={board.running ? 'Checking…' : 'Check all now'}
-                icon={ArrowsClockwise}
-                variant="tonal"
-                full
-                disabled={board.running || count === 0}
-                onPress={() => void board.runAll()}
-              />
-              {allFromWeb ? (
-                <AppText variant="caption" tone="tertiary">
-                  A browser cannot read another site’s status code, so these checks prove a target
-                  answered and how long it took — not that it returned 200. Run them on the tablet for
-                  real statuses.
-                </AppText>
-              ) : null}
-            </View>
-          </FadeUp>
+          {count > 0 ? (
+            <FadeUp index={1}>
+              <View style={{ gap: spacing.sm }}>
+                <AppButton
+                  label={board.running ? 'Checking…' : 'Check all now'}
+                  icon={ArrowsClockwise}
+                  variant="outlined"
+                  disabled={board.running}
+                  onPress={() => void board.runAll()}
+                />
+                {allFromWeb ? (
+                  <AppText variant="caption" tone="tertiary">
+                    A browser cannot read another site’s status code, so these checks prove a target
+                    answered and how long it took — not that it returned 200. Run them on the tablet for
+                    real statuses.
+                  </AppText>
+                ) : null}
+              </View>
+            </FadeUp>
+          ) : null}
 
           {count === 0 ? (
             <FadeUp index={2}>

@@ -1,10 +1,18 @@
+/**
+ * Small type: the label above a section, and the status tag beside a row.
+ *
+ * `Eyebrow` is mono now — tracked, uppercase, 10.5px — because in this interface
+ * every measured thing speaks in the machine voice. `StatusPill` is a **tag**,
+ * not a chip: a 3px radius, 12px label, a soft ground and a matching ink, and an
+ * optional 5px dot when the tag is reporting live state.
+ */
 import type { ReactNode } from 'react';
 import { View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 
-import { radius, spacing, useTheme, type ThemeColors } from '@/theme';
+import { radius, useTheme, type ThemeColors } from '@/theme';
 import { AppText, type TextTone } from './app-text';
 
-/** Small uppercase section label. The connective tissue of the layout. */
+/** Small mono section label. The connective tissue of the layout. */
 export function Eyebrow({
   children,
   tone = 'tertiary',
@@ -15,7 +23,7 @@ export function Eyebrow({
   style?: StyleProp<TextStyle>;
 }) {
   return (
-    <AppText variant="eyebrow" tone={tone} style={style}>
+    <AppText variant="monoLabel" tone={tone} style={style}>
       {children}
     </AppText>
   );
@@ -43,10 +51,13 @@ export function statusColors(
 export function StatusPill({
   label,
   tone = 'neutral',
+  dot = false,
   style,
 }: {
   label: string;
   tone?: StatusTone;
+  /** A 5px dot in the tag's ink — use it when the tag reports the present. */
+  dot?: boolean;
   style?: StyleProp<ViewStyle>;
 }) {
   const { colors } = useTheme();
@@ -57,14 +68,22 @@ export function StatusPill({
       style={[
         {
           alignSelf: 'flex-start',
-          borderRadius: radius.full,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 5,
+          borderRadius: radius.xs,
           backgroundColor: background,
-          paddingHorizontal: spacing.sm + 2,
-          paddingVertical: spacing.xs,
+          paddingHorizontal: 6,
+          paddingVertical: 2,
         },
         style,
       ]}>
-      <AppText variant="captionMedium" style={{ color: foreground }}>
+      {dot ? (
+        <View
+          style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: foreground }}
+        />
+      ) : null}
+      <AppText variant="captionMedium" style={{ color: foreground, fontSize: 12, lineHeight: 17 }}>
         {label}
       </AppText>
     </View>

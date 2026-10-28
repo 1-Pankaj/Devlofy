@@ -1,7 +1,7 @@
 /**
  * Entrance choreography. Stagger by index, timed rather than sprung so the page
- * *arrives* — a short rise and a fade, never a bounce. Always on the UI thread;
- * always respects reduced motion.
+ * *arrives* — a short rise, a 4‰ scale and a fade, never a bounce. Always on the
+ * UI thread; always respects reduced motion.
  *
  * The rise is written as an animated style rather than through reanimated's
  * `entering` prop, deliberately. On web, `entering` with a modifier
@@ -27,10 +27,10 @@ import Animated, {
 import { duration, easing } from '@/theme';
 
 /** How far a block rises into place, in points. */
-const RISE = 8;
+const RISE = 10;
 
 /** Gap between two staggered blocks, in milliseconds. */
-const STEP = 45;
+const STEP = 42;
 
 export function FadeUp({
   children,
@@ -54,10 +54,13 @@ export function FadeUp({
     );
   }, [progress, reducedMotion, start]);
 
-  const entering = useAnimatedStyle(() => ({
-    opacity: progress.get(),
-    transform: [{ translateY: (1 - progress.get()) * RISE }],
-  }));
+  const entering = useAnimatedStyle(() => {
+    const value = progress.get();
+    return {
+      opacity: value,
+      transform: [{ translateY: (1 - value) * RISE }, { scale: 0.996 + value * 0.004 }],
+    };
+  });
 
   return <Animated.View style={[style, entering]}>{children}</Animated.View>;
 }

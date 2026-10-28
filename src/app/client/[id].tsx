@@ -1,6 +1,11 @@
 /**
  * Client detail — the relationship page: who they are, what you're building,
  * and how much of it is done.
+ *
+ * Same dossier as a project: one delivery instrument, the facts, the portfolio
+ * that belongs to them, and the money that came out of it. Contact details are
+ * rows, not cards — the notes are the only prose on the page, so they get the
+ * only block of quiet space.
  */
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
@@ -21,6 +26,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
 import { ListRow } from '@/components/ui/list-row';
 import { Loading } from '@/components/ui/loading';
+import { Meter } from '@/components/ui/meter';
 import { Panel } from '@/components/ui/panel';
 import { Eyebrow, StatusPill } from '@/components/ui/pill';
 import { PressableScale } from '@/components/ui/pressable-scale';
@@ -28,6 +34,7 @@ import { ProgressRing } from '@/components/ui/progress-ring';
 import { Screen } from '@/components/ui/screen';
 import { SectionHeader } from '@/components/ui/section';
 import { FadeUp } from '@/components/ui/stagger';
+import { Stat, StatRow } from '@/components/ui/stat';
 import { useLiveQuery } from '@/lib/db/hooks';
 import { getClient, getClientStats, listClientProjects, listSessionsInWindow } from '@/lib/db/repo';
 import { formatShortDate } from '@/lib/format';
@@ -72,10 +79,13 @@ export default function ClientDetailScreen() {
               style={{
                 width: 32,
                 height: 32,
-                borderRadius: radius.full,
+                borderRadius: radius.md,
+                borderCurve: 'continuous',
+                borderWidth: 1,
+                borderColor: colors.hairline,
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: colors.surfaceElevated,
+                backgroundColor: colors.surface,
               }}>
               <PencilSimple size={15} color={colors.textSecondary} weight="regular" />
             </View>
@@ -90,7 +100,7 @@ export default function ClientDetailScreen() {
 
       {data ? (
         <FadeUp index={0}>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs }}>
             <StatusPill
               label={data.status}
               tone={data.status === 'active' ? 'accent' : 'neutral'}
@@ -128,32 +138,71 @@ export default function ClientDetailScreen() {
       ) : (
         <>
           <FadeUp index={1}>
-            <Panel coreStyle={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xl }}>
-              <ProgressRing progress={progress} size={92} stroke={7}>
-                <AppText variant="headline">{Math.round(progress * 100)}%</AppText>
-              </ProgressRing>
-              <View style={{ flex: 1, gap: spacing.xs }}>
-                <Eyebrow>delivery</Eyebrow>
-                {stats.status === 'error' && !stats.data ? (
-                  <PressableScale haptic="selection" onPress={() => stats.refresh()}>
-                    <AppText variant="captionMedium" tone="accent">
-                      Could not read delivery — retry
-                    </AppText>
-                  </PressableScale>
-                ) : (
-                  <>
-                    <AppText variant="subhead">
-                      {stats.data
-                        ? `${stats.data.doneTasks} of ${stats.data.tasks} tasks done`
-                        : 'Reading…'}
-                    </AppText>
-                    <AppText variant="caption" tone="secondary">
-                      {stats.data
-                        ? `${stats.data.activeProjects} active of ${stats.data.projects} projects`
-                        : ''}
-                    </AppText>
-                  </>
-                )}
+            <Panel coreStyle={{ padding: 0, overflow: 'hidden' }}>
+              <View style={{ padding: spacing.lg, gap: spacing.md }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: spacing.lg,
+                  }}>
+                  <View style={{ flex: 1, gap: spacing.xxs }}>
+                    <Eyebrow>delivery</Eyebrow>
+                    {stats.status === 'error' && !stats.data ? (
+                      <PressableScale haptic="selection" onPress={() => stats.refresh()}>
+                        <AppText variant="captionMedium" tone="accent">
+                          Could not read delivery — retry
+                        </AppText>
+                      </PressableScale>
+                    ) : (
+                      <>
+                        <AppText variant="numberXl">{Math.round(progress * 100)}%</AppText>
+                        <AppText variant="code" tone="tertiary">
+                          {stats.data
+                            ? `${stats.data.doneTasks} of ${stats.data.tasks} tasks done`
+                            : 'reading…'}
+                        </AppText>
+                      </>
+                    )}
+                  </View>
+                  <ProgressRing
+                    progress={progress}
+                    size={72}
+                    stroke={6}
+                    trackColor={colors.surfaceSunken}
+                  />
+                </View>
+
+                <Meter value={progress} height={6} />
+              </View>
+
+              <View
+                style={{
+                  borderTopWidth: 1,
+                  borderTopColor: colors.hairline,
+                  backgroundColor: colors.surfaceElevated,
+                  paddingHorizontal: spacing.lg,
+                  paddingVertical: spacing.md,
+                }}>
+                <StatRow>
+                  <Stat
+                    label="active"
+                    value={stats.data?.activeProjects ?? 0}
+                    variant="headline"
+                  />
+                  <Stat
+                    label="projects"
+                    value={projectCount}
+                    variant="headline"
+                  />
+                  <Stat
+                    label="billable"
+                    value={billed.amount}
+                    format={(value) => formatMoney(value, currency).replace(/\.00$/, '')}
+                    variant="headline"
+                  />
+                </StatRow>
               </View>
             </Panel>
           </FadeUp>
@@ -166,7 +215,7 @@ export default function ClientDetailScreen() {
                   <>
                     {data.email ? (
                       <ListRow
-                        icon={<Envelope size={17} color={colors.textTertiary} weight="light" />}
+                        icon={<Envelope size={16} color={colors.textTertiary} weight="regular" />}
                         title="Email"
                         subtitle={data.email}
                         showSeparator={Boolean(data.phone || data.notes)}
@@ -174,14 +223,15 @@ export default function ClientDetailScreen() {
                     ) : null}
                     {data.phone ? (
                       <ListRow
-                        icon={<Phone size={17} color={colors.textTertiary} weight="light" />}
+                        icon={<Phone size={16} color={colors.textTertiary} weight="regular" />}
                         title="Phone"
                         subtitle={data.phone}
                         showSeparator={Boolean(data.notes)}
                       />
                     ) : null}
                     {data.notes ? (
-                      <View style={{ padding: spacing.xl }}>
+                      <View style={{ padding: spacing.lg, gap: spacing.xs }}>
+                        <Eyebrow>notes</Eyebrow>
                         <AppText variant="body" tone="secondary">
                           {data.notes}
                         </AppText>
@@ -189,10 +239,11 @@ export default function ClientDetailScreen() {
                     ) : null}
                   </>
                 ) : (
-                  <View style={{ padding: spacing.xl }}>
-                    <AppText variant="subhead" tone="secondary">
-                      No contact details yet. Everything stays on this device — add them whenever
-                      the relationship needs them.
+                  <View style={{ padding: spacing.xl, gap: spacing.xs }}>
+                    <AppText variant="subheadMedium">No contact details yet.</AppText>
+                    <AppText variant="caption" tone="secondary">
+                      Everything stays on this device — add them whenever the relationship needs
+                      them.
                     </AppText>
                   </View>
                 )}
@@ -202,7 +253,17 @@ export default function ClientDetailScreen() {
 
           <FadeUp index={3}>
             <View>
-              <SectionHeader eyebrow="portfolio" title="Projects" />
+              <SectionHeader
+                eyebrow="portfolio"
+                title="Projects"
+                trailing={
+                  projects.data && projects.data.length > 0 ? (
+                    <AppText variant="code" tone="tertiary">
+                      {projects.data.length}
+                    </AppText>
+                  ) : undefined
+                }
+              />
               <Panel coreStyle={{ padding: 0, overflow: 'hidden' }}>
                 {projects.status === 'loading' && !projects.data ? (
                   <Loading label="reading the portfolio…" />
@@ -233,13 +294,19 @@ export default function ClientDetailScreen() {
                         onPress={() =>
                           router.push({ pathname: '/project/[id]', params: { id: project.id } })
                         }
+                        footer={
+                          project.task_count > 0 ? (
+                            <View style={{ gap: 4, paddingTop: 2, paddingRight: spacing.xl }}>
+                              <Meter value={projectProgress} height={3} />
+                            </View>
+                          ) : undefined
+                        }
                         trailing={
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                            <AppText variant="caption" tone="tertiary">
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                            <AppText variant="code" tone="secondary">
                               {project.done_count}/{project.task_count}
                             </AppText>
-                            <ProgressRing progress={projectProgress} size={30} stroke={3.5} />
-                            <CaretRight size={14} color={colors.textTertiary} weight="bold" />
+                            <CaretRight size={13} color={colors.textTertiary} weight="bold" />
                           </View>
                         }
                       />
@@ -254,29 +321,77 @@ export default function ClientDetailScreen() {
             <View>
               <SectionHeader eyebrow="money" title="Billing" />
               <Panel coreStyle={{ padding: 0, overflow: 'hidden' }}>
-                <ListRow
-                  icon={<CurrencyCircleDollar size={17} color={colors.accent} weight="light" />}
-                  tone="accent"
-                  title="Draft invoice"
-                  subtitle={
-                    billed.sessions > 0
-                      ? `${formatHours(billed.minutes)} billable across ${billed.sessions} blocks`
-                      : 'No rated time yet — set a rate on them or a project'
-                  }
-                  onPress={() =>
-                    router.push({ pathname: '/invoice', params: { clientId: id } })
-                  }
-                  trailing={
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                      {billed.sessions > 0 ? (
-                        <AppText variant="mono" tone="secondary">
-                          {formatMoney(billed.amount, currency)}
-                        </AppText>
-                      ) : null}
-                      <CaretRight size={14} color={colors.textTertiary} weight="bold" />
+                <PressableScale
+                  haptic="light"
+                  accessibilityLabel="Open the client's invoice draft"
+                  onPress={() => router.push({ pathname: '/invoice', params: { clientId: id } })}>
+                  <View style={{ padding: spacing.lg, gap: spacing.md }}>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'flex-start',
+                        justifyContent: 'space-between',
+                        gap: spacing.md,
+                      }}>
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: spacing.sm + 2,
+                          flex: 1,
+                        }}>
+                        <View
+                          style={{
+                            width: 30,
+                            height: 30,
+                            borderRadius: radius.md,
+                            borderCurve: 'continuous',
+                            backgroundColor: colors.accentSoft,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}>
+                          <CurrencyCircleDollar size={16} color={colors.accent} weight="regular" />
+                        </View>
+                        <View style={{ flex: 1, gap: 1 }}>
+                          <AppText variant="headline">Draft invoice</AppText>
+                          <AppText variant="caption" tone="tertiary">
+                            {billed.sessions > 0
+                              ? `${formatHours(billed.minutes)} across ${billed.sessions} blocks`
+                              : 'No rated time yet — set a rate on them or a project'}
+                          </AppText>
+                        </View>
+                      </View>
+                      <CaretRight
+                        size={13}
+                        color={colors.textTertiary}
+                        weight="bold"
+                        style={{ marginTop: 8 }}
+                      />
                     </View>
-                  }
-                />
+
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'flex-end',
+                        justifyContent: 'space-between',
+                        gap: spacing.md,
+                        paddingTop: spacing.md,
+                        borderTopWidth: 1,
+                        borderTopColor: colors.hairline,
+                      }}>
+                      <AppText
+                        variant="title"
+                        style={{
+                          color: billed.sessions > 0 ? colors.text : colors.textTertiary,
+                        }}>
+                        {formatMoney(billed.amount, currency)}
+                      </AppText>
+                      <AppText variant="code" tone="tertiary">
+                        all time
+                      </AppText>
+                    </View>
+                  </View>
+                </PressableScale>
               </Panel>
             </View>
           </FadeUp>

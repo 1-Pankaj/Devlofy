@@ -15,7 +15,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/ui/app-text';
 import { PressableScale } from '@/components/ui/pressable-scale';
-import { radius, spacing, useTheme } from '@/theme';
+import { useBreakpoint } from '@/lib/layout/breakpoints';
+import { makeShadows, radius, spacing, useTheme } from '@/theme';
+
+/** A sheet is a column of actions, not a page: past this width it stops reading. */
+const SHEET_MAX_WIDTH = 560;
 
 export type BottomSheetProps = {
   visible: boolean;
@@ -35,25 +39,41 @@ export type BottomSheetProps = {
 
 export function BottomSheet({ visible, onClose, title, note, children, scroll, onDismiss }: BottomSheetProps) {
   const { colors } = useTheme();
+  const shadows = makeShadows(colors);
   const insets = useSafeAreaInsets();
+  const expanded = useBreakpoint() === 'expanded';
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} onDismiss={onDismiss}>
       <Pressable
         accessibilityLabel="Close sheet"
-        style={{ flex: 1, backgroundColor: colors.scrim, justifyContent: 'flex-end' }}
+        style={{
+          flex: 1,
+          backgroundColor: colors.scrim,
+          justifyContent: 'flex-end',
+          alignItems: 'center',
+        }}
         onPress={onClose}>
+        {/* On a wide window a full-bleed sheet would be a 1400px-wide menu with
+            its close button an arm's length from its title. It becomes a tray:
+            the same object, at the width a list of actions can read. */}
         <Pressable
           style={{
+            width: '100%',
+            maxWidth: expanded ? SHEET_MAX_WIDTH : undefined,
             backgroundColor: colors.surface,
             borderTopLeftRadius: radius.xl,
             borderTopRightRadius: radius.xl,
+            borderBottomLeftRadius: expanded ? radius.xl : 0,
+            borderBottomRightRadius: expanded ? radius.xl : 0,
             borderCurve: 'continuous',
             borderWidth: 1,
-            borderBottomWidth: 0,
+            borderBottomWidth: expanded ? 1 : 0,
             borderColor: colors.hairline,
             paddingTop: spacing.lg,
-            paddingBottom: insets.bottom + spacing.lg,
+            paddingBottom: (expanded ? 0 : insets.bottom) + spacing.lg,
+            marginBottom: expanded ? spacing.xl : 0,
+            boxShadow: expanded ? shadows.raised : undefined,
           }}>
           <View
             style={{

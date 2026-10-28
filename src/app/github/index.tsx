@@ -55,6 +55,7 @@ import { PressableScale } from '@/components/ui/pressable-scale';
 import { Screen } from '@/components/ui/screen';
 import { SectionHeader } from '@/components/ui/section';
 import { FadeUp } from '@/components/ui/stagger';
+import { Stat, StatRow } from '@/components/ui/stat';
 import { TextField } from '@/components/ui/text-field';
 import { formatAgo } from '@/lib/format';
 import type { GithubItem, GithubRun } from '@/lib/github/api';
@@ -62,6 +63,7 @@ import { GITHUB_DEVICE_FLOW_AVAILABLE, GITHUB_TOKEN_URL } from '@/lib/github/con
 import { listNotifications } from '@/lib/github/issues';
 import { useGithub } from '@/lib/github/use-github';
 import { useAsyncData } from '@/lib/use-async-data';
+import { useBreakpoint } from '@/lib/layout/breakpoints';
 import { radius, spacing, useTheme } from '@/theme';
 
 /** CI wording: a check either passed, failed, or is still going. */
@@ -101,23 +103,11 @@ function itemSubtitle(item: GithubItem, prefix: string): string {
     .join(' · ');
 }
 
-function Stat({ value, label }: { value: number; label: string }) {
-  return (
-    <View style={{ flex: 1, gap: spacing.xxs }}>
-      <AppText variant="headline" tone="accent">
-        {value}
-      </AppText>
-      <AppText variant="caption" tone="accent" style={{ opacity: 0.72 }}>
-        {label}
-      </AppText>
-    </View>
-  );
-}
-
 export default function GithubScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const github = useGithub();
+  const expanded = useBreakpoint() === 'expanded';
 
   const [tokenDraft, setTokenDraft] = useState('');
   const [note, setNote] = useState<string | null>(null);
@@ -220,11 +210,15 @@ export default function GithubScreen() {
           : 'Your repos, without leaving the app',
         trailing: refreshAction,
       }}>
-      <FadeUp index={0}>
-        <View style={{ marginBottom: spacing.xs }}>
-          <BackRow label="Work" />
-        </View>
-      </FadeUp>
+      {/* On a wide page Work is already lit in the rail; the back row would only
+          repeat it. */}
+      {expanded ? null : (
+        <FadeUp index={0}>
+          <View style={{ marginBottom: spacing.xs }}>
+            <BackRow label="Work" />
+          </View>
+        </FadeUp>
+      )}
 
       {!github.ready ? (
         <Panel>
@@ -393,32 +387,27 @@ export default function GithubScreen() {
 
           {/* The reason to open this screen: what is waiting on you. */}
           <FadeUp index={1}>
-            <View
-              style={{
-                backgroundColor: colors.accentSoft,
-                borderRadius: radius.xl,
-                borderCurve: 'continuous',
-                padding: spacing.lg,
-                gap: spacing.lg,
-              }}>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: spacing.md,
-                }}>
-                <Eyebrow tone="accent">waiting on you · @{snapshot.viewer.login}</Eyebrow>
-                <AppText variant="caption" tone="accent" style={{ opacity: 0.72 }}>
-                  {github.refreshing ? 'refreshing…' : formatAgo(snapshot.fetchedAt)}
-                </AppText>
+            <Panel pad="lg">
+              <View style={{ gap: spacing.lg }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: spacing.md,
+                  }}>
+                  <Eyebrow>waiting on you · @{snapshot.viewer.login}</Eyebrow>
+                  <AppText variant="code" tone="tertiary">
+                    {github.refreshing ? 'refreshing…' : formatAgo(snapshot.fetchedAt)}
+                  </AppText>
+                </View>
+                <StatRow>
+                  <Stat label="to review" value={snapshot.reviewRequests.length} />
+                  <Stat label="your PRs" value={snapshot.authoredPrs.length} />
+                  <Stat label="issues" value={snapshot.assignedIssues.length} />
+                </StatRow>
               </View>
-              <View style={{ flexDirection: 'row', gap: spacing.lg }}>
-                <Stat value={snapshot.reviewRequests.length} label="to review" />
-                <Stat value={snapshot.authoredPrs.length} label="your PRs" />
-                <Stat value={snapshot.assignedIssues.length} label="issues" />
-              </View>
-            </View>
+            </Panel>
           </FadeUp>
 
           <FadeUp index={2}>

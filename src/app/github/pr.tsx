@@ -70,7 +70,7 @@ import {
 import { useGithubToken } from '@/lib/github/use-github';
 import { useAction } from '@/lib/use-action';
 import { useAsyncData } from '@/lib/use-async-data';
-import { radius, spacing, useTheme } from '@/theme';
+import { spacing, useTheme } from '@/theme';
 
 type PullBundle = {
   pull: PullDetail;
@@ -287,34 +287,36 @@ export default function PullScreen() {
           ) : (
             <>
               <FadeUp index={1}>
-                <View
-                  style={{
-                    backgroundColor: colors.accentSoft,
-                    borderRadius: radius.xl,
-                    borderCurve: 'continuous',
-                    padding: spacing.lg,
-                    gap: spacing.md,
-                  }}>
-                  <AppText variant="headline" style={{ color: colors.text }}>
-                    {pull.title}
-                  </AppText>
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
-                    <StatusPill label={pull.state} tone={stateTone} />
-                    {pull.draft ? <StatusPill label="draft" tone="neutral" /> : null}
-                    {readable ? <StatusPill label={readable.label} tone={readable.tone} /> : null}
+                <Panel pad="lg" style={{ gap: spacing.md }}>
+                  <View style={{ gap: spacing.xs }}>
+                    <AppText variant="headline">{pull.title}</AppText>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs }}>
+                      <StatusPill label={pull.state} tone={stateTone} />
+                      {pull.draft ? <StatusPill label="draft" tone="neutral" /> : null}
+                      {readable ? <StatusPill label={readable.label} tone={readable.tone} /> : null}
+                    </View>
                   </View>
-                  <AppText variant="caption" tone="secondary">
+                  <AppText variant="code" tone="tertiary">
                     @{pull.author} wants {pull.headRef} → {pull.baseRef}
                     {pull.isCrossRepo ? ' (from a fork)' : ''} · updated {formatAgo(pull.updatedAt)}
                   </AppText>
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.lg }}>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      flexWrap: 'wrap',
+                      alignItems: 'center',
+                      gap: spacing.lg,
+                      paddingTop: spacing.md,
+                      borderTopWidth: 1,
+                      borderTopColor: colors.hairline,
+                    }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
                       <DiffStat added={pull.additions} removed={pull.deletions} />
-                      <AppText variant="caption" tone="tertiary">
+                      <AppText variant="code" tone="tertiary">
                         across {pull.changedFiles} {pull.changedFiles === 1 ? 'file' : 'files'}
                       </AppText>
                     </View>
-                    <AppText variant="caption" tone="tertiary">
+                    <AppText variant="code" tone="tertiary">
                       {pull.commits} commits · {pull.comments} comments
                     </AppText>
                   </View>
@@ -328,13 +330,15 @@ export default function PullScreen() {
                       Verdicts: {pull.reviewers.map((r) => `${r.login} ${r.state.toLowerCase()}`).join(' · ')}
                     </AppText>
                   ) : null}
-                  <AppButton
-                    label="Open on GitHub"
-                    icon={ArrowSquareOut}
-                    variant="text"
-                    onPress={() => openExternal(pull.htmlUrl)}
-                  />
-                </View>
+                  <View style={{ alignItems: 'flex-start' }}>
+                    <AppButton
+                      label="Open on GitHub"
+                      icon={ArrowSquareOut}
+                      variant="text"
+                      onPress={() => openExternal(pull.htmlUrl)}
+                    />
+                  </View>
+                </Panel>
               </FadeUp>
 
               {pull.body.trim().length > 0 ? (

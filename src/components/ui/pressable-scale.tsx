@@ -1,8 +1,9 @@
 /**
  * PressableScale — touch feedback on the UI thread.
  *
- * Scale runs on a shared value (no re-render), with the token press duration
- * going in and a snappy spring coming back. Light haptic on press, once.
+ * Scale and opacity run on shared values (no re-render): 0.985 and 0.94 in, then
+ * back on the out curve. The scale is deliberately shallow — this app presses
+ * like a panel, not like a bubble. Light haptic on press, once, never on web.
  */
 import * as Haptics from 'expo-haptics';
 import type { PropsWithChildren } from 'react';
@@ -46,10 +47,11 @@ export function PressableScale({
   contentStyle,
   haptic = 'light',
 }: PressableScaleProps) {
-  const scaleValue = useSharedValue(1);
+  const press = useSharedValue(0);
 
   const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scaleValue.get() }],
+    transform: [{ scale: 1 - press.get() * 0.015 }],
+    opacity: 1 - press.get() * 0.06,
   }));
 
   return (
@@ -62,10 +64,10 @@ export function PressableScale({
       accessibilityLabel={accessibilityLabel}
       onPressIn={() => {
         fireHaptic(haptic);
-        scaleValue.set(withTiming(0.975, { duration: duration.press, easing: easing.out }));
+        press.set(withTiming(1, { duration: duration.press, easing: easing.out }));
       }}
       onPressOut={() => {
-        scaleValue.set(withTiming(1, { duration: duration.fast, easing: easing.out }));
+        press.set(withTiming(0, { duration: duration.fast, easing: easing.out }));
       }}
       style={style}>
       <Animated.View style={[animatedStyle, contentStyle]}>{children}</Animated.View>

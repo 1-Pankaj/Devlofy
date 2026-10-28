@@ -58,7 +58,12 @@ export function AnimatedNumber({
   });
 
   return (
-    <AppText variant={variant} style={[{ color: color ?? colors.text }, style]}>
+    <AppText
+      variant={variant}
+      // A figure is one token: it must never break between digits ("₹6,66" /
+      // "7"). Precision is the caller's job; wrapping is never the answer.
+      numberOfLines={1}
+      style={[{ color: color ?? colors.text }, style]}>
       {format(display)}
     </AppText>
   );

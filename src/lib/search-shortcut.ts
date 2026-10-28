@@ -4,3 +4,6 @@
  * affordance, exactly like `useHover`. See `search-shortcut.web.ts`.
  */
 export function useSearchShortcut(_onTrigger: () => void): void {}
+
+/** No keyboard, no key cap. */
+export const searchShortcutLabel = '';

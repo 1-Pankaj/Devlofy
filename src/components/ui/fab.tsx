@@ -1,9 +1,13 @@
 /**
- * Fab — the extended floating action button.
+ * Fab — the extended floating action.
  *
- * Material 3's primary action: it floats above the content, bottom-end, and it
- * is the *only* accent-filled control on the screen. Every other action on a
- * screen is tonal, outlined, or plain text.
+ * The one solid brand control on a screen: a 48px box with an 8px radius, a
+ * 6px/20px brand shadow, and the icon in front of the label. It is deliberately
+ * not a Material pill — it belongs to the same geometry as every card behind it.
+ *
+ * `ember` marks the live-session action. On amber, the label uses the surface
+ * colour, which is white in light mode and near-black in dark — correct in both
+ * without a fourth token.
  */
 import type { ComponentType } from 'react';
 import { View } from 'react-native';
@@ -25,8 +29,8 @@ export type FabProps = {
 export function Fab({ label, icon: Icon, onPress, disabled = false, tone = 'brand' }: FabProps) {
   const { colors } = useTheme();
   const shadows = makeShadows(colors);
-  const container = tone === 'brand' ? colors.accentSoft : colors.emberSoft;
-  const onContainer = tone === 'brand' ? colors.accent : colors.ember;
+  const background = tone === 'brand' ? colors.accent : colors.ember;
+  const foreground = tone === 'brand' ? colors.accentContrast : colors.surface;
   const shadow = tone === 'brand' ? shadows.brand : shadows.raised;
 
   return (
@@ -41,14 +45,15 @@ export function Fab({ label, icon: Icon, onPress, disabled = false, tone = 'bran
           flexDirection: 'row',
           alignItems: 'center',
           gap: spacing.sm,
-          height: 56,
-          paddingHorizontal: spacing.xl,
-          borderRadius: radius.full,
-          backgroundColor: container,
+          height: 48,
+          paddingHorizontal: spacing.lg,
+          borderRadius: radius.lg,
+          borderCurve: 'continuous',
+          backgroundColor: background,
           boxShadow: shadow,
         }}>
-        <Icon size={22} color={onContainer} weight="fill" />
-        <AppText variant="bodyMedium" style={{ color: onContainer }}>
+        <Icon size={18} color={foreground} weight="fill" />
+        <AppText variant="subheadMedium" style={{ color: foreground }}>
           {label}
         </AppText>
       </View>

@@ -77,7 +77,7 @@ export function ReadingView({ body, onToggleTask, resolveRef, onOpenRef, onStart
                 paddingVertical: spacing.md,
               }}>
               {block.lang ? (
-                <AppText variant="eyebrow" tone="tertiary" style={{ marginBottom: spacing.xs }}>
+                <AppText variant="monoLabel" tone="tertiary" style={{ marginBottom: spacing.xs }}>
                   {block.lang}
                 </AppText>
               ) : null}

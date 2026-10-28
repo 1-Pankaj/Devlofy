@@ -1,20 +1,25 @@
 /**
  * Focus Garden — the 3D home of focused time.
  *
- * The tree's stage reads total focus, streak and today's minutes. Sessions run
- * here: pick a block from the chip row, then the FAB starts it and the block
- * closes itself out when the timer reaches zero.
+ * One stage, then the record of it: the tree in a bordered frame, the controls
+ * that run a block, and underneath the ledger — total grown, today, streak, the
+ * twelve-week rhythm, and the sessions themselves.
+ *
+ * The frame is a *window*, not a card: the scene bleeds to its edges, a mono HUD
+ * sits in the corners, and the controls live in a hairline-separated strip under
+ * the glass. While a block runs, the strip becomes the instrument: countdown,
+ * a meter, and the sentence that says what is being measured.
  */
 import * as Haptics from 'expo-haptics';
 import { useSQLiteContext } from 'expo-sqlite';
-import { Play, Timer, Stop } from 'phosphor-react-native';
+import { Play, Stop, Timer } from 'phosphor-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View } from 'react-native';
 
-import { GardenScene } from '@/components/garden/garden-scene';
 import { FocusHeatmap } from '@/components/focus/focus-heatmap';
 import { ProjectChips } from '@/components/focus/project-chips';
 import { RhythmCard } from '@/components/focus/rhythm-card';
+import { GardenScene } from '@/components/garden/garden-scene';
 import { AnimatedNumber } from '@/components/ui/animated-number';
 import { AppText } from '@/components/ui/app-text';
 import { emptyArt } from '@/components/ui/empty-art';
@@ -25,11 +30,13 @@ import { FormChip } from '@/components/ui/form-chip';
 import { ListRow } from '@/components/ui/list-row';
 import { LiveDot } from '@/components/ui/live-dot';
 import { Loading } from '@/components/ui/loading';
+import { Meter } from '@/components/ui/meter';
 import { Panel } from '@/components/ui/panel';
-import { Eyebrow } from '@/components/ui/pill';
+import { Eyebrow, StatusPill } from '@/components/ui/pill';
 import { Screen } from '@/components/ui/screen';
 import { SectionHeader } from '@/components/ui/section';
 import { FadeUp } from '@/components/ui/stagger';
+import { Stat, StatRow } from '@/components/ui/stat';
 import { useLiveQuery } from '@/lib/db/hooks';
 import {
   countActiveProjects,
@@ -42,10 +49,11 @@ import {
   todayFocusMinutes,
   totalFocusMinutes,
 } from '@/lib/db/repo';
+import { useEngine } from '@/lib/engine';
 import { hashString } from '@/lib/garden/model';
 import { stageFromStats } from '@/lib/garden/models';
-import { useEngine } from '@/lib/engine';
 import { formatClock, formatDayLabel, formatMinutes, formatTimer } from '@/lib/format';
+import { useBreakpoint } from '@/lib/layout/breakpoints';
 import { messageOf } from '@/lib/use-async-data';
 import { useSettings } from '@/state/settings';
 import { radius, spacing, useTheme } from '@/theme';
@@ -53,33 +61,21 @@ import { radius, spacing, useTheme } from '@/theme';
 const BLOCKS = [25, 50, 90] as const;
 type Block = (typeof BLOCKS)[number];
 
-const formatDays = (days: number) => `${days}d`;
-
-/** A secondary figure inside the tonal momentum block. */
-function SubStat({
-  label,
-  value,
-  format,
-}: {
-  label: string;
-  value: number;
-  format: (value: number) => string;
-}) {
-  const { colors } = useTheme();
-
-  return (
-    <View style={{ flex: 1, gap: spacing.xxs }}>
-      <AnimatedNumber value={value} variant="headline" format={format} color={colors.accent} />
-      <AppText variant="caption" tone="accent" style={{ opacity: 0.72 }}>
-        {label}
-      </AppText>
-    </View>
-  );
-}
+/**
+ * The HUD sits on the 3D stage, not on a themed surface, so it carries its own
+ * glass: a token that flips with the theme would disappear into the stage in one
+ * of the two modes. The stage is dark in both, so the glass is always light-on-
+ * dark — the only place in the app that is true.
+ */
+const HUD_GLASS = 'rgba(255, 255, 255, 0.09)';
+const HUD_EDGE = 'rgba(255, 255, 255, 0.14)';
+const HUD_INK = '#FFFFFF';
 
 export default function GardenScreen() {
   const db = useSQLiteContext();
   const { colors } = useTheme();
+  const breakpoint = useBreakpoint();
+  const expanded = breakpoint === 'expanded';
 
   const session = useLiveQuery(getActiveSession);
   const totals = useLiveQuery(async (d) => ({
@@ -199,142 +195,213 @@ export default function GardenScreen() {
         />
       }>
       {problem ? (
-        <AppText variant="caption" tone="danger">
-          {problem}
-        </AppText>
+        <View
+          style={{
+            paddingHorizontal: spacing.md,
+            paddingVertical: spacing.sm,
+            borderRadius: radius.md,
+            borderWidth: 1,
+            borderColor: colors.danger,
+            backgroundColor: colors.dangerSoft,
+          }}>
+          <AppText variant="caption" tone="danger">
+            {problem}
+          </AppText>
+        </View>
       ) : null}
 
-      {/* The tree and the session controls */}
+      {/* The window: a lit stage, and — on a wide screen — the instrument beside
+          it rather than under it, so the tree keeps a landscape frame instead of
+          being letterboxed by the page. */}
       <FadeUp index={0}>
         <Panel rounding="xl" coreStyle={{ padding: 0, overflow: 'hidden' }}>
-          <View style={{ height: 320 }}>
-            <GardenScene
-              seed={seed}
-              growth={stage.growth}
-              stats={{
-                totalMinutes: totals.data?.total ?? 0,
-                streakDays: totals.data?.streak ?? 0,
-                todayMinutes: totals.data?.today ?? 0,
-              }}
-              projects={projects.data ?? 0}
-              focusing={!!active}
-              animated
-            />
+          <View style={expanded ? { flexDirection: 'row' } : undefined}>
             <View
               style={{
-                position: 'absolute',
-                top: spacing.lg,
-                left: spacing.lg,
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: spacing.sm,
-                paddingHorizontal: spacing.md,
-                paddingVertical: 6,
-                borderRadius: radius.full,
-                backgroundColor: colors.scrim,
+                height: expanded ? 428 : 336,
+                flex: expanded ? 1.35 : undefined,
+                minWidth: 0,
               }}>
-              <LiveDot color={active ? colors.ember : colors.accent} />
-              <AppText variant="mono" tone={active ? 'ember' : 'secondary'}>
-                {active ? formatTimer(elapsedSeconds) : stage.label}
-              </AppText>
-            </View>
-          </View>
+              <GardenScene
+                seed={seed}
+                growth={stage.growth}
+                stats={{
+                  totalMinutes: totals.data?.total ?? 0,
+                  streakDays: totals.data?.streak ?? 0,
+                  todayMinutes: totals.data?.today ?? 0,
+                }}
+                projects={projects.data ?? 0}
+                focusing={!!active}
+                animated
+              />
 
-          <View
-            style={{
-              borderTopWidth: 1,
-              borderTopColor: colors.hairline,
-              padding: spacing.lg,
-              gap: spacing.lg,
-            }}>
-            {active ? (
-              <>
-                <View style={{ flex: 1, gap: spacing.xxs }}>
-                  <Eyebrow tone="ember">focus block · {block}m</Eyebrow>
-                  <AppText variant="numberXl">{formatTimer(remainingSeconds)}</AppText>
+              {/* HUD: stage on the left, live state on the right. Both read at a
+                  glance without a scrim swallowing the scene. */}
+              <View
+                style={{
+                  position: 'absolute',
+                  top: spacing.md,
+                  left: spacing.md,
+                  right: spacing.md,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: spacing.sm,
+                }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: spacing.sm,
+                    paddingHorizontal: spacing.sm + 2,
+                    paddingVertical: 5,
+                    borderRadius: radius.sm,
+                    backgroundColor: HUD_GLASS,
+                    borderWidth: 1,
+                    borderColor: HUD_EDGE,
+                  }}>
+                  <LiveDot color={active ? colors.ember : colors.accent} size={6} />
+                  <AppText variant="monoLabel" style={{ color: HUD_INK }}>
+                    {active ? 'block running' : stage.label}
+                  </AppText>
                 </View>
                 <View
                   style={{
-                    height: 6,
-                    borderRadius: radius.full,
-                    backgroundColor: colors.surfaceSunken,
-                    overflow: 'hidden',
+                    paddingHorizontal: spacing.sm + 2,
+                    paddingVertical: 5,
+                    borderRadius: radius.sm,
+                    backgroundColor: HUD_GLASS,
+                    borderWidth: 1,
+                    borderColor: HUD_EDGE,
                   }}>
-                  <View
-                    style={{
-                      width: `${Math.round(progress * 100)}%`,
-                      height: '100%',
-                      backgroundColor: colors.ember,
-                    }}
-                  />
-                </View>
-                <AppText variant="caption" tone="tertiary">
-                  {Math.round(progress * 100)}% of {block}m · started{' '}
-                  {formatClock(active.started_at)}
-                  {active.project_name ? ` · ${active.project_name}` : ''}
-                </AppText>
-              </>
-            ) : (
-              <>
-                <View style={{ gap: spacing.xxs }}>
-                  <Eyebrow>Session length</Eyebrow>
-                  <AppText variant="subhead" tone="secondary">
-                    Pick a block, then go quiet. It ends itself.
+                  <AppText variant="code" style={{ color: HUD_INK, fontSize: 11 }}>
+                    {active
+                      ? formatTimer(elapsedSeconds)
+                      : `${formatMinutes(totals.data?.today ?? 0)} today`}
                   </AppText>
                 </View>
-                <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-                  {BLOCKS.map((minutes) => (
-                    <FormChip
-                      key={minutes}
-                      label={`${minutes}m`}
-                      active={minutes === block}
-                      onPress={() => setBlock(minutes)}
-                    />
-                  ))}
-                </View>
-                <ProjectChips />
-              </>
-            )}
+              </View>
+            </View>
+
+            <View
+              style={{
+                borderTopWidth: expanded ? 0 : 1,
+                borderLeftWidth: expanded ? 1 : 0,
+                borderColor: colors.hairline,
+                flex: expanded ? 1 : undefined,
+                justifyContent: 'center',
+                padding: spacing.lg,
+                gap: spacing.lg,
+              }}>
+              {active ? (
+                <>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'flex-start',
+                      justifyContent: 'space-between',
+                      gap: spacing.md,
+                    }}>
+                    <View style={{ gap: spacing.xxs }}>
+                      <Eyebrow tone="ember">focus block · {block}m</Eyebrow>
+                      <AppText variant="timer">{formatTimer(remainingSeconds)}</AppText>
+                    </View>
+                    <StatusPill label="running" tone="ember" dot />
+                  </View>
+                  <Meter value={progress} tone="ember" height={6} />
+                  <View
+                    style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}>
+                    <AppText variant="code" tone="tertiary">
+                      {Math.round(progress * 100)}% of {block}m
+                    </AppText>
+                    <AppText variant="code" tone="ember">
+                      started {formatClock(active.started_at)}
+                      {active.project_name ? ` · ${active.project_name}` : ''}
+                    </AppText>
+                  </View>
+                </>
+              ) : (
+                <>
+                  <View style={{ gap: spacing.xxs }}>
+                    <Eyebrow>next block</Eyebrow>
+                    <AppText variant="timer">{formatTimer(block * 60)}</AppText>
+                    <AppText variant="caption" tone="tertiary">
+                      Ends itself at zero and files the block in the log.
+                    </AppText>
+                  </View>
+
+                  <View style={{ height: 1, backgroundColor: colors.hairline }} />
+
+                  <View style={{ gap: spacing.xs }}>
+                    <Eyebrow>block length</Eyebrow>
+                    <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+                      {BLOCKS.map((minutes) => (
+                        <FormChip
+                          key={minutes}
+                          label={`${minutes}m`}
+                          active={minutes === block}
+                          onPress={() => setBlock(minutes)}
+                        />
+                      ))}
+                    </View>
+                  </View>
+
+                  <ProjectChips wrap={expanded} />
+                </>
+              )}
+            </View>
           </View>
         </Panel>
       </FadeUp>
 
-      {/* Momentum: one tonal block, one hero figure, two supporting figures */}
+      {/* The ledger. One figure leads, two support; no tinted block. */}
       <FadeUp index={1}>
         {totals.status === 'error' && !totals.data ? (
           <Panel>
             <ErrorState what="your focus totals" onRetry={() => totals.refresh()} />
           </Panel>
         ) : (
-          <View
-            style={{
-              backgroundColor: colors.accentSoft,
-              borderRadius: radius.xl,
-              borderCurve: 'continuous',
-              padding: spacing.lg,
-              gap: spacing.lg,
-            }}>
-            <View style={{ gap: spacing.xxs }}>
-              <Eyebrow tone="accent">Total focus</Eyebrow>
-              <AnimatedNumber
-                value={totals.data?.total ?? 0}
-                variant="numberXl"
-                format={formatMinutes}
-                color={colors.accent}
-              />
+          <Panel pad="lg">
+            <View style={{ gap: spacing.lg }}>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'flex-end',
+                  justifyContent: 'space-between',
+                  gap: spacing.md,
+                }}>
+                <View style={{ gap: spacing.xxs, flex: 1 }}>
+                  <Eyebrow>grown here</Eyebrow>
+                  <AnimatedNumber
+                    value={totals.data?.total ?? 0}
+                    variant="numberXl"
+                    format={formatMinutes}
+                  />
+                  <AppText variant="caption" tone="tertiary">
+                    focused minutes, counted from finished blocks
+                  </AppText>
+                </View>
+                <StatusPill label={stage.label.toLowerCase()} tone="accent" />
+              </View>
+
+              <View
+                style={{
+                  paddingTop: spacing.lg,
+                  borderTopWidth: 1,
+                  borderTopColor: colors.hairline,
+                }}>
+                <StatRow>
+                  <Stat label="today" value={totals.data?.today ?? 0} format={formatMinutes} />
+                  <Stat
+                    label="day streak"
+                    value={totals.data?.streak ?? 0}
+                    format={(value) => `${value}d`}
+                  />
+                  <Stat label="sessions" value={history.data?.length ?? 0} />
+                </StatRow>
+              </View>
             </View>
-            <View
-              style={{
-                flexDirection: 'row',
-                gap: spacing.lg,
-                paddingTop: spacing.lg,
-                borderTopWidth: 1,
-                borderTopColor: colors.accentBorder,
-              }}>
-              <SubStat label="today" value={totals.data?.today ?? 0} format={formatMinutes} />
-              <SubStat label="streak" value={totals.data?.streak ?? 0} format={formatDays} />
-            </View>
-          </View>
+          </Panel>
         )}
       </FadeUp>
 
@@ -374,14 +441,25 @@ export default function GardenScreen() {
               history.data!.map((entry, index) => (
                 <ListRow
                   key={entry.id}
-                  icon={<Timer size={17} color={colors.textTertiary} weight="light" />}
+                  icon={<Timer size={16} color={colors.ember} weight="regular" />}
+                  tone="ember"
                   title={formatDayLabel(entry.started_at)}
-                  subtitle={`started ${formatClock(entry.started_at)}`}
+                  subtitle={[
+                    `started ${formatClock(entry.started_at)}`,
+                    entry.project_name,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
                   showSeparator={index < history.data!.length - 1}
                   trailing={
-                    <AppText variant="mono" tone="secondary">
-                      {entry.minutes ?? 0}m
-                    </AppText>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <AppText variant="code" tone="secondary">
+                        {entry.minutes ?? 0}
+                      </AppText>
+                      <AppText variant="monoLabel" tone="tertiary" style={{ fontSize: 9 }}>
+                        min
+                      </AppText>
+                    </View>
                   }
                 />
               ))

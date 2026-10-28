@@ -31,3 +31,27 @@ export const NAV_ITEMS: NavItem[] = [
 export function navItemForRoute(name: string): NavItem | undefined {
   return NAV_ITEMS.find((item) => item.name === name);
 }
+
+/**
+ * Which destination owns a pathname.
+ *
+ * Detail routes belong to the tab that opened them — a project is Work, a note
+ * is Notes, and the three shelf destinations are More — so the rail always says
+ * where you are instead of going blank on every pushed screen.
+ */
+export function activeNavPath(pathname: string): string | null {
+  const path = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
+  if (path === '/') return '/';
+
+  const rules: [prefixes: string[], target: string][] = [
+    [['/garden'], '/garden'],
+    [['/work', '/project', '/client', '/invoice', '/github'], '/work'],
+    [['/notes', '/note'], '/notes'],
+    [['/more', '/bench', '/sentinel'], '/more'],
+  ];
+
+  for (const [prefixes, target] of rules) {
+    if (prefixes.some((prefix) => path === prefix || path.startsWith(`${prefix}/`))) return target;
+  }
+  return null;
+}

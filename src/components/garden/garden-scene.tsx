@@ -30,9 +30,18 @@ import { radius, spacing, useTheme } from '@/theme';
 
 /** Bark and soil, matched to the authored `DevlofyBark`/`DevlofySoil` materials. */
 const TRUNK_COLOR = '#3A2A1F';
-const GROUND_COLOR = '#080603';
 /** Leaves of the procedural tree, matched to `DevlofyLeafBright`. */
 const LEAF_COLOR = '#0CBE46';
+
+/**
+ * The window is a **stage, not a diagram**: a warm near-black clearing that the
+ * card frames, so the garden reads as a place you look into rather than a model
+ * floating on a page. It is deliberately dark in both themes — the one surface
+ * in the app that is lit rather than filled — which is also what lets the soil,
+ * the fog and the tree share one continuous depth of field.
+ */
+const STAGE_COLOR = '#0C0D0B';
+const SOIL_COLOR = '#1B1710';
 
 type CylinderTransform = {
   position: [number, number, number];
@@ -251,24 +260,48 @@ function Prop({ placement, focusing }: { placement: PropPlacement; focusing: boo
 function Ground({ ringColor }: { ringColor: string }) {
   return (
     <group>
-      {/* Soil disc */}
+      {/* The clearing. Larger than the planting so the floor reaches past the
+          props and the fog can dissolve its far edge. */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow>
-        <circleGeometry args={[2.7, 48]} />
-        <meshStandardMaterial color={GROUND_COLOR} roughness={1} />
+        <circleGeometry args={[3.4, 64]} />
+        <meshStandardMaterial color={SOIL_COLOR} roughness={1} />
       </mesh>
+
+      {/* A pool of lamplight under the trunk. Three stacked low-opacity discs
+          give a smooth falloff with no texture and no custom shader. */}
+      {[
+        { radius: 2.7, opacity: 0.026 },
+        { radius: 1.85, opacity: 0.03 },
+        { radius: 1.05, opacity: 0.034 },
+      ].map((pool) => (
+        <mesh
+          key={pool.radius}
+          rotation={[-Math.PI / 2, 0, 0]}
+          position={[0, 0.002, 0]}>
+          <circleGeometry args={[pool.radius, 48]} />
+          <meshBasicMaterial
+            color="#FFE9C4"
+            transparent
+            opacity={pool.opacity}
+            blending={THREE.AdditiveBlending}
+            depthWrite={false}
+          />
+        </mesh>
+      ))}
+
       {/* Growth rings — quiet accent detail */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.002, 0]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.006, 0]}>
         <ringGeometry args={[1.35, 1.4, 64]} />
-        <meshBasicMaterial color={ringColor} transparent opacity={0.3} />
+        <meshBasicMaterial color={ringColor} transparent opacity={0.34} />
       </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.002, 0]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.006, 0]}>
         <ringGeometry args={[2.05, 2.08, 64]} />
-        <meshBasicMaterial color={ringColor} transparent opacity={0.16} />
+        <meshBasicMaterial color={ringColor} transparent opacity={0.18} />
       </mesh>
       {/* Soft contact shadow (ambient-occlusion helper under the real shadow) */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.004, 0]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.008, 0]}>
         <circleGeometry args={[0.9, 32]} />
-        <meshBasicMaterial color="#000000" transparent opacity={0.22} />
+        <meshBasicMaterial color="#000000" transparent opacity={0.18} />
       </mesh>
     </group>
   );
@@ -348,20 +381,25 @@ export function GardenScene({
   if (!webgl) return <GardenPreview style={style} />;
 
   return (
-    <View style={[styles.frame, style]}>
+    <View style={[styles.frame, { backgroundColor: STAGE_COLOR }, style]}>
       <Canvas
         shadows
         style={styles.canvas}
         dpr={[1, 1.75]}
         frameloop={animated ? 'always' : 'demand'}
         camera={{ position: [3.5, 2.4, 4.6], fov: 38 }}
-        gl={{ antialias: true, alpha: true }}>
+        gl={{ antialias: true, alpha: false }}>
+        <color attach="background" args={[STAGE_COLOR]} />
         <CameraAim y={0.35 + 0.72 * growth} />
-        <ambientLight intensity={0.45} color="#EFE3D6" />
+        {/* Night in a clearing: a cool ambient so the shadow side is never dead,
+            one warm key for the shape, a cool fill to hold the far side, and a
+            brand-tinted rim behind the tree so its silhouette separates from the
+            stage instead of sinking into it. */}
+        <ambientLight intensity={0.62} color="#8E95AB" />
         <directionalLight
-          position={[5, 7, 4]}
-          intensity={1.35}
-          color="#FFF3DF"
+          position={[5, 7, 3.5]}
+          intensity={2.15}
+          color="#FFEBCB"
           castShadow
           shadow-mapSize={[1024, 1024]}
           shadow-camera-left={-3.2}
@@ -373,7 +411,8 @@ export function GardenScene({
           shadow-bias={-0.0004}
           shadow-normalBias={0.03}
         />
-        <directionalLight position={[-4, 2.5, -3]} intensity={0.4} color="#7CC4FF" />
+        <directionalLight position={[-4, 2.5, -3]} intensity={0.55} color="#6E93D6" />
+        <directionalLight position={[1.6, 3.4, -5.2]} intensity={0.85} color="#B9A6FF" />
         <Ground ringColor={colors.accent} />
         <Tree seed={seed} growth={growth} />
         {placements.map((item) => (

@@ -88,9 +88,9 @@ export function FocusHeatmap({ data }: { data: DayFocus[] }) {
           <Eyebrow>Rhythm</Eyebrow>
           <AppText variant="headline">Last 12 weeks</AppText>
         </View>
-        <View style={{ alignItems: 'flex-end', gap: spacing.xxs }}>
-          <AppText variant="subheadMedium">{formatMinutes(total)}</AppText>
-          <AppText variant="caption" tone="tertiary">
+        <View style={{ alignItems: 'flex-end', gap: 2 }}>
+          <AppText variant="title">{formatMinutes(total)}</AppText>
+          <AppText variant="monoLabel" tone="tertiary" style={{ fontSize: 9.5 }}>
             {activeDays} {activeDays === 1 ? 'day' : 'days'} focused
           </AppText>
         </View>
@@ -109,7 +109,7 @@ export function FocusHeatmap({ data }: { data: DayFocus[] }) {
             return (
               <View key={index} style={{ flex: 1 }}>
                 {label ? (
-                  <AppText variant="caption" tone="tertiary" numberOfLines={1}>
+                  <AppText variant="code" tone="tertiary" numberOfLines={1} style={{ fontSize: 9.5 }}>
                     {label}
                   </AppText>
                 ) : null}
@@ -153,7 +153,7 @@ export function FocusHeatmap({ data }: { data: DayFocus[] }) {
           borderTopColor: colors.hairline,
         }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
-          <AppText variant="caption" tone="tertiary">
+          <AppText variant="monoLabel" tone="tertiary" style={{ fontSize: 9 }}>
             less
           </AppText>
           {scale.map((color, index) => (
@@ -167,12 +167,12 @@ export function FocusHeatmap({ data }: { data: DayFocus[] }) {
               }}
             />
           ))}
-          <AppText variant="caption" tone="tertiary">
+          <AppText variant="monoLabel" tone="tertiary" style={{ fontSize: 9 }}>
             more
           </AppText>
         </View>
         {best ? (
-          <AppText variant="caption" tone="tertiary">
+          <AppText variant="code" tone="tertiary" style={{ fontSize: 10.5 }}>
             best {formatMinutes(best.minutes)}
           </AppText>
         ) : null}

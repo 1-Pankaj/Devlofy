@@ -51,7 +51,7 @@ export function HashTool({ initial, snippetId = null }: { initial?: string; snip
 
       {digests.map((item) => (
         <ToolAnswer key={item.algorithm} label={item.algorithm} text={item.hex}>
-          <CodeBlock code={item.hex} highlight={false} showLineNumbers={false} />
+          <CodeBlock code={item.hex} highlight={false} showLineNumbers={false} wrap />
         </ToolAnswer>
       ))}
 

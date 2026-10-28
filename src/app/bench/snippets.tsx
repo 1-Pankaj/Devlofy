@@ -30,9 +30,11 @@ import { useLiveQuery } from '@/lib/db/hooks';
 import { previewOf } from '@/lib/bench/encode';
 import { toolById } from '@/lib/bench/tools';
 import { formatAgo } from '@/lib/format';
+import { useBreakpoint } from '@/lib/layout/breakpoints';
 
 export default function BenchSnippetsScreen() {
   const router = useRouter();
+  const expanded = useBreakpoint() === 'expanded';
   const [query, setQuery] = useState('');
 
   const snippets = useLiveQuery((db) => listSnippets(db, query), { deps: [query] });
@@ -63,6 +65,7 @@ export default function BenchSnippetsScreen() {
           autoCapitalize="none"
           autoCorrect={false}
           maxLength={60}
+          style={expanded ? { maxWidth: 520 } : undefined}
         />
       </FadeUp>
 

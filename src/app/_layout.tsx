@@ -35,6 +35,8 @@ import { Pressable, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { DatabaseProvider } from '@/lib/db/provider';
+import { DesktopRail } from '@/components/nav/desktop-shell';
+import { useDesktopMode } from '@/lib/layout/breakpoints';
 import { useSearchShortcut } from '@/lib/search-shortcut';
 import { applyWebReset } from '@/lib/web-reset';
 import { AppThemeProvider, palettes, useTheme } from '@/theme';
@@ -52,6 +54,7 @@ function RootNavigator() {
   const { colors, scheme } = useTheme();
   const router = useRouter();
   const pathname = usePathname();
+  const desktopMode = useDesktopMode();
 
   // Cmd/Ctrl-K, web only (the native anchor is a no-op). Ignored while search is
   // already open, so the shortcut cannot stack copies of the modal.
@@ -81,33 +84,41 @@ function RootNavigator() {
   return (
     <NavThemeProvider value={navTheme}>
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: colors.background },
-          animation: 'slide_from_right',
-        }}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="note/[id]" />
-        <Stack.Screen name="project/[id]" />
-        <Stack.Screen name="client/[id]" />
-        <Stack.Screen name="invoice" />
-        <Stack.Screen name="github" />
-        <Stack.Screen name="bench" />
-        <Stack.Screen name="sentinel" />
-        <Stack.Screen
-          name="search"
-          options={{ presentation: 'modal', animation: 'fade' }}
-        />
-        <Stack.Screen
-          name="project-form"
-          options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
-        />
-        <Stack.Screen
-          name="client-form"
-          options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
-        />
-      </Stack>
+      {/* The rail wraps the whole navigator, not just the tabs: a pushed screen
+          has to sit *beside* the navigation, centred in the space that is left,
+          instead of sliding over it and centring on the window. */}
+      <View style={{ flex: 1, flexDirection: 'row', backgroundColor: colors.background }}>
+        {desktopMode ? <DesktopRail /> : null}
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: colors.background },
+              animation: 'slide_from_right',
+            }}>
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="note/[id]" />
+            <Stack.Screen name="project/[id]" />
+            <Stack.Screen name="client/[id]" />
+            <Stack.Screen name="invoice" />
+            <Stack.Screen name="github" />
+            <Stack.Screen name="bench" />
+            <Stack.Screen name="sentinel" />
+            <Stack.Screen
+              name="search"
+              options={{ presentation: 'modal', animation: 'fade' }}
+            />
+            <Stack.Screen
+              name="project-form"
+              options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+            />
+            <Stack.Screen
+              name="client-form"
+              options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+            />
+          </Stack>
+        </View>
+      </View>
     </NavThemeProvider>
   );
 }

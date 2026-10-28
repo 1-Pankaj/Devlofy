@@ -35,7 +35,8 @@ export function EmptyState({
           style={{
             width: 52,
             height: 52,
-            borderRadius: radius.full,
+            borderRadius: radius.lg,
+            borderCurve: 'continuous',
             backgroundColor: colors.surfaceElevated,
             borderWidth: 1,
             borderColor: colors.hairline,
