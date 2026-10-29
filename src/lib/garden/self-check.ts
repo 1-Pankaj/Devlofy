@@ -149,7 +149,7 @@ function propChecks(): CheckResult[] {
     check('the signpost hangs one plate per project', dressingFor(0.05, 4).find((p) => p.prop === 'signpost')?.notches, 4),
     check('dressing is deterministic', names(again), names(grown)),
     ok('every prop keeps its own slot', new Set(slots).size === slots.length, `slots: ${slots.join(',')}`),
-    ok('radii stay in the ring', grown.every((p) => p.radius > 0.5 && p.radius < 2.6), 'radius out of range'),
+    ok('radii stay in the ring', grown.every((p) => p.radius > 0.5 && p.radius < 3.0), 'radius out of range'),
     ok('props render at native pixel size', grown.every((p) => p.scale === 1), 'a prop was scaled — the art is authored at final size'),
     ok('mirrored props are organic only', grown.every((p) => !['lantern', 'signpost', 'bench', 'cairn', 'log', 'bird'].includes(p.prop) || !p.flip), 'a one-way prop was flipped'),
     check('no history, no trophies', trophies0, []),

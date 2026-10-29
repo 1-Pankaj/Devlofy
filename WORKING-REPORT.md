@@ -3,9 +3,9 @@ tags: [devlofy, working-report]
 created: 2026-10-29
 ---
 
-# Working report — v0.10.0 "the garden, handcrafted"
+# Working report — v0.10.0 "the garden, handcrafted" + v0.10.1 "the garden, perfected"
 
-This is the report of the full overhaul pass: what was asked, what was done, how it was verified, and where every change lives. Companion documents: `AUDIT.md` (the secrets/licence audit) and `CHANGELOG.md` (the release entry).
+This is the report of the full overhaul pass and the garden-view fix pass that followed it: what was asked, what was done, how it was verified, and where every change lives. Companion documents: `AUDIT.md` (the secrets/licence audit) and `CHANGELOG.md` (the release entries).
 
 ## The brief
 
@@ -75,7 +75,29 @@ Every layer was redrawn; the architecture from v0.9 (character buffers → pixel
 | Icon verification | `make-icons.py` self-checks green (sizes, mask circle, silhouette) |
 | Visual QA renders | all five stages × two modes + teaser — inspected and approved |
 
-## 6. What to do with this ZIP
+## 6. The v0.10.1 pass — the garden view, perfected
+
+The v0.10 screenshot told the truth: the scene rendered, but it read as a broken mud oval ringed by posts, with marshmallow mushrooms, a blobby canopy and a meadow full of speckle noise. This pass rebuilt the garden view only — same model, same placement API, same 650-check contract — until the frame looked handcrafted.
+
+### What changed, file by file
+
+| File | What was done |
+|---|---|
+| `src/lib/garden/sprites.ts` | Every prop grid redrawn by hand: `K` outline around each silhouette, moonlight upper-left, shade lower-right, dark contact line under every base. Mushrooms 16→15 wide with gills and rim-avoiding spots; the bench got rails/posts/seat/feet; the stump a wood-ring face and flared roots; the log an outlined face, moss spine and tenant; the lantern a hook, dome cap and framed glass; cairn, boulders, fern, daisy and rose beds, sparrow frames, cattails, lily pads rebuilt to the same standard. |
+| `src/lib/garden/tree.ts` | Interior noise halved with dithering only at band seams; two low shoulder clumps round the crown's underside; a shared under-shade darkens the canopy's bottom edge; the root flare is stepped, not a slab; blossom thinned to a rare accent. |
+| `src/lib/garden/scenery.ts` | The clearing became a bed: wobbled edge, rim overhang, broad lit pocket plus a moon-kissed patch, sparse clods. Accent rings are now two clean midpoint-ellipse outlines hugging the trunk (the old per-row sampling dissolved into stray speckles). Meadow flecks became quiet dashes, leaning sway blades, five-pixel flower drifts. The pond gained shore, mud rim, layered water, a lit arc and a broken glint column. The footpath gained a lit centre and rare stones. |
+| `src/lib/garden/props.ts` | Slots re-authored as pixel anchors (x, y offsets from the clearing's centre) solved into the same polar (angle, radius) API — exact placement with the contract intact. Jitter retained; radius bound widened to 3.0 m in the self-check to match the wider spread. |
+| `src/components/garden/garden-scene.tsx` | Prop metre scale doubled (14→20), front/back depth factors retuned (0.34/0.22), bases sink one pixel into the ground, narrow frames clamp props into view, moon/sun halos softened to three stepped glows, sway blades lean at the tip. |
+| `CHANGELOG.md`, `WORKING-REPORT.md`, `package.json`, `app.json`, `site/index.html` | 0.10.1 entry, this section, version bumps. |
+
+### How it was verified
+
+- A **pixel-run render harness** (`scripts/render-garden.js`, dev-only, not shipped) rasterises the exact layer stack the component renders — every run, opacity and sprite — so each iteration was judged on the real frame, not in the head.
+- A **collision report** computes every prop's bounding box per frame; the final layout has exactly one intentional overlap (the sparrow at the stump) and nothing else.
+- Visual QA across the matrix: seed / sprout / sapling / young / canopy × dusk / golden-hour, plus a phone-aspect frame (125 units) and the extreme narrow floor (53 units).
+- `npm run check`: typecheck clean, lint clean, **650 known-answer checks, 0 failing** (garden 168).
+
+## 7. What to do with this ZIP
 
 1. Unzip, `npm install` (Node 20+), then `npm run check` — it must print **650 checks · 0 failing**.
 2. `npm run ios`/`android`/`web` — the garden is the second tab; start a block and watch golden hour arrive.

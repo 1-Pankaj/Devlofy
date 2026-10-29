@@ -11,14 +11,15 @@
  *     the moon top-left — where the light comes from — or a low half-set sun;
  *   - three hill ridges with atmospheric fade, silhouette pines on the near
  *     crest, and a small windmill turning on the far one;
- *   - a meadow in three green bands, textured with light dashes and young
- *     blades (the blades carry a phase so the scene can sway them), dotted
- *     with tiny flowers, and crossed by a footpath that leaves the clearing
- *     for the bottom of the frame;
- *   - a pond in the foreground-left, under the moon, with lily pads and
- *     cattails — the water keeps its shimmer data so the scene can move it;
- *   - the soil clearing with its rim, clods and stones, the accent growth
- *     rings, and the tree's contact shadow.
+ *   - a meadow in three green bands, textured with quiet light dashes and
+ *     young blades that lean as they sway, dotted with tiny flowers planted
+ *     in drifts, and crossed by a footpath that leaves the clearing for the
+ *     bottom of the frame;
+ *   - a pond in the foreground-left, under the moon, with a dark shore, a
+ *     mud rim, layered water and a moon glint — plus lily pads and cattails;
+ *   - a soil clearing with a wobbled edge, a lit pocket toward the moon, a
+ *     sparse scatter of clods, two clean accent rings around the trunk, and
+ *     the tree's contact shadow.
  *
  * Deterministic: the same (width, seed, mode) returns the same world. Pure
  * data, no react — the component just compiles runs into paths.
@@ -143,6 +144,8 @@ export type Blade = {
   color: string;
   /** Sway group 0..3 — the scene steps the groups out of phase. */
   phase: number;
+  /** Static lean of the blade tip: -1, 0 or 1. */
+  lean: number;
 };
 
 export type Scenery = {
@@ -214,7 +217,7 @@ function starField(width: number, seed: number, mode: SceneryMode, lamp: { col: 
   const count =
     mode === 'gold'
       ? Math.max(4, Math.floor(width / 12))
-      : Math.max(18, Math.min(90, Math.floor(width / 4)));
+      : Math.max(18, Math.min(80, Math.floor(width / 4.4)));
   const stars: Scenery['stars'] = [];
   let crosses = 0;
   for (let i = 0; i < count; i += 1) {
@@ -351,25 +354,74 @@ function ellipseRuns(
   return runs;
 }
 
-/** Pixels where the ellipse metric crosses radius k — a ring outline. */
-function ellipseRing(
-  cx: number,
-  cy: number,
-  rx: number,
-  ry: number,
-  k: number,
-  color: string,
-): Run[] {
+/**
+ * A clean connected ellipse outline (midpoint algorithm). Unlike sampling the
+ * edge per row, every pixel connects to the next, so a ring never dissolves
+ * into stray dots where its arc runs flat.
+ */
+function ellipseOutline(cx: number, cy: number, rx: number, ry: number, color: string): Run[] {
+  const points = new Set<string>();
+  const mark = (x: number, y: number) => {
+    points.add(`${Math.round(x)},${Math.round(y)}`);
+  };
+  let x = 0;
+  let y = ry;
+  let d1 = ry * ry - rx * rx * ry + rx * rx / 4;
+  let dx = 2 * ry * ry * x;
+  let dy = 2 * rx * rx * y;
+  const cxi = Math.round(cx);
+  const cyi = Math.round(cy);
+  while (dx < dy) {
+    mark(cxi + x, cyi + y);
+    mark(cxi - x, cyi + y);
+    mark(cxi + x, cyi - y);
+    mark(cxi - x, cyi - y);
+    if (d1 < 0) {
+      x += 1;
+      dx += 2 * ry * ry;
+      d1 += dx + ry * ry;
+    } else {
+      x += 1;
+      y -= 1;
+      dx += 2 * ry * ry;
+      dy -= 2 * rx * rx;
+      d1 += dx - dy + ry * ry;
+    }
+  }
+  let d2 =
+    ry * ry * ((x + 0.5) * (x + 0.5)) + rx * rx * ((y - 1) * (y - 1)) - rx * rx * ry * ry;
+  while (y >= 0) {
+    mark(cxi + x, cyi + y);
+    mark(cxi - x, cyi + y);
+    mark(cxi + x, cyi - y);
+    mark(cxi - x, cyi - y);
+    if (d2 > 0) {
+      y -= 1;
+      dy -= 2 * rx * rx;
+      d2 += rx * rx - dy;
+    } else {
+      y -= 1;
+      x += 1;
+      dx += 2 * ry * ry;
+      dy -= 2 * rx * rx;
+      d2 += dx - dy + rx * rx;
+    }
+  }
+  const byRow = new Map<number, number[]>();
+  for (const key of points) {
+    const [xs, ys] = key.split(',');
+    const col = parseInt(xs, 10);
+    const row = parseInt(ys, 10);
+    const bucket = byRow.get(row);
+    if (bucket) bucket.push(col);
+    else byRow.set(row, [col]);
+  }
   const runs: Run[] = [];
-  for (let row = Math.ceil(cy - ry * k); row <= Math.floor(cy + ry * k); row += 1) {
-    const t = (row - cy) / (ry * k);
-    const inside = 1 - t * t;
-    if (inside <= 0) continue;
-    const half = rx * k * Math.sqrt(inside);
-    const left = Math.round(cx - half);
-    const right = Math.round(cx + half);
-    runs.push({ row, col: left, len: 1, color });
-    if (right !== left) runs.push({ row, col: right, len: 1, color });
+  for (const [row, cols] of byRow) {
+    cols.sort((a, b) => a - b);
+    runs.push({ row, col: cols[0], len: 1, color });
+    const last = cols[cols.length - 1];
+    if (last !== cols[0]) runs.push({ row, col: last, len: 1, color });
   }
   return runs;
 }
@@ -452,8 +504,11 @@ export function buildScenery(options: {
     ridge.push(...windmillRuns(col, windmill.row, mode === 'gold' ? '#5E3C58' : '#3A3260', mode === 'gold' ? '#4A3048' : '#2C264E'));
   }
 
-  // Meadow bands + texture dashes.
+  // Meadow bands + texture dashes: quiet horizontal strokes, biased toward
+  // the band seams where a mown field would show its lines.
   const bands = mode === 'gold' ? GOLD_GROUND_BANDS : GROUND_BANDS;
+  const dashLight = mode === 'gold' ? '#6FA653' : '#357447';
+  const dashDark = mode === 'gold' ? '#2C4F28' : '#16301F';
   const meadow: Run[] = [];
   for (const band of bands) {
     for (let row = band.from; row < band.to; row += 1) {
@@ -461,53 +516,93 @@ export function buildScenery(options: {
     }
   }
   const fleckRand = mulberry32(seed ^ 0x0f10c2);
-  const flecks = Math.floor(width * 0.8);
+  const flecks = Math.floor(width * 0.42);
   for (let i = 0; i < flecks; i += 1) {
-    const col = Math.floor(fleckRand() * width);
+    const col = Math.floor(fleckRand() * (width - 3));
     const row = HORIZON + 2 + Math.floor(fleckRand() * (SCENE_ROWS - HORIZON - 3));
-    const light = fleckRand() < 0.45;
+    const light = fleckRand() < 0.5;
     meadow.push({
       row,
       col,
-      len: fleckRand() < 0.3 ? 2 : 1,
-      color: mode === 'gold'
-        ? light ? '#6FA653' : '#2C4F28'
-        : light ? '#357447' : '#16301F',
+      len: 2 + Math.floor(fleckRand() * 2),
+      color: light ? dashLight : dashDark,
     });
   }
 
-  // The clearing, before anything else claims the meadow floor.
+  // The clearing, before anything else claims the meadow floor. Its edge
+  // wobbles a little — a bed, not a stamped ellipse.
   const rx = Math.max(36, Math.min(90, width * 0.28));
   const ry = 8.5;
   const clearing = { col: width / 2, row: CLEARING_ROW, rx, ry };
-  const clearingRuns: Run[] = [
-    // Top rim: grass overhangs the soil.
-    ...ellipseRuns(clearing.col, clearing.row - 0.6, rx * 1.04, ry * 0.6, '#16301F'),
-    ...ellipseRuns(clearing.col, clearing.row, rx, ry, '#3D2B16'),
-    // A lit pocket toward the moon.
-    ...ellipseRuns(clearing.col - rx * 0.22, clearing.row - 1.5, rx * 0.52, ry * 0.5, '#4C3720'),
-    ...ellipseRuns(clearing.col, clearing.row, rx, ry, '#1C1207', true),
-  ];
+  const edgePhase = rand() * Math.PI * 2;
+  const clearingRuns: Run[] = [];
+  const halfWidthAt = (row: number, scale: number): number => {
+    const t = (row - clearing.row) / (ry * scale);
+    if (Math.abs(t) >= 1) return 0;
+    const base = rx * scale * Math.sqrt(1 - t * t);
+    const wobble = 1 + 0.05 * Math.sin(row * 0.55 + edgePhase) + 0.035 * Math.sin(row * 1.3 + edgePhase * 2);
+    return base * wobble;
+  };
+  // Grass overhang on the top rim, then the soil body, a broad lit pocket
+  // toward the moon, a moon-kissed bright patch, and a dark lower edge —
+  // the bed should read as turned earth under a low light, not a shadow.
+  for (let row = Math.ceil(clearing.row - ry) - 1; row <= Math.floor(clearing.row + ry) + 1; row += 1) {
+    const half = halfWidthAt(row, 1);
+    if (half <= 0) continue;
+    const from = Math.round(clearing.col - half);
+    const to = Math.round(clearing.col + half);
+    clearingRuns.push({ row, col: from, len: Math.max(1, to - from), color: '#3D2B16' });
+  }
+  for (let row = Math.ceil(clearing.row - ry) - 1; row <= Math.floor(clearing.row - ry * 0.55); row += 1) {
+    const half = halfWidthAt(row, 1.045);
+    if (half <= 0) continue;
+    const from = Math.round(clearing.col - half);
+    const to = Math.round(clearing.col + half);
+    clearingRuns.push({ row, col: from, len: Math.max(1, to - from), color: '#16301F' });
+  }
+  for (let row = Math.floor(clearing.row + ry * 0.55); row <= Math.floor(clearing.row + ry) + 1; row += 1) {
+    const half = halfWidthAt(row, 1.03);
+    if (half <= 0) continue;
+    clearingRuns.push({ row, col: Math.round(clearing.col - half), len: 1, color: '#2A1B0C' });
+    clearingRuns.push({ row, col: Math.round(clearing.col + half) - 1, len: 1, color: '#2A1B0C' });
+  }
+  for (let row = Math.ceil(clearing.row - ry * 0.78); row <= Math.floor(clearing.row + ry * 0.25); row += 1) {
+    const half = halfWidthAt(row, 0.62);
+    if (half <= 0) continue;
+    const from = Math.round(clearing.col - half - rx * 0.1);
+    const to = Math.round(clearing.col + half - rx * 0.1);
+    clearingRuns.push({ row, col: from, len: Math.max(1, to - from), color: '#4C3720' });
+  }
+  for (let row = Math.ceil(clearing.row - ry * 0.5); row <= Math.floor(clearing.row - ry * 0.05); row += 1) {
+    const half = halfWidthAt(row, 0.3);
+    if (half <= 0) continue;
+    const from = Math.round(clearing.col - half - rx * 0.16);
+    const to = Math.round(clearing.col + half - rx * 0.16);
+    clearingRuns.push({ row, col: from, len: Math.max(1, to - from), color: '#5E4526' });
+  }
+  // Clods: sparse, small, never a speckle storm.
   const clodRand = mulberry32(seed ^ 0x6e21a7);
-  const clods = Math.floor(rx * 0.9);
+  const clods = Math.floor(rx * 0.3);
   for (let i = 0; i < clods; i += 1) {
     const a = clodRand() * Math.PI * 2;
-    const d = Math.sqrt(clodRand()) * 0.92;
+    const d = Math.sqrt(clodRand()) * 0.85;
     const col = Math.round(clearing.col + Math.cos(a) * rx * d);
     const row = Math.round(clearing.row + Math.sin(a) * ry * d);
     const roll = clodRand();
-    clearingRuns.push({ row, col, len: roll < 0.3 ? 2 : 1, color: roll < 0.5 ? '#5E4526' : roll < 0.8 ? '#4C3720' : '#2A1B0C' });
-    if (roll > 0.93) clearingRuns.push({ row, col: col + 1, len: 1, color: '#353B54' });
+    clearingRuns.push({ row, col, len: roll < 0.25 ? 2 : 1, color: roll < 0.45 ? '#5E4526' : roll < 0.8 ? '#4C3720' : '#2A1B0C' });
   }
 
+  // Growth rings — the accent. Two clean, connected rings hugging the trunk,
+  // so they frame the plant at every stage instead of decorating empty soil.
   const rings: Run[] = [
-    ...ellipseRing(clearing.col, clearing.row, rx, ry, 0.52, '#8B7CFF'),
-    ...ellipseRing(clearing.col, clearing.row, rx, ry, 0.8, '#8B7CFF'),
+    ...ellipseOutline(clearing.col, clearing.row, rx * 0.13, 2, '#8B7CFF'),
+    ...ellipseOutline(clearing.col, clearing.row, rx * 0.2, 2.9, '#8B7CFF'),
   ];
 
-  const shadow = ellipseRuns(clearing.col, clearing.row + 1.2, rx * 0.36, 1.7, '#0A0A0F');
+  const shadow = ellipseRuns(clearing.col, clearing.row + 1.2, rx * 0.24, 1.6, '#0A0A0F');
 
-  // The pond, foreground-left, under the moon.
+  // The pond, foreground-left, under the moon: a dark shore, a mud rim,
+  // layered water and a glint that points at the sky's lamp.
   let pond: Scenery['pond'] = null;
   let pondRuns: Run[] = [];
   const lilies: Scenery['lilies'] = [];
@@ -516,95 +611,111 @@ export function buildScenery(options: {
     const pondRand = mulberry32(seed ^ 0x24d1b3);
     const col = Math.max(18, Math.round(width * 0.12));
     const row = 90;
-    const prx = 14 + Math.round(pondRand() * 3);
-    const pry = 5.5;
+    const prx = 15 + Math.round(pondRand() * 4);
+    const pry = 6;
     pond = { col, row, rx: prx, ry: pry };
     pondRuns = [
+      // Dark shore line, mud rim, then the water: deep to lit, toward the moon.
+      ...ellipseRuns(col, row, prx + 1.4, pry + 1.2, '#10131F'),
+      ...ellipseRuns(col, row, prx + 0.5, pry + 0.4, '#4C3720'),
       ...ellipseRuns(col, row, prx, pry, '#16304F'),
-      ...ellipseRuns(col, row - 0.4, prx * 0.94, pry * 0.82, '#24406E'),
-      ...ellipseRuns(col, row - 1.6, prx * 0.8, pry * 0.45, '#46699C'),
-      ...ellipseRuns(col, row, prx, pry, '#16304F', true),
-      // A moon glint: a short stack of light where the water faces the sky.
-      { row: row - 3, col: col - 1, len: 3, color: '#7FA0D0' },
-      { row: row - 1, col: col - 2, len: 4, color: '#7FA0D0' },
+      ...ellipseRuns(col, row - 0.5, prx * 0.92, pry * 0.8, '#24406E'),
+      ...ellipseRuns(col, row - 1.8, prx * 0.74, pry * 0.45, '#46699C'),
+      // A lit arc on the upper-left limb, facing the moon.
+      ...ellipseRuns(col - prx * 0.18, row - 1.2, prx * 0.8, pry * 0.6, '#7FA0D0', true, '#7FA0D0'),
     ];
+    // The glint: a short column of light under the lamp, broken by ripple.
+    const glintCol = Math.round(col + (lamp.col - col) * 0.3);
+    pondRuns.push(
+      { row: row - 3, col: glintCol - 1, len: 3, color: '#7FA0D0' },
+      { row: row - 1, col: glintCol - 2, len: 4, color: '#8FAAD8' },
+      { row: row + 1, col: glintCol, len: 2, color: '#7FA0D0' },
+    );
     lilies.push(
-      { col: col - prx * 0.4, row: row - 1, flower: pondRand() < 0.6 },
-      { col: col + prx * 0.35, row: row + 1, flower: pondRand() < 0.4 },
+      { col: col - prx * 0.42, row: row - 1, flower: pondRand() < 0.6 },
+      { col: col + prx * 0.36, row: row + 1, flower: pondRand() < 0.4 },
     );
     reeds.push(
-      { col: col + prx - 2, row: row - 9, flip: false },
-      { col: col - prx + 1, row: row - 8, flip: true },
+      { col: col + prx - 1, row: row - 12, flip: false },
+      { col: col - prx - 4, row: row - 11, flip: true },
     );
   }
 
-  // The footpath: leaves the clearing's right edge, wanders to the frame.
+  // The footpath: leaves the clearing's right edge, wanders to the frame —
+  // lighter than the soil it leaves, with a dark edge and rare stones.
   let path: Run[] | null = null;
   if (wide) {
     path = [];
-    const startCol = clearing.col + rx * 0.42;
+    const startCol = clearing.col + rx * 0.45;
     for (let row = Math.round(clearing.row + ry * 0.72); row < SCENE_ROWS; row += 1) {
       const t = (row - clearing.row) / (SCENE_ROWS - clearing.row);
-      const centre = startCol - t * 10 + Math.sin(row * 0.45) * 1.6;
-      const halfW = 1.6 + t * 2.4;
+      const centre = startCol - t * 9 + Math.sin(row * 0.4) * 2;
+      const halfW = 1.6 + t * 2.6;
       const from = Math.round(centre - halfW);
       const to = Math.round(centre + halfW);
       path.push({ row, col: from, len: to - from, color: '#4C3720' });
+      path.push({ row, col: from + 1, len: Math.max(1, to - from - 2), color: '#5E4526' });
       if (to > from) path.push({ row, col: to - 1, len: 1, color: '#3D2B16' });
-      if ((row * 7) % 5 === 0) path.push({ row, col: from + 1, len: 1, color: '#2A1B0C' });
+      if ((row * 7) % 11 === 0) path.push({ row, col: from + 1, len: 1, color: '#2A1B0C' });
+      if ((row * 13) % 29 === 0) path.push({ row, col: to - 2, len: 1, color: '#353B54' });
     }
   }
 
-  // Young blades — the scene sways them, four phases out of step.
+  // Young blades — leaning strokes the scene sways, four phases out of step.
   const blades: Blade[] = [];
   const bladeRand = mulberry32(seed ^ 0x7b1d55);
-  const bladeCount = Math.floor(width * 1.1);
+  const bladeCount = Math.floor(width * 0.8);
   for (let i = 0; i < bladeCount; i += 1) {
     const col = Math.floor(bladeRand() * width);
     const row = HORIZON + 3 + Math.floor(bladeRand() * (SCENE_ROWS - HORIZON - 4));
     if (inClearing(col, row, clearing, 3)) continue;
     if (pond && inPond(col, row, pond, 3)) continue;
     if (path && onPath(col, row, path)) continue;
+    const roll = bladeRand();
     blades.push({
       col,
       row,
-      len: bladeRand() < 0.3 ? 2 : 1,
-      color: bladeRand() < 0.55 ? '#4E9B52' : '#6FBF5E',
+      len: roll < 0.22 ? 2 : 1,
+      color: roll < 0.4 ? '#4E9B52' : roll < 0.8 ? '#6FBF5E' : '#2E8544',
       phase: Math.floor(bladeRand() * 4),
+      lean: bladeRand() < 0.3 ? -1 : bladeRand() < 0.45 ? 1 : 0,
     });
   }
 
-  // Tiny meadow flowers: three petals around a gold centre, painted straight.
-  // Two of every three dots cluster, so the meadow reads in drifts, not polka.
+  // Tiny meadow flowers: a plus of petals over a stem, planted in drifts —
+  // three clusters to every loner, so the meadow reads in drifts, not polka.
   const flowerDots: Run[] = [];
   const dotRand = mulberry32(seed ^ 0x3fa912);
-  const dots = Math.floor(width * 0.075);
-  const dotSpots: { col: number; row: number }[] = [];
-  for (let i = 0; i < dots; i += 1) {
-    let col = Math.floor(dotRand() * (width - 2)) + 1;
-    let row = HORIZON + 4 + Math.floor(dotRand() * (SCENE_ROWS - HORIZON - 6));
+  const drifts = Math.max(2, Math.floor(width * 0.024));
+  for (let i = 0; i < drifts; i += 1) {
+    let col = Math.floor(dotRand() * (width - 6)) + 3;
+    let row = HORIZON + 6 + Math.floor(dotRand() * (SCENE_ROWS - HORIZON - 10));
     if (inClearing(col, row, clearing, 3)) continue;
     if (pond && inPond(col, row, pond, 3)) continue;
-    // Every third dot pulls two companions close — a drift, not a scatter.
-    if (i % 3 === 0) {
-      dotSpots.push({ col, row });
-    } else if (dotSpots.length > 0) {
-      const spot = dotSpots[dotSpots.length - 1];
-      col = spot.col + (dotRand() < 0.5 ? -2 : 2);
-      row = spot.row + (dotRand() < 0.5 ? -1 : 1);
+    if (path && onPath(col, row, path)) continue;
+    const companions = 1 + Math.floor(dotRand() * 3);
+    for (let f = 0; f <= companions; f += 1) {
+      const fc = col + (f === 0 ? 0 : Math.round((dotRand() - 0.5) * 9));
+      const fr = row + (f === 0 ? 0 : Math.round((dotRand() - 0.5) * 5));
+      if (fc < 1 || fc > width - 2 || fr < HORIZON + 3 || fr > SCENE_ROWS - 4) continue;
+      if (inClearing(fc, fr, clearing, 2)) continue;
+      if (pond && inPond(fc, fr, pond, 2)) continue;
+      if (path && onPath(fc, fr, path)) continue;
+      const kind = dotRand();
+      const petal = kind < 0.62 ? '#F5F2E6' : kind < 0.85 ? '#D96B8C' : '#F2C7D8';
+      flowerDots.push(
+        { row: fr - 1, col: fc, len: 1, color: petal },
+        { row: fr, col: fc - 1, len: 1, color: petal },
+        { row: fr, col: fc + 1, len: 1, color: petal },
+        { row: fr, col: fc, len: 1, color: '#F2C14E' },
+        { row: fr + 1, col: fc, len: 1, color: '#4E9B52' },
+      );
     }
-    const rose = dotRand() < 0.3;
-    flowerDots.push(
-      { row: row - 1, col, len: 1, color: rose ? '#D96B8C' : '#F5F2E6' },
-      { row, col: col - 1, len: 1, color: rose ? '#D96B8C' : '#F5F2E6' },
-      { row, col: col + 1, len: 1, color: rose ? '#D96B8C' : '#F5F2E6' },
-      { row, col, len: 1, color: '#F2C14E' },
-    );
   }
 
   // Scatter: grass tufts, kept out of the soil, the water and the path.
   const scatter: ScatterItem[] = [];
-  const scatterCount = Math.max(6, Math.floor(width / 10));
+  const scatterCount = Math.max(5, Math.floor(width / 14));
   const scatterRand = mulberry32(seed ^ 0x3cc1a7);
   for (let i = 0; i < scatterCount; i += 1) {
     const col = Math.floor(scatterRand() * (width - 8));

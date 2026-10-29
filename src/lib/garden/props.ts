@@ -69,34 +69,49 @@ const NO_FLIP: ReadonlySet<GardenProp> = new Set([
 ]);
 
 /**
- * Anchor slots around the clearing (degrees, metres). Hand-placed for the
- * pixel composition: the pond owns the foreground-left, the footpath leaves
- * the foreground-right, the bench and signpost face the viewer from the right,
- * and the small things — mushrooms, grass, flowers — keep the front where
- * they can be seen.
+ * Anchor slots around the clearing. Each slot is a pixel offset from the
+ * clearing's centre: `x` spans the frame, `y` is the prop's base row relative
+ * to the soil line (positive = toward the viewer). `placement` solves the
+ * polar (angle, radius) form from these so the placement API — and the
+ * self-check that pins it — stay stable while the composition stays exact:
+ * hand-placing anchors in pixels is the only way to guarantee that twenty
+ * sprites share one frame without colliding.
+ *
+ * The layout, left to right: a bench and boulder anchor the far left meadow,
+ * the log and fern dress the soil's back edge, the mushroom trophies line
+ * the front, the lantern sits on the soil beside the trunk, and the right
+ * meadow carries the roses' bed, the cairn, the signpost and the rock
+ * scatter. Every position is jittered by a hash of (prop, slot), so the
+ * garden is stable across renders and devices.
  */
-const SLOTS: { angle: number; radius: number }[] = [
-  { angle: 150, radius: 1.9 }, // 0 · log
-  { angle: -50, radius: 1.45 }, // 1 · fern
-  { angle: 120, radius: 1.7 }, // 2 · stump
-  { angle: -112, radius: 1.35 }, // 3 · grass
-  { angle: 70, radius: 2.4 }, // 4 · rock
-  { angle: -78, radius: 2.2 }, // 5 · rocks
-  { angle: -98, radius: 1.05 }, // 6 · bird
-  { angle: -152, radius: 2.1 }, // 7 · lantern
-  { angle: 12, radius: 2.5 }, // 8 · rock (deep right)
-  { angle: 104, radius: 1.5 }, // 9 · mushrooms
-  { angle: 78, radius: 1.9 }, // 10 · mushrooms
-  { angle: 56, radius: 1.75 }, // 11 · mushrooms
-  { angle: -137, radius: 2.3 }, // 12 · cairn
-  { angle: 36, radius: 2.0 }, // 13 · grass (second)
-  { angle: 96, radius: 2.55 }, // 14 · flowers
-  { angle: 44, radius: 2.6 }, // 15 · flowers (second)
-  { angle: -58, radius: 2.55 }, // 16 · rock (back right)
-  { angle: 168, radius: 1.4 }, // 17 · grass (left)
-  { angle: 40, radius: 2.5 }, // 18 · bench
-  { angle: -20, radius: 2.55 }, // 19 · signpost
+const SLOTS: { x: number; y: number }[] = [
+  { x: -36, y: -4 }, // 0 · log — back edge, left of the trunk
+  { x: -6, y: -4 }, // 1 · fern — back edge, right of the log
+  { x: 4.5, y: 4 }, // 2 · stump — on the soil, in front of the trunk
+  { x: -38, y: 13 }, // 3 · grass — front meadow, left
+  { x: -52, y: -4 }, // 4 · rock — back-left corner
+  { x: 36, y: -5 }, // 5 · rocks — back meadow, right
+  { x: 9, y: 2 }, // 6 · bird — perched at the stump
+  { x: -18, y: 1 }, // 7 · lantern — on the soil, left of the trunk
+  { x: 0, y: 6 }, // 8 · (reserve)
+  { x: -22.5, y: 13 }, // 9 · mushrooms — front row, left
+  { x: -1.5, y: 15 }, // 10 · mushrooms — front row, centre
+  { x: 15.5, y: 13 }, // 11 · mushrooms — front row, right
+  { x: 19, y: -5 }, // 12 · cairn — back meadow, right of the trunk
+  { x: 24, y: 15 }, // 13 · grass (second) — front meadow, right of centre
+  { x: 54, y: 8 }, // 14 · flowers — right meadow corner
+  { x: 34, y: 9 }, // 15 · flowers (second) — front meadow, right
+  { x: 7, y: -5 }, // 16 · rock (second) — back edge, right of the trunk
+  { x: 0, y: 6 }, // 17 · (reserve)
+  { x: -51, y: 9 }, // 18 · bench — front-left meadow
+  { x: 56, y: -4 }, // 19 · signpost — back-right corner
 ];
+
+/** Scene-units per metre — kept in step with `garden-scene`'s METER. */
+const METER = 20;
+/** Depth factors: front props drop faster than back ones. */
+const FRONT_FACTOR = 0.34;
+const BACK_FACTOR = 0.22;
 
 function placement(
   prop: GardenProp,
@@ -104,15 +119,18 @@ function placement(
   notches?: number,
 ): PropPlacement {
   const rand = mulberry32(hashString(`garden-prop:${prop}:${slot}`));
-  const { angle, radius } = SLOTS[slot % SLOTS.length];
-  const radians = (angle * Math.PI) / 180;
-  const radiusJitter = (rand() - 0.5) * 0.06;
-  const angleJitter = (rand() - 0.5) * 0.1;
+  const { x, y } = SLOTS[slot % SLOTS.length];
+  // Jitter the anchor, then solve the polar form that `garden-scene` renders
+  // from: cos(a) * reach = x, sin(a) * reach * f = y, f front/back by sign.
+  const ax = x + (rand() - 0.5) * 2;
+  const ay = y + (rand() - 0.5) * 1.2;
+  const f = ay >= 0 ? FRONT_FACTOR : BACK_FACTOR;
+  const reach = Math.sqrt(ax * ax + (ay / f) * (ay / f));
   return {
     prop,
     slot,
-    angle: radians + angleJitter,
-    radius: radius + radiusJitter,
+    angle: Math.atan2(ay / f, ax),
+    radius: reach / METER,
     scale: 1,
     flip: !NO_FLIP.has(prop) && rand() < 0.4,
     ...(notches !== undefined ? { notches } : {}),

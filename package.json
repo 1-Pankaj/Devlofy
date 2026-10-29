@@ -1,6 +1,6 @@
 {
   "name": "devlofy",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "description": "The offline-first command center for solo developers — Android and web, local SQLite, no backend.",
   "license": "MIT",
   "main": "expo-router/entry",

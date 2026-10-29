@@ -6,6 +6,21 @@ Every release is offline-first. No release adds a server, an account, or telemet
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-10-29
+
+### Changed
+
+- **The garden view, perfected.** A full re-craft of the scene the v0.10 screenshot exposed as broken — the giant mud oval, the pile-up of props, the speckle-noise meadow, the blobby canopy:
+  - **Every prop sprite redrawn by hand** (`sprites.ts`): a dark silhouette outline around each prop so it separates from soil, grass and sky; moonlight from the upper-left and shade to the lower-right; a dark contact line under every base so nothing floats. The mushrooms dropped from a 16-wide marshmallow pair to a clean outlined amanita cluster with gill lines and rim-avoiding spots; the bench gained rails, posts, a seat and feet; the stump got a wood-ring face and flared roots; the log grew an outlined cut face, moss spine and tenant; the lantern gained a hook, a dome cap and a framed glass; the cairn, boulders, fern, flower beds, sparrow frames, cattails and lily pads all rebuilt to the same standard.
+  - **The tree re-grown** (`tree.ts`): cleaner tone bands (interior noise halved, dithering only at band seams), two low shoulder clumps that round the crown's underside, a shared under-shade along the canopy's bottom edge, a step-shaped root flare instead of a painted slab, and blossom toned to a rare accent.
+  - **The ground re-laid** (`scenery.ts`): the clearing is now a bed, not a stain — a wobbled edge, grass overhang on the rim, a broad lit pocket and a moon-kissed patch toward the moon, sparse clods; the violet accent rings became two clean midpoint-ellipse outlines hugging the trunk at every stage (the old per-row edge sampling dissolved into stray speckles); the meadow's random flecks became quiet horizontal dashes, leaning sway blades, and flowers planted as five-pixel drifts; the pond gained a dark shore, a mud rim, layered water, a lit arc and a broken glint column; the footpath gained a lit centre line and rare stones.
+  - **The composition re-placed** (`props.ts`, `garden-scene.tsx`): slots are now pixel anchors solved into the polar API, packed so all eighteen props share one frame without colliding (a collision report harness joined the toolchain to prove it); prop bases sink one pixel into the ground; the metre scale doubled so the meadow carries the spread; the moon and sun halos softened to three stepped glows; sway blades lean as they move.
+- The landing page and social card quote 0.10.1.
+
+### Fixed
+
+- The garden self-check's ring radius bound widened to 3.0 metres to match the new spread (the placement API itself is unchanged and fully pinned: 168 garden checks, 650 total, all green).
+
 ## [0.10.0] - 2026-10-29
 
 ### Added

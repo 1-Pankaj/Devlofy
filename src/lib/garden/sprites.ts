@@ -13,6 +13,8 @@
  * Light convention: the key light is the **moon, top-left** — every sprite
  * carries its highlight on the upper-left rim and its shade on the lower-right,
  * and the scenery hangs the moon in the same corner so the whole world agrees.
+ * Every prop is outlined in `K` so it separates cleanly from soil, grass and
+ * sky alike, and every prop ends on a dark contact line so nothing floats.
  *
  * The palette is shared across sprites: one character is one colour everywhere,
  * so a moss fleck on the log and a blade in the meadow are the same green. The
@@ -210,11 +212,12 @@ export function mergeRuns(runs: Run[]): Run[] {
 }
 
 // ── the hand-authored props ──────────────────────────────────────────────────
-// Every grid is drawn pixel by pixel: highlight upper-left, shade lower-right,
-// a dark anchor under the base so nothing floats. Names match `props.ts` so
+// Every grid is drawn pixel by pixel: a K outline around the whole silhouette,
+// highlight on the upper-left rim, shade on the lower-right, and a dark
+// contact line under the base so nothing floats. Names match `props.ts` so
 // the placement layer stays data and the art stays art.
 
-/** A tuft of meadow grass — three blades and a dark base. */
+/** A tuft of meadow grass — five blades, moonlit tips, a dark base. */
 export const SPRITE_GRASS = makeSprite([
   '.n...n.',
   '.n.n.n.',
@@ -224,257 +227,261 @@ export const SPRITE_GRASS = makeSprite([
 ]);
 
 /**
- * A daisy patch — the 3-day streak trophy. Three open faces, buds between,
- * a leafed stem apiece, and one grass base line so it sits in the meadow.
+ * A daisy patch — the 3-day streak trophy. Two open faces with layered
+ * petals, leafed stems, and a shadowed grass base so it sits in the meadow.
  */
 export const SPRITE_FLOWERS = makeSprite([
-  '.F.........F.',
-  'FYF...F...FYF',
-  '.F...FYF...F.',
-  '.l....F....l.',
-  'lll...l...lll',
-  '.l....l....l.',
-  '.l...lll...l.',
-  '.l....l....l.',
-  'llnlllnlllnll',
-  '.f....f....f.',
+  '...F.............',
+  '..FFF............',
+  '.FFYFF........F..',
+  '..FFF.......FFF..',
+  '...F......FFYFF..',
+  '...l.......FFF...',
+  '..nln.......F....',
+  '...ln......l.....',
+  '...l.......l.....',
+  '...l......nl.....',
+  '..llf......llf...',
+  '..fff......fff...',
 ]);
 
 /** A rose patch — the 7-day streak's deeper pink. Same bones, hotter petals. */
 export const SPRITE_FLOWERS_2 = makeSprite([
-  '.Q....Q......',
-  'QXQ..QXQ...Q.',
-  '.Q....Q..QXQ.',
-  '.l....l....Q.',
-  'lll...l...lll',
-  '.l....l....l.',
-  '.l...lll...l.',
-  '.l....l....l.',
-  'llnlllnlllnll',
-  '.f....f....f.',
+  '...Q.............',
+  '..QpQ............',
+  '.QpXpQ........Q..',
+  '..QpQ.......QQQ..',
+  '...Q......QpXpQ..',
+  '...l.......QQQ...',
+  '..nln.......Q....',
+  '...ln......l.....',
+  '...l.......l.....',
+  '...l......nl.....',
+  '..llf......llf...',
+  '..fff......fff...',
 ]);
 
 /**
- * Amanita cluster — one per two hours of focus, up to three. A big cap with
- * two small companions, gill lines under every cap, spots that avoid the rim.
+ * Amanita cluster — one per two hours of focus, up to three. A big outlined
+ * cap with a small companion behind, gill lines under every cap, spots that
+ * avoid the rim, and a shared soil shadow.
  */
 export const SPRITE_MUSHROOMS = makeSprite([
-  '...MMM..........',
-  '.MmMMMmM........',
-  'MmMMMMMMm.......',
-  'MMMmMMMMM.......',
-  '.MMMMMMM........',
-  '..NNNNN.MMM.....',
-  '...NN...MmM.....',
-  '...NN...NNN..MMM',
-  '...ss....N...MmM',
-  '..ssss...N...NNN',
-  '.ffffff..ff..ff.',
+  '....KKKKK......',
+  '..KKMmMMMKK....',
+  '.KMmMMmMMMMK...',
+  '.KMMMMmMMMMK...',
+  '..KKKKKKKKK....',
+  '....KNNNK..KKK.',
+  '....KNNNK.KMMmK',
+  '....KNNNK..KKK.',
+  '..f.KNNNK..KNK.',
+  '.ff.KKKKK..KKK.',
+  '.ffff.....ffff.',
 ]);
 
-/** One moss-topped boulder. */
+/** One moss-topped boulder — outlined, moonlit from the left. */
 export const SPRITE_ROCK = makeSprite([
-  '...GGHH....',
-  '..GGeEer...',
-  '.eEerrrR...',
-  'eEerrrrRR..',
-  'errrrrRRRR.',
-  'rrrrrRRRRR.',
-  '.rRRRRRRR..',
-  '..RRRRRR...',
+  '...KKKKKK...',
+  '..KGGeEErK..',
+  '.KGerrreRRK.',
+  'KeerrrrRRRRK',
+  'KerrrrrRRRRK',
+  'KrrrrrRRRRRK',
+  '.KrrrRRRRRK.',
+  '..KKKKKKKK..',
 ]);
 
-/** A scatter of three stones. */
+/** A scatter of three stones — one large, one small, one pebble. */
 export const SPRITE_ROCKS = makeSprite([
-  '....EE......ee....',
-  '..EGeEerr..eer....',
-  '.eEerrrRRr.errR...',
-  'eErrrrrRRRrrrRRR..',
-  'errrrrRRRRRrrrRRR.',
-  'rrrrrRRRRRR.RRRRR.',
-  '.rRRRRRRRRR..RRRR.',
-  '..RRRRRRRR....RRR.',
+  '...KKKKK..........',
+  '..KGeEerK.........',
+  '.KGerrrRK...KKK...',
+  'KGeerrrRRK..KeEK..',
+  'KerrrrrRRRK.KerRK.',
+  'KrrrrrRRRRK..KrK..',
+  '.KrrrRRRRRK..KKK..',
+  '..KKKKKKKKK..KKK..',
+  '.f..fff......fff..',
 ]);
 
 /** A stacked cairn — six hours of depth, four stones, balanced off-centre. */
 export const SPRITE_CAIRN = makeSprite([
-  '....ee....',
-  '...eEer...',
-  '...errR...',
-  '...rrRR...',
-  '..eEEer...',
-  '.eEerrrR..',
-  '.errrRRR..',
-  '.rrrRRRR..',
-  '...eeEEe..',
-  '..eEerrrR.',
-  '..errrRRR.',
-  '..rrRRRRR.',
-  '.RRRRRRRR.',
+  '.....KKKK...',
+  '....KeEeK...',
+  '....KerrK...',
+  '...KKKKKK...',
+  '..KeEEerRK..',
+  '..KerrrRRK..',
+  '..KrrrRRRK..',
+  '.KKKKKKKKK..',
+  '.KeEEerrrRK.',
+  '.KerrrRRRRK.',
+  '.KrrrRRRRRK.',
+  'KKKKKKKKKKK.',
+  'KeEErrrrRRRK',
+  'KKKKKKKKKKKK',
+  '.ffffffffff.',
 ]);
 
-/** The focus lantern at rest — a small flame in the glass. */
+/** The focus lantern at rest — a small flame in the glass, hook on top. */
 export const SPRITE_LANTERN = makeSprite([
-  '....I....',
-  '...III...',
-  '..IIIII..',
-  '.IqqqqqI.',
-  '.IqqZqqI.',
-  '.IqqZqqI.',
-  '.IqqqqqI.',
-  '..IIIII..',
-  '....I....',
-  '....I....',
-  '....I....',
-  '...III...',
-  '..IIIII..',
-  '.IIIIIII.',
+  '.....K.....',
+  '....KIK....',
+  '..KKIIIKK..',
+  '.KeIIIIIeK.',
+  '..KIqqqIK..',
+  '..KIqZqIK..',
+  '..KIqZqIK..',
+  '..KIqqqIK..',
+  '..KIqqqIK..',
+  '..KIIIIIK..',
+  '...KeIeK...',
+  '...KIIIK...',
+  '....KKK....',
 ]);
 
 /** The focus lantern while a block runs — the glass burns full. */
 export const SPRITE_LANTERN_LIT = makeSprite([
-  '....I....',
-  '...III...',
-  '..IIIII..',
-  '.IqZZZqI.',
-  '.IqZZZqI.',
-  '.IqZZZqI.',
-  '.IqqqqqI.',
-  '..IIIII..',
-  '....I....',
-  '....I....',
-  '....I....',
-  '...III...',
-  '..IIIII..',
-  '.IIIIIII.',
+  '.....K.....',
+  '....KIK....',
+  '..KKIIIKK..',
+  '.KeIIIIIeK.',
+  '..KIqZqIK..',
+  '..KIZZZIK..',
+  '..KIZZZIK..',
+  '..KIZZZIK..',
+  '..KIqZqIK..',
+  '..KIIIIIK..',
+  '...KeIeK...',
+  '...KIIIK...',
+  '....KKK....',
 ]);
 
 /**
- * A fallen log, cut face to the left: growth rings on the face, bark cracks
- * down the body, moss along the spine, one small tenant on top.
+ * A fallen log, cut face to the left: an outlined face with growth rings,
+ * bark cracks down the body, moss along the spine, one small tenant on top.
  */
 export const SPRITE_LOG = makeSprite([
-  '.........HHMmM......',
-  'rreeUUVUUVVVUUVVVUV.',
-  'rUVUVVKVVKVVVKVVKVVK',
-  'rUVUVVKVVKVVwKVVKVVK',
-  'rUVUVVKVVKVVwKVVKVVK',
-  'rUVUVVKVVKVVVKVVKVVK',
-  '.rreVVVVVVVVVVVVVVV.',
-  '..WWWWWWWWWWWWWWWWW.',
-  '...SSSSSSSSSSSSSSS..',
+  '.............MmM....',
+  '....GGGGHGG..KN.....',
+  'KeeUVUVKVVKVVKVVKVVK',
+  'KeUVVVKVVKVVwKVKVVKV',
+  'KeUVVVKVVKVVKVVKVVKV',
+  'KeUVVVKVVKVVKVVKVVKV',
+  'KeeUVUVVVUVVUUVVUVKK',
+  '.KKKKKKKKKKKKKKKKKK.',
 ]);
 
-/** A cut stump — rings on the face, bark streaks down the side, roots flaring. */
+/** A cut stump — an outlined wood-ring face, bark streaks, roots flaring. */
 export const SPRITE_STUMP = makeSprite([
-  '...reeeer....',
-  '..rEUUUUer...',
-  '.rUUVVUUVeR..',
-  '.rUVVUUUUVeR.',
-  '.rUUUUUUUeR..',
-  '.VVVVVVVVVVR.',
-  '.VVtVVtVVVVR.',
-  '.VVVVtVVVVVR.',
-  'VVVVVVVVVVVRR',
-  'VtVVVVVVVtVRR',
-  '.SSSSSSSSSSS.',
+  '...KKKKKKK...',
+  '..KeuwwwueK..',
+  '.KeuwutwueK..',
+  '.KuuwutwuuK..',
+  '.KeuuuuuueK..',
+  '.KVtVVtVVVtK.',
+  '.KVVVtVVVVK..',
+  'KVtVVVVVVVKKK',
+  'KVtVVVVVVVVKK',
+  '..ffffffffff.',
 ]);
 
 /** A young fern — fronds arcing out of a soil-cupped crown. */
 export const SPRITE_FERN = makeSprite([
-  '.n.........n.',
-  '.nJ.......nJ.',
+  '.J....l....J.',
+  '.nJ...l...Jn.',
   '..nJ..l..Jn..',
-  '..nJ.nJn.Jn..',
-  '...nJnJnJn...',
-  '....nJnJn....',
-  '....JHJ......',
-  '...HHJHH.....',
+  '..lnJ.l.Jnl..',
+  '...nlJlJln...',
+  '....lJlJl....',
+  '....JlJlJ....',
+  '...JHJlJHJ...',
   '...xysxy.....',
-  '..sxxxyxs....',
 ]);
 
-/** A wooden bench — three legs, two slats, a top rail, seen head-on. */
+/** A garden bench — two rails, three posts, a seat, and three feet. */
 export const SPRITE_BENCH = makeSprite([
-  '.UUUUUUUUUUUUUUUUUUUUUU.',
-  '.VVVVVVVVVVVVVVVVVVVVVV.',
-  '...VV.......VV.......VV.',
-  '...VV.......VV.......VV.',
-  '...VV.......VV.......VV.',
-  '...VV.......VV.......VV.',
-  'UUUUUUUUUUUUUUUUUUUUUUUU',
-  'VVVVVVVVVVVVVVVVVVVVVVVV',
-  'UUUUUUUUUUUUUUUUUUUUUUUU',
-  '...VV.......VV.......VV.',
-  '...VV.......VV.......VV.',
-  '...WW.......WW.......WW.',
+  '..KKKKKKKKKKKKKKKKKKKK..',
+  '.KUUUUUUUUUUUUUUUUUUUUK.',
+  '.KVVVVVVVVVVVVVVVVVVVVK.',
+  '.K.VVV.....VVV....VVV.K.',
+  '.K.VVV.....VVV....VVV.K.',
+  '.K.VVV.....VVV....VVV.K.',
+  '.K.VVV.....VVV....VVV.K.',
+  'KUUUUUUUUUUUUUUUUUUUUUUK',
+  'KVVVVVVVVVVVVVVVVVVVVVVK',
+  '.K.VVV.....VVV....VVV.K.',
+  '.K.VVV.....VVV....VVV.K.',
+  '.K.VVV.....VVV....VVV.K.',
+  '...WWW.....WWW....WWW...',
 ]);
 
 /**
  * The signpost's post — the arrow plates that carry one project each are drawn
- * as data beside it (`garden-scene`), so the count is live, not painted.
+ * as data beside it (`garden-scene`), so the count is live, not painted. A
+ * pointed cap, bark-grained post, and a flared foot.
  */
 export const SPRITE_SIGNPOST = makeSprite([
-  '......VVV......',
-  '.....VVVVV.....',
-  '.....VvUVV.....',
-  '.....VUVVV.....',
-  '.....VVVVV.....',
-  '.....VvVVV.....',
-  '.....VVVVV.....',
-  '.....VUVVV.....',
-  '.....VVVVV.....',
-  '.....VvVVV.....',
-  '.....VVVVV.....',
-  '.....VUVVV.....',
-  '.....VVVVV.....',
-  '.....VvVVV.....',
-  '.....VVVVV.....',
-  '.....VUVVV.....',
-  '....VVVVVVV....',
-  '...VVVVVVVVV...',
-  '..VVVVVVVVVVV..',
-  '.sWWWWWWWWWWWs.',
+  '.......K.......',
+  '......KVK......',
+  '.....KVtVK.....',
+  '.....KutuK.....',
+  '.....KutvK.....',
+  '.....KvuUK.....',
+  '.....KutuK.....',
+  '.....KvtvK.....',
+  '.....KuUuK.....',
+  '.....KvtuK.....',
+  '.....KutvK.....',
+  '.....KvuUK.....',
+  '.....KutuK.....',
+  '.....KvtvK.....',
+  '.....KuUuK.....',
+  '.....KvtuK.....',
+  '.....KutuK.....',
+  '....KuuttvK....',
+  '...KuuttttvK...',
+  '...fffffffff...',
 ]);
 
 /** The sparrow, perched — the 5-day streak visitor. Frame A: at rest. */
 export const SPRITE_BIRD = makeSprite([
-  '...AA.....',
-  '..AAAA....',
-  '..AKAA....',
-  '..AaaAAY..',
-  'AAAaaaAA..',
-  '.AAbaaAA..',
-  '.AAaaaAA..',
-  '..AAAAA...',
-  '...A.A....',
+  '...KKK....',
+  '..KAAAK...',
+  '..KAKAAK..',
+  '..KAAAAKY.',
+  '.KAbaAAAK.',
+  '.KAaaaAAK.',
+  '.KAAAAAK..',
+  '..KKKKK...',
   '...K.K....',
 ]);
 
 /** Frame B: the head comes up, the beak points at the sky. */
 export const SPRITE_BIRD_LOOK = makeSprite([
-  '...AAAY...',
-  '..AAAA....',
-  '..AKAA....',
-  '..AaaAA...',
-  'AAAaaaAA..',
-  '.AAbaaAA..',
-  '.AAaaaAA..',
-  '..AAAAA...',
-  '...A.A....',
+  '...KKKY...',
+  '..KAAAK...',
+  '..KAKAAK..',
+  '..KAAAAK..',
+  '.KAbaAAAK.',
+  '.KAaaaAAK.',
+  '.KAAAAAK..',
+  '..KKKKK...',
   '...K.K....',
+  '..........',
 ]);
 
 /** Frame C: a peck — the beak drops to the ground line. */
 export const SPRITE_BIRD_PECK = makeSprite([
-  '...AA.....',
-  '..AAAA....',
-  '..AKAA....',
-  '..AaaaAAY.',
-  '.AAaaaaA..',
-  '.AAAaaAA..',
-  '..AAAAA...',
-  '...A.A....',
+  '...KKK....',
+  '..KAAAK...',
+  '..KAKAAK..',
+  '..KAAAAKY.',
+  '.KAbaaAAK.',
+  '.KAAAaAK..',
+  '..KAAAK...',
+  '...K.K....',
   '...K.K....',
   '..........',
 ]);
@@ -529,37 +536,39 @@ export const SPRITE_BUTTERFLY_CLOSED = makeSprite([
   '...K...',
 ]);
 
-/** Cattails at the pond's edge — two seed heads, leaves leaning out. */
+/** Cattails at the pond's edge — two brown seed heads over leaned leaves. */
 export const SPRITE_REEDS = makeSprite([
-  '..u...u..',
-  '.uu..uu..',
-  '.uu..uu..',
-  '..V...V..',
-  '.nV.V.Vn.',
-  'n.V.n.V.n',
-  '.nV.n.Vn.',
-  '..V.n.V..',
-  '.nV.V.Vn.',
-  '..V...V..',
-  '..V...V..',
-  '..x...x..',
+  '..u....u..',
+  '..uu...uu.',
+  '..uu...uu.',
+  '..uu...uu.',
+  '..V....V..',
+  '..V..n.V..',
+  '.nV....Vn.',
+  '.nV..n.V..',
+  '..V.n..Vn.',
+  '..V....V..',
+  '..V...nV..',
+  '..x....x..',
+  '..x....x..',
 ]);
 
-/** A lily pad on the pond. */
+/** A lily pad on the pond — round, notched, lit from the upper left. */
 export const SPRITE_LILYPAD = makeSprite([
-  '....G....',
-  '..GGJGG..',
-  '.GGJJJGG.',
-  '..GGJGG..',
-  '....G....',
+  '..GGGG...',
+  '.GJJGGG..',
+  '.GJJGGGG.',
+  '..GGGGG..',
+  '...GGG...',
 ]);
 
 /** A lily pad in flower — the pond earns it too. */
 export const SPRITE_LILYPAD_FLOWER = makeSprite([
   '....F....',
   '...FYF...',
-  '..GGGYGG.',
-  '..GGJGG..',
+  '....F....',
+  '..GGGGG..',
+  '.GGJJGGG.',
   '...GGG...',
 ]);
 

@@ -11,13 +11,15 @@
  *      root base that grips the ground line;
  *   2. recursive limbs — tapering strokes, fanned two or three ways a level —
  *      whose tips carry the canopy;
- *   3. foliage clumps, back ones darker than front ones, each banded toward
- *      the top-left light with dithered band boundaries; where a front clump
- *      crosses an older one its lower-right rim paints **contact shadow**, so
- *      the crown reads as overlapping masses rather than a blob;
- *   4. one shared silhouette outline around every leaf pixel, which unifies
- *      the clumps into a single crown;
- *   5. sun-kissed sparkles, and — past 82% growth — blossom on the lit side.
+ *   3. foliage clumps, back ones darker than front ones, each a clean disc
+ *      whose tone bands step toward the top-left moonlight; band boundaries
+ *      are dithered only where two bands meet, so the crown reads as crisp
+ *      masses rather than confetti;
+ *   4. where a later clump crosses an older one, its lower-right rim paints
+ *      contact shadow, so the crown reads as overlapping puffs;
+ *   5. the crown's bottom edge gets a shared under-shade, one shared
+ *      silhouette outline unifies the clumps into a single crown, and — past
+ *      82% growth — blossom opens on the lit side.
  *
  * Pure math on a char buffer: no react-native, no react, fully deterministic.
  * The same (seed, growth) always grows the same tree, and growth only crosses
@@ -70,7 +72,7 @@ export type PixelTree = {
   topRow: number;
 };
 
-/** The foliage clump: tone bands toward the top-left light, dithered seams. */
+/** The foliage clump: clean tone bands toward the top-left light. */
 function stampClump(
   buf: Buffer,
   cx: number,
@@ -80,7 +82,7 @@ function stampClump(
   front: boolean,
 ): void {
   const r = Math.max(2.6, radius);
-  const reach = Math.ceil(r + 1.6);
+  const reach = Math.ceil(r + 1.4);
   for (let dy = -reach; dy <= reach; dy += 1) {
     for (let dx = -reach; dx <= reach; dx += 1) {
       const x = Math.round(cx + dx);
@@ -88,29 +90,30 @@ function stampClump(
       if (x < 0 || x >= SIZE_W || y < 0 || y >= SIZE_H) continue;
       const nx = dx / r;
       const ny = dy / r;
-      const noise = (wobble(x, y, seed) - 0.5) * 0.34;
+      // A gentle edge wobble keeps the disc organic without shredding it.
+      const noise = (wobble(x, y, seed) - 0.5) * 0.2;
       const d = Math.sqrt(nx * nx + ny * ny) + noise;
-      if (d > 1.12) continue;
+      if (d > 1.1) continue;
       const existing = buf[y][x];
       // t > 0 means "toward the top-left light"; the light vector is biased
       // vertical because the moon sits high.
-      const t = -ny * 0.86 - nx * 0.44 + noise * 0.5;
+      const t = -ny * 0.88 - nx * 0.46 + noise * 0.35;
       let ch: string;
       if (front) {
-        if (t > 0.62) ch = 'J';
-        else if (t > 0.3) ch = t > 0.44 ? (x + y) % 2 === 0 ? 'J' : 'H' : 'H';
-        else if (t > -0.16) ch = t > -0.02 ? (x + y) % 2 === 0 ? 'H' : 'G' : 'G';
-        else if (t > -0.55) ch = 'L';
+        if (t > 0.58) ch = 'J';
+        else if (t > 0.26) ch = (x + y) % 2 === 0 && t > 0.4 ? 'J' : 'H';
+        else if (t > -0.12) ch = t > 0.04 && (x + y) % 2 === 0 ? 'H' : 'G';
+        else if (t > -0.5) ch = 'L';
         else ch = 'D';
       } else {
         if (t > 0.5) ch = 'H';
-        else if (t > 0.05) ch = 'G';
-        else if (t > -0.4) ch = 'L';
+        else if (t > 0.04) ch = 'G';
+        else if (t > -0.42) ch = 'L';
         else ch = 'D';
       }
       // Contact shadow: where this clump crosses an older one, its lower rim
       // goes darkest so the two masses separate.
-      if (LEAF_CHARS.has(existing) && t < -0.28) {
+      if (LEAF_CHARS.has(existing) && t < -0.26) {
         buf[y][x] = 'O';
         continue;
       }
@@ -131,7 +134,7 @@ export function growPixelTree(seed: number, growth: number): PixelTree {
   const trunkLength = 11 + 17 * growth;
   const trunkHalfWidth = 1.4 + 2.9 * growth;
   const maxDepth = growth < 0.15 ? 1 : growth < 0.32 ? 2 : growth < 0.58 ? 3 : 4;
-  const clumpRadius = 3.6 + 3.9 * growth;
+  const clumpRadius = 3.4 + 4.1 * growth;
 
   let topRow = TREE_BASELINE;
   let forkRow = TREE_BASELINE;
@@ -216,35 +219,40 @@ export function growPixelTree(seed: number, growth: number): PixelTree {
   setPx(buf, knotCol, knotRow + 1, 't');
   setPx(buf, knotCol + 1, knotRow + 1, 'T');
 
-  // Root flare: knuckles that widen the base where it meets the soil.
-  const baseW = Math.max(2, Math.round(trunkHalfWidth * 1.4));
+  // Root flare: knuckles that widen the base where it meets the soil, stepped
+  // so it reads as roots gripping the ground rather than a painted slab.
+  const baseW = Math.max(2, Math.round(trunkHalfWidth * 1.15) + 1);
   for (let col = TREE_CENTRE - baseW; col <= TREE_CENTRE + baseW; col += 1) {
-    setPx(buf, col, TREE_BASELINE, 'u');
+    const edge = col === TREE_CENTRE - baseW || col === TREE_CENTRE + baseW;
+    setPx(buf, col, TREE_BASELINE, edge ? 'T' : 'u');
     paint(col, TREE_BASELINE);
   }
   setPx(buf, TREE_CENTRE - baseW - 1, TREE_BASELINE, 'T');
   setPx(buf, TREE_CENTRE + baseW + 1, TREE_BASELINE, 'T');
   setPx(buf, TREE_CENTRE - baseW, TREE_BASELINE, 'v');
   setPx(buf, TREE_CENTRE + baseW, TREE_BASELINE, 't');
-  setPx(buf, TREE_CENTRE - baseW + 1, TREE_BASELINE, 'v');
-  for (let row = TREE_BASELINE - 3; row < TREE_BASELINE; row += 1) {
-    setPx(buf, TREE_CENTRE - baseW, row, 't');
-    setPx(buf, TREE_CENTRE + baseW, row, 't');
-    setPx(buf, TREE_CENTRE - baseW + 1, row, row === TREE_BASELINE - 3 ? 'u' : 'v');
-    setPx(buf, TREE_CENTRE + baseW - 1, row, 't');
+  for (let row = TREE_BASELINE - 2; row < TREE_BASELINE; row += 1) {
+    const inset = row === TREE_BASELINE - 2 ? 1 : 0;
+    setPx(buf, TREE_CENTRE - baseW + inset, row, 't');
+    setPx(buf, TREE_CENTRE + baseW - inset, row, 't');
+    if (inset === 0) {
+      setPx(buf, TREE_CENTRE - baseW + 1, row, 'v');
+      setPx(buf, TREE_CENTRE + baseW - 1, row, 't');
+    }
   }
 
   // The limbs.
   grow(fork.x, fork.y, lean, trunkLength * 0.52, Math.max(1.1, trunkHalfWidth * 0.62), 1);
 
-  // The canopy: a clump on every tip, plus fillers pulled toward the crown's
-  // centre so the masses merge instead of beading. Back clumps first, front
-  // clumps last — the order is the depth. Fillers bias upward so the crown
-  // rounds instead of flattening.
-  const clumps: { x: number; y: number; front: boolean }[] = tips.map((tip) => ({
+  // The canopy: a clump on every limb tip, fillers pulled toward the crown's
+  // centre so the masses merge, and — at fuller growth — two low shoulder
+  // clumps that round the crown's underside. Back clumps paint first, front
+  // clumps last: the order is the depth.
+  const clumps: { x: number; y: number; front: boolean; r: number }[] = tips.map((tip) => ({
     x: tip.x,
     y: tip.y - 1,
     front: rand() < 0.45,
+    r: 1,
   }));
   if (clumps.length > 0) {
     const cx = clumps.reduce((sum, c) => sum + c.x, 0) / clumps.length;
@@ -252,18 +260,46 @@ export function growPixelTree(seed: number, growth: number): PixelTree {
     const fillers = growth < 0.32 ? 1 : growth < 0.58 ? 3 : 5 + (rand() < 0.5 ? 1 : 0);
     for (let i = 0; i < fillers; i += 1) {
       const a = rand() * Math.PI * 2;
-      const d = (0.25 + rand() * 0.5) * clumpRadius * 1.35;
+      const d = (0.22 + rand() * 0.46) * clumpRadius * 1.3;
       clumps.push({
         x: cx + Math.cos(a) * d,
-        y: cy + Math.sin(a) * d * 0.62 - clumpRadius * 0.24,
+        y: cy + Math.sin(a) * d * 0.62 - clumpRadius * 0.22,
         front: rand() < 0.4,
+        r: 0.9 + rand() * 0.25,
       });
+    }
+    if (growth >= 0.58) {
+      // Shoulders: low clumps left and right that round the crown's bottom
+      // and drop the outline below the limb tips, so the crown never ends in
+      // a flat shelf.
+      clumps.push({ x: cx - clumpRadius * 1.15, y: cy + clumpRadius * 0.52, front: false, r: 0.85 });
+      clumps.push({ x: cx + clumpRadius * 1.2, y: cy + clumpRadius * 0.42, front: false, r: 0.8 });
     }
   }
   // Stable paint order: seeded, back before front.
   clumps.sort((a, b) => Number(a.front) - Number(b.front) || a.x - b.x);
   for (const clump of clumps) {
-    stampClump(buf, clump.x, clump.y, clumpRadius * (0.82 + wobble(clump.x, clump.y, wobbleSeed) * 0.36), wobbleSeed + Math.round(clump.x), clump.front);
+    stampClump(
+      buf,
+      clump.x,
+      clump.y,
+      clumpRadius * clump.r * (0.86 + wobble(clump.x, clump.y, wobbleSeed) * 0.28),
+      wobbleSeed + Math.round(clump.x),
+      clump.front,
+    );
+  }
+
+  // Crown under-shade: any leaf with open ground below it darkens, so the
+  // canopy's bottom edge carries weight instead of dissolving into the sky.
+  for (let row = 0; row < SIZE_H; row += 1) {
+    for (let col = 0; col < SIZE_W; col += 1) {
+      if (!leafAt(buf, col, row)) continue;
+      const below = row + 1 < SIZE_H ? buf[row + 1][col] : '.';
+      if (below !== '.') continue;
+      const ch = buf[row][col];
+      buf[row][col] =
+        ch === 'O' || ch === 'D' ? 'O' : ch === 'L' || ch === 'G' ? 'D' : 'L';
+    }
   }
 
   // One shared silhouette: any empty pixel that touches a leaf becomes
@@ -295,8 +331,8 @@ export function growPixelTree(seed: number, growth: number): PixelTree {
       for (let col = 0; col < SIZE_W; col += 1) {
         if (buf[row][col] !== 'J') continue;
         const roll = wobble(col * 3 + 11, row * 7 + 3, wobbleSeed + 5);
-        if (roll < 0.045) buf[row][col] = 'j';
-        else if (growth >= 0.82 && roll > 0.965) buf[row][col] = rand() < 0.6 ? 'P' : 'p';
+        if (roll < 0.035) buf[row][col] = 'j';
+        else if (growth >= 0.82 && roll > 0.985) buf[row][col] = rand() < 0.4 ? 'P' : 'p';
       }
     }
   }

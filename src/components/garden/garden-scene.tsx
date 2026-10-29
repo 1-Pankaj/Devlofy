@@ -62,7 +62,7 @@ import {
 import { growPixelTree, TREE_BASELINE, TREE_CENTRE } from '@/lib/garden/tree';
 
 /** Scene units per metre of the old 3D world — maps prop radii to pixels. */
-const METER = 14;
+const METER = 20;
 /** The row the tree stands on: a touch above the clearing's centre line. */
 const TREE_ROW = CLEARING_ROW - 1;
 /** How often the world steps forward, ms. */
@@ -101,10 +101,18 @@ function propOrigin(
   const sprite = SPRITE_FOR[placement.prop];
   const reach = placement.radius * METER;
   const sine = Math.sin(placement.angle);
-  const col =
-    scenery.clearing.col + Math.cos(placement.angle) * reach - sprite.w * placement.scale * 0.5;
+  // Front props drop lower than back ones (depth), and every base sinks one
+  // pixel into the ground so nothing floats on the surface. Narrow frames
+  // clamp props into view rather than crop them at the edges.
+  const col = Math.max(
+    0,
+    Math.min(
+      scenery.width - sprite.w * placement.scale,
+      scenery.clearing.col + Math.cos(placement.angle) * reach - sprite.w * placement.scale * 0.5,
+    ),
+  );
   const row =
-    scenery.clearing.row + sine * reach * (sine > 0 ? 0.42 : 0.3) - sprite.h * placement.scale;
+    scenery.clearing.row + sine * reach * (sine > 0 ? 0.34 : 0.22) - sprite.h * placement.scale + 1;
   return { col: Math.round(col), row: Math.round(row), sprite };
 }
 
@@ -167,7 +175,7 @@ function lanternOrigin(placements: PropPlacement[], scenery: Scenery) {
   const lantern = placements.find((p) => p.prop === 'lantern');
   if (!lantern) return null;
   const { col, row } = propOrigin(lantern, scenery);
-  return { col: col + 4, row: row + 5 };
+  return { col: col + 5, row: row + 6 };
 }
 
 /** Pixel-ellipse halo around a point, as one run set. */
@@ -325,13 +333,15 @@ export function GardenScene({
     const cy = row + sprite.h / 2;
     if (scenery.mode === 'gold') {
       return [
-        { key: 'glow1', paths: runsToPaths(haloRuns(cx, cy, 16, '#FFC94A')), opacity: 0.1 },
-        { key: 'glow2', paths: runsToPaths(haloRuns(cx, cy, 24, '#FFC94A')), opacity: 0.06 },
+        { key: 'glow1', paths: runsToPaths(haloRuns(cx, cy, 13, '#FFC94A')), opacity: 0.1 },
+        { key: 'glow2', paths: runsToPaths(haloRuns(cx, cy, 19, '#FFC94A')), opacity: 0.06 },
+        { key: 'glow3', paths: runsToPaths(haloRuns(cx, cy, 26, '#FFC94A')), opacity: 0.03 },
       ];
     }
     return [
-      { key: 'glow1', paths: runsToPaths(haloRuns(cx, cy, 11, '#FFF7D9')), opacity: 0.09 },
-      { key: 'glow2', paths: runsToPaths(haloRuns(cx, cy, 17, '#FFF7D9')), opacity: 0.05 },
+      { key: 'glow1', paths: runsToPaths(haloRuns(cx, cy, 9, '#FFF7D9')), opacity: 0.08 },
+      { key: 'glow2', paths: runsToPaths(haloRuns(cx, cy, 14, '#FFF7D9')), opacity: 0.05 },
+      { key: 'glow3', paths: runsToPaths(haloRuns(cx, cy, 20, '#FFF7D9')), opacity: 0.028 },
     ];
   }, [scenery]);
 
@@ -426,7 +436,12 @@ export function GardenScene({
       const dx = live ? [0, 1, 0, -1][(Math.floor(tick / 2) + blade.phase) % 4] : 0;
       runs.push({ row: blade.row, col: blade.col + dx, len: 1, color: blade.color });
       if (blade.len > 1) {
-        runs.push({ row: blade.row - 1, col: blade.col + dx, len: 1, color: '#6FBF5E' });
+        runs.push({
+          row: blade.row - 1,
+          col: blade.col + dx + blade.lean,
+          len: 1,
+          color: '#6FBF5E',
+        });
       }
     }
     return { key: 'blades', paths: runsToPaths(runs) };
@@ -469,7 +484,7 @@ export function GardenScene({
 
   const lanternGlow = useMemo<Layer[]>(() => {
     if (!lantern) return [];
-    const pulse = focusing ? (tick % 4 < 2 ? 0.14 : 0.1) : 0.07;
+    const pulse = focusing ? (tick % 4 < 2 ? 0.13 : 0.09) : 0.06;
     const runs = [
       ...haloRuns(lantern.col, lantern.row, 5, '#FFD98A'),
       ...haloRuns(lantern.col, lantern.row, 9, '#FFD98A'),
