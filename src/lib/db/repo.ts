@@ -1095,6 +1095,67 @@ export async function setSessionBillable(
   ]);
 }
 
+/**
+ * Forget a finished block. Soft-deleted like every other user record, so an
+ * export/import round-trip and the invoice both agree it never happened —
+ * and the garden loses the minutes it had grown from it.
+ */
+export async function deleteFocusSession(db: SQLiteDatabase, id: string): Promise<void> {
+  const now = nowIso();
+  await db.runAsync(
+    'UPDATE sessions SET deleted_at = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL',
+    [now, now, id],
+  );
+}
+
+/**
+ * Move a finished block to another project (or out of one, with `null`).
+ * Billable follows the destination's rate exactly as if the block had started
+ * there, so the invoice can never disagree with the log.
+ */
+export async function moveFocusSession(
+  db: SQLiteDatabase,
+  id: string,
+  projectId: string | null,
+): Promise<void> {
+  let billable = 0;
+  if (projectId) {
+    const rate = await resolveProjectRate(db, projectId);
+    billable = rate === null ? 0 : 1;
+  }
+  const now = nowIso();
+  await db.runAsync(
+    'UPDATE sessions SET project_id = ?, billable = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL',
+    [projectId, billable, now, id],
+  );
+}
+
+/**
+ * A block measured by hand — the timer missed it (app closed, phone died), but
+ * the work happened. Filed as a finished focus session from `startedAt` for
+ * `minutes`, so the ledger, the garden and the invoice read it like any other.
+ */
+export async function createManualSession(
+  db: SQLiteDatabase,
+  options: { minutes: number; startedAt: Date; projectId?: string | null },
+): Promise<string> {
+  const id = createId();
+  const now = nowIso();
+  const startedAt = options.startedAt.toISOString();
+  const endedAt = new Date(options.startedAt.getTime() + options.minutes * 60_000).toISOString();
+  let billable = 0;
+  if (options.projectId) {
+    const rate = await resolveProjectRate(db, options.projectId);
+    billable = rate === null ? 0 : 1;
+  }
+  await db.runAsync(
+    `INSERT INTO sessions (id, project_id, kind, started_at, ended_at, minutes, billable, created_at, updated_at)
+     VALUES (?, ?, 'focus', ?, ?, ?, ?, ?, ?)`,
+    [id, options.projectId ?? null, startedAt, endedAt, options.minutes, billable, now, now],
+  );
+  return id;
+}
+
 // ─────────────────────────────── Search ───────────────────────────────
 
 export type SearchHit = {

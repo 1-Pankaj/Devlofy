@@ -111,7 +111,7 @@ def build():
     mark = night_mark(56 * S)
     card.paste(mark, (88 * S, 72 * S), mark)
     draw.text((160 * S, 100 * S), "Devlofy", font=font(27, 700, 24), fill=INK, anchor="lm")
-    draw.text((298 * S, 101 * S), "v0.8.0", font=font(15, 500, 24), fill=SUBTLE, anchor="lm")
+    draw.text((298 * S, 101 * S), "v0.10.0", font=font(15, 500, 24), fill=SUBTLE, anchor="lm")
 
     mono = font(12.5, 500)
     release = "ANDROID + WEB  ·  MIT  ·  OFFLINE-FIRST"
@@ -150,7 +150,7 @@ def build():
     label = font(10.5, 500)
     for index, (value, caption) in enumerate(
         [
-            ("482", "KNOWN-ANSWER CHECKS"),
+            ("650", "KNOWN-ANSWER CHECKS"),
             ("11", "OFFLINE BENCH TOOLS"),
             ("0", "BACKEND SERVICES"),
         ]

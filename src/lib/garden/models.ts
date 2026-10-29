@@ -1,24 +1,25 @@
 /**
- * Blender-authored garden models — one GLB per growth stage
- * (authored in-session; source of truth: `tools/blender/garden_models.py`,
- * see docs/05-blender-pipeline.md).
+ * Garden stages — the growth ladder, shared by the Garden tab and the Today
+ * teaser.
  *
- * Five stages: seed → sprout → sapling → young → canopy. Loaded lazily,
- * cached per variant, cloned per consumer so the Today teaser and the Garden
- * tab never share scene-graph objects. Any failure simply leaves the
- * procedural tree on screen.
+ * Five stages: seed → sprout → sapling → young → canopy. The first two are
+ * hand-authored sprites (`sprites.ts`); the last three are grown by the
+ * procedural pixel tree (`tree.ts`), which regenerates only when growth
+ * crosses a 5% bucket. In the 3D days this file lazily loaded one Blender GLB
+ * per stage; the pixel garden needs no assets and no loading state at all.
  */
-import type { Group } from 'three';
 
-import canopyModule from '@/assets/models/garden-canopy.glb';
-import saplingModule from '@/assets/models/garden-sapling.glb';
-import seedModule from '@/assets/models/garden-seed.glb';
-import sproutModule from '@/assets/models/garden-sprout.glb';
-import youngModule from '@/assets/models/garden-young.glb';
-import { growthFromStats, type GrowthInput } from '@/lib/garden/model';
-import { loadGltf, type GltfAssetModule } from '@/lib/three/load-model';
+import { growthFromStats, type GrowthInput } from './model';
 
 export type GardenVariant = 'seed' | 'sprout' | 'sapling' | 'young' | 'canopy';
+
+export const GARDEN_VARIANTS: readonly GardenVariant[] = [
+  'seed',
+  'sprout',
+  'sapling',
+  'young',
+  'canopy',
+];
 
 /** Growth → variant buckets, matching the stage math in `lib/garden/model.ts`. */
 export function variantForGrowth(growth: number): GardenVariant {
@@ -49,24 +50,4 @@ export function stageFromStats(input: GrowthInput): {
   const growth = growthFromStats(input);
   const variant = variantForGrowth(growth);
   return { growth, variant, label: STAGE_LABEL[variant] };
-}
-
-const MODULES: Record<GardenVariant, GltfAssetModule> = {
-  seed: seedModule,
-  sprout: sproutModule,
-  sapling: saplingModule,
-  young: youngModule,
-  canopy: canopyModule,
-};
-
-const cache = new Map<GardenVariant, Promise<Group>>();
-
-/** Resolves to the shared scene graph — clone it before rendering. */
-export function loadVariant(variant: GardenVariant): Promise<Group> {
-  let entry = cache.get(variant);
-  if (!entry) {
-    entry = loadGltf(MODULES[variant]);
-    cache.set(variant, entry);
-  }
-  return entry;
 }

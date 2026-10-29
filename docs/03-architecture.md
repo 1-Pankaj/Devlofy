@@ -26,7 +26,6 @@ created: 2026-10-17
 **Pure TypeScript core + thin platform files.** Metro resolves platform files automatically; the core never imports platform-specific libraries.
 
 Examples in the repo:
-- `src/lib/three/index.native.ts` → `@react-three/fiber/native`; `index.web.ts` → `@react-three/fiber`. Scene code imports `@/lib/three` and runs unchanged.
 - `src/lib/storage.native.ts` → `expo-sqlite/kv-store`; `storage.web.ts` → `localStorage`; `storage.ts` is the type anchor/fallback.
 - `src/lib/sentinel/probe.ts` (native) reads a real HTTP status; `probe.web.ts` cannot — a browser hides every cross-origin response behind an opaque one — so it reports reachable-or-not and how long it took. Both return the same `CheckFacts`, so the verdict logic never learns which runtime it is on: it only *records* it, and the board labels a web result "reachable" rather than "up" ([[07-decisions]] ADR-023).
 
@@ -116,7 +115,7 @@ src/
   theme/                  # colors, spacing, radius, typography, motion, shadows, provider
 ```
 
-Beside `src/`: `tools/blender/` holds the re-runnable scripts that `assets/models/*.glb` were generated from (trees *and* props — the code kit is the exception, it has no Blender source), and `tools/preview/` is the GPU-less renderer and invariant check for the 3D kit below.
+Beside `src/`: `tools/checks/` runs the known-answer suites (`npm run self-check`) and `tools/brand/` generates the app icon and OG image from one source mark. The garden needs no asset tooling — it is generated ([[05-pixel-garden]]).
 
 The app icon is generated, not hand-cut: `tools/brand/make-icons.py` reads the one source mark (`assets/brand/devlofy-logo.png`) and writes the four files `app.json` names, un-mixing each pixel back to its flat colour so edges keep no white halo. It asserts the things the stores and launchers actually check — no alpha channel on the 1024 icon, every pixel inside Android's 72/108 dp mask circle, one-colour monochrome — and fails the run if one slips. Re-run it after changing the logo; never edit the derived PNGs.
 
@@ -128,7 +127,7 @@ npx expo start --android       # Android device via Expo Go / dev client
 npm run check                  # typecheck + lint + the four known-answer suites — must be clean
 npx tsc --noEmit               # typecheck alone
 npx eslint .                   # lint alone
-bash tools/checks/self-check.sh # the pure-module suites alone (482 checks)
+bash tools/checks/self-check.sh # the pure-module suites alone (650 checks)
 npx expo export --platform web # deployable web build (dist/)
 npx expo-doctor                # dependency health
 ```

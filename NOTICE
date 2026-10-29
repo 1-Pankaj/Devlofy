@@ -13,8 +13,7 @@ templates (https://github.com/expo/expo), which are:
 The agent skills under `.agents/skills/` are vendored from the Expo skills
 repository (MIT, Copyright (c) 2025-present 650 Industries, Inc. (aka Expo))
 and the taste-skill project (MIT, Copyright (c) 2026 Leonxlnx). Both notices
-in full, and the per-skill mapping, are in `.agents/skills/LICENSE`. One skill
-(`graphify`) carries no recorded upstream or licence; see that file. The skills
+in full, and the per-skill mapping, are in `.agents/skills/LICENSE`. The skills
 are development tooling: nothing under `src/` imports them, and they are not
 part of the shipped app.
 

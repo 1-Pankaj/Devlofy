@@ -12,7 +12,7 @@
  */
 import * as Haptics from 'expo-haptics';
 import { useSQLiteContext } from 'expo-sqlite';
-import { Play, Stop, Timer } from 'phosphor-react-native';
+import { Play, Plus, Stop, Timer, Trash } from 'phosphor-react-native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View } from 'react-native';
 
@@ -21,7 +21,9 @@ import { ProjectChips } from '@/components/focus/project-chips';
 import { RhythmCard } from '@/components/focus/rhythm-card';
 import { GardenScene } from '@/components/garden/garden-scene';
 import { AnimatedNumber } from '@/components/ui/animated-number';
+import { AppButton } from '@/components/ui/app-button';
 import { AppText } from '@/components/ui/app-text';
+import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { emptyArt } from '@/components/ui/empty-art';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
@@ -37,17 +39,23 @@ import { Screen } from '@/components/ui/screen';
 import { SectionHeader } from '@/components/ui/section';
 import { FadeUp } from '@/components/ui/stagger';
 import { Stat, StatRow } from '@/components/ui/stat';
+import { TextField } from '@/components/ui/text-field';
 import { useLiveQuery } from '@/lib/db/hooks';
 import {
   countActiveProjects,
+  createManualSession,
+  deleteFocusSession,
   endFocusSession,
   focusMinutesByDay,
   getActiveSession,
   getFocusStreakDays,
+  listProjects,
   listRecentSessions,
+  moveFocusSession,
   startFocusSession,
   todayFocusMinutes,
   totalFocusMinutes,
+  type SessionRow,
 } from '@/lib/db/repo';
 import { useEngine } from '@/lib/engine';
 import { hashString } from '@/lib/garden/model';
@@ -59,7 +67,12 @@ import { useSettings } from '@/state/settings';
 import { radius, spacing, useTheme } from '@/theme';
 
 const BLOCKS = [25, 50, 90] as const;
-type Block = (typeof BLOCKS)[number];
+/** A hand-picked block length must live between five minutes and four hours. */
+const MIN_CUSTOM_BLOCK = 5;
+const MAX_CUSTOM_BLOCK = 240;
+/** The manual-entry form accepts one long block at most — the same ceiling the
+ *  timer itself enforces when a session is closed out (see `endFocusSession`). */
+const MAX_SESSION_MINUTES_LOG = 720;
 
 /**
  * The HUD sits on the 3D stage, not on a themed surface, so it carries its own
@@ -86,16 +99,25 @@ export default function GardenScreen() {
   const history = useLiveQuery((d) => listRecentSessions(d, 6));
   const rhythm = useLiveQuery((d) => focusMinutesByDay(d, 84));
   const projects = useLiveQuery(countActiveProjects);
+  const allProjects = useLiveQuery((d) => listProjects(d));
   const engine = useEngine();
   const { refresh: refreshEngine } = engine;
   const focusProjectId = useSettings((s) => s.focusProjectId);
+  const block = useSettings((s) => s.focusBlockMinutes);
+  const setBlock = useSettings((s) => s.setFocusBlockMinutes);
 
-  const [block, setBlock] = useState<Block>(25);
-  const [nowTick, setNowTick] = useState(() => Date.now());
+  const [customOpen, setCustomOpen] = useState(false);
+  const [customDraft, setCustomDraft] = useState('');
+  const [sheetSession, setSheetSession] = useState<SessionRow | null>(null);
+  const [manualOpen, setManualOpen] = useState(false);
+  const [manualMinutes, setManualMinutes] = useState('');
+  const [manualProjectId, setManualProjectId] = useState<string | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [starting, setStarting] = useState(false);
   const [ending, setEnding] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const autoEndingRef = useRef(false);
+  const [nowTick, setNowTick] = useState(() => Date.now());
 
   const active = session.data ?? null;
   const startedAt = active?.started_at ?? null;
@@ -157,6 +179,72 @@ export default function GardenScreen() {
       setEnding(false);
     }
   }, [active, db, ending, refreshAll]);
+
+  /** A hand-picked length: clamped, stored, and the next block uses it. */
+  const applyCustomBlock = useCallback(() => {
+    const parsed = Number.parseInt(customDraft, 10);
+    if (Number.isNaN(parsed)) {
+      setCustomOpen(false);
+      return;
+    }
+    const clamped = Math.min(MAX_CUSTOM_BLOCK, Math.max(MIN_CUSTOM_BLOCK, parsed));
+    setBlock(clamped);
+    setCustomOpen(false);
+    Haptics.selectionAsync().catch(() => {});
+  }, [customDraft, setBlock]);
+
+  const handleMove = useCallback(
+    async (row: SessionRow, projectId: string | null) => {
+      setProblem(null);
+      try {
+        await moveFocusSession(db, row.id, projectId);
+        Haptics.selectionAsync().catch(() => {});
+        await refreshAll();
+        setSheetSession(null);
+      } catch (error) {
+        setProblem(messageOf(error));
+      }
+    },
+    [db, refreshAll],
+  );
+
+  const handleDelete = useCallback(
+    async (row: SessionRow) => {
+      setProblem(null);
+      try {
+        await deleteFocusSession(db, row.id);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+        await refreshAll();
+        setSheetSession(null);
+        setConfirmingDelete(false);
+      } catch (error) {
+        setProblem(messageOf(error));
+      }
+    },
+    [db, refreshAll],
+  );
+
+  const handleManualSave = useCallback(async () => {
+    const parsed = Number.parseInt(manualMinutes, 10);
+    if (Number.isNaN(parsed) || parsed < 1 || parsed > MAX_SESSION_MINUTES_LOG) {
+      setProblem('A hand-logged block needs a number of minutes between 1 and 720.');
+      return;
+    }
+    setProblem(null);
+    try {
+      await createManualSession(db, {
+        minutes: parsed,
+        startedAt: new Date(),
+        projectId: manualProjectId,
+      });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      await refreshAll();
+      setManualOpen(false);
+      setManualMinutes('');
+    } catch (error) {
+      setProblem(messageOf(error));
+    }
+  }, [db, manualMinutes, manualProjectId, refreshAll]);
 
   // The block closes itself out — end at zero, exactly once.
   useEffect(() => {
@@ -334,16 +422,59 @@ export default function GardenScreen() {
 
                   <View style={{ gap: spacing.xs }}>
                     <Eyebrow>block length</Eyebrow>
-                    <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
                       {BLOCKS.map((minutes) => (
                         <FormChip
                           key={minutes}
                           label={`${minutes}m`}
                           active={minutes === block}
-                          onPress={() => setBlock(minutes)}
+                          onPress={() => {
+                            setCustomOpen(false);
+                            setBlock(minutes);
+                          }}
                         />
                       ))}
+                      {!BLOCKS.includes(block as (typeof BLOCKS)[number]) ? (
+                        <FormChip
+                          label={`${block}m`}
+                          active
+                          onPress={() => setCustomOpen(false)}
+                        />
+                      ) : null}
+                      <FormChip
+                        label="custom"
+                        active={customOpen}
+                        onPress={() => {
+                          setCustomDraft(customOpen ? '' : String(block));
+                          setCustomOpen(!customOpen);
+                        }}
+                      />
                     </View>
+                    {customOpen ? (
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'flex-end',
+                          gap: spacing.sm,
+                        }}>
+                        <View style={{ width: 120 }}>
+                          <TextField
+                            label="minutes · 5–240"
+                            value={customDraft}
+                            keyboardType="number-pad"
+                            placeholder="e.g. 35"
+                            onChangeText={setCustomDraft}
+                            onSubmitEditing={applyCustomBlock}
+                            returnKeyType="done"
+                          />
+                        </View>
+                        <AppButton
+                          label="Set"
+                          variant="tonal"
+                          onPress={applyCustomBlock}
+                        />
+                      </View>
+                    ) : null}
                   </View>
 
                   <ProjectChips wrap={expanded} />
@@ -424,7 +555,15 @@ export default function GardenScreen() {
       {/* Session log */}
       <FadeUp index={4}>
         <View>
-          <SectionHeader eyebrow="records" title="Recent sessions" />
+          <SectionHeader
+            eyebrow="records"
+            title="Recent sessions"
+            actionLabel="Log a block"
+            onAction={() => {
+              setManualOpen(true);
+              setConfirmingDelete(false);
+            }}
+          />
           <Panel coreStyle={{ padding: 0, overflow: 'hidden' }}>
             {history.status === 'loading' && !history.data ? (
               <Loading label="reading sessions…" />
@@ -450,6 +589,10 @@ export default function GardenScreen() {
                   ]
                     .filter(Boolean)
                     .join(' · ')}
+                  onPress={() => {
+                    setConfirmingDelete(false);
+                    setSheetSession(entry);
+                  }}
                   showSeparator={index < history.data!.length - 1}
                   trailing={
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
@@ -467,6 +610,125 @@ export default function GardenScreen() {
           </Panel>
         </View>
       </FadeUp>
+
+      {/* The block ledger's edit sheet: move a block, forget it, or log one
+          the timer never saw. Every action says what it does to the bill —
+          billable follows the project, never the tap. */}
+      <BottomSheet
+        visible={sheetSession !== null}
+        onClose={() => {
+          setSheetSession(null);
+          setConfirmingDelete(false);
+        }}
+        title="This block"
+        note={
+          sheetSession
+            ? `${formatDayLabel(sheetSession.started_at)} · ${sheetSession.minutes ?? 0} min · started ${formatClock(sheetSession.started_at)}`
+            : undefined
+        }>
+        {sheetSession ? (
+          <View style={{ gap: spacing.lg }}>
+            <View style={{ gap: spacing.sm }}>
+              <Eyebrow>move to project</Eyebrow>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+                <FormChip
+                  label="No project"
+                  active={sheetSession.project_id === null}
+                  onPress={() => handleMove(sheetSession, null)}
+                />
+                {(allProjects.data ?? [])
+                  .filter(
+                    (project) => project.status === 'active' || project.status === 'maintenance',
+                  )
+                  .map((project) => (
+                    <FormChip
+                      key={project.id}
+                      label={project.name}
+                      active={sheetSession.project_id === project.id}
+                      onPress={() => handleMove(sheetSession, project.id)}
+                    />
+                  ))}
+              </View>
+              <AppText variant="caption" tone="tertiary">
+                {'Billable follows the project\u2019s rate, as if the block had started there.'}
+              </AppText>
+            </View>
+
+            <View style={{ gap: spacing.sm }}>
+              {confirmingDelete ? (
+                <View style={{ gap: spacing.sm }}>
+                  <AppText variant="caption" tone="danger">
+                    The block and its minutes leave the log, the invoice and the garden.
+                  </AppText>
+                  <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+                    <AppButton
+                      label="Forget this block"
+                      icon={Trash}
+                      variant="outlined"
+                      onPress={() => handleDelete(sheetSession)}
+                    />
+                    <AppButton
+                      label="Keep"
+                      variant="text"
+                      onPress={() => setConfirmingDelete(false)}
+                    />
+                  </View>
+                </View>
+              ) : (
+                <AppButton
+                  label="Forget this block"
+                  icon={Trash}
+                  variant="text"
+                  onPress={() => setConfirmingDelete(true)}
+                />
+              )}
+            </View>
+          </View>
+        ) : null}
+      </BottomSheet>
+
+      {/* Manual entry: a block the timer never saw. */}
+      <BottomSheet
+        visible={manualOpen}
+        onClose={() => setManualOpen(false)}
+        title="Log a block by hand"
+        note="For work that happened while the timer was closed. It grows the garden like any other block."
+        scroll>
+        <View style={{ gap: spacing.lg }}>
+          <View style={{ width: 140 }}>
+            <TextField
+              label="minutes · 1–720"
+              value={manualMinutes}
+              keyboardType="number-pad"
+              placeholder="e.g. 45"
+              onChangeText={setManualMinutes}
+            />
+          </View>
+          <View style={{ gap: spacing.sm }}>
+            <Eyebrow>attributed to</Eyebrow>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+              <FormChip
+                label="No project"
+                active={manualProjectId === null}
+                onPress={() => setManualProjectId(null)}
+              />
+              {(allProjects.data ?? [])
+                .filter(
+                  (project) => project.status === 'active' || project.status === 'maintenance',
+                )
+                .map((project) => (
+                  <FormChip
+                    key={project.id}
+                    label={project.name}
+                    active={manualProjectId === project.id}
+                    onPress={() => setManualProjectId(project.id)}
+                  />
+                ))}
+            </View>
+          </View>
+          <AppButton label="File the block" icon={Plus} onPress={handleManualSave} />
+        </View>
+      </BottomSheet>
     </Screen>
   );
 }

@@ -27,7 +27,7 @@ cfg_path() {
   fi
 }
 
-SUITES=(bench engine notes sentinel)
+SUITES=(bench engine garden notes sentinel)
 TSC=./node_modules/.bin/tsc
 # -f, not -x: npm's Windows install does not always carry an executable bit.
 [ -f "$TSC" ] || TSC=npx\ tsc

@@ -28,12 +28,15 @@ type SettingsState = {
   currency: string;
   /** Project the next focus session is attributed to. */
   focusProjectId: string | null;
+  /** Length of the next focus block, in minutes (25/50/90 or a custom value). */
+  focusBlockMinutes: number;
   setThemeMode: (mode: ThemeMode) => void;
   setDesktopMode: (mode: DesktopMode) => void;
   setUserName: (name: string) => void;
   setDailyGoalMinutes: (minutes: number) => void;
   setCurrency: (symbol: string) => void;
   setFocusProjectId: (projectId: string | null) => void;
+  setFocusBlockMinutes: (minutes: number) => void;
 };
 
 export const useSettings = create<SettingsState>()(
@@ -45,12 +48,14 @@ export const useSettings = create<SettingsState>()(
       dailyGoalMinutes: 120,
       currency: '₹',
       focusProjectId: null,
+      focusBlockMinutes: 25,
       setThemeMode: (themeMode) => set({ themeMode }),
       setDesktopMode: (desktopMode) => set({ desktopMode }),
       setUserName: (userName) => set({ userName }),
       setDailyGoalMinutes: (dailyGoalMinutes) => set({ dailyGoalMinutes }),
       setCurrency: (currency) => set({ currency }),
       setFocusProjectId: (focusProjectId) => set({ focusProjectId }),
+      setFocusBlockMinutes: (focusBlockMinutes) => set({ focusBlockMinutes }),
     }),
     {
       name: 'devlofy.settings.v1',

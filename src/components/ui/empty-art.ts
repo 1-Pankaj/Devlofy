@@ -1,7 +1,6 @@
 /**
- * Empty-state stills — 512px transparent EEVEE renders of the garden prop kit.
- * Author the props in Blender, then re-render via
- * `tools/blender/empty_state_stills.py` (scene restores itself afterwards).
+ * Empty-state stills — 512px transparent renders of the garden's prop kit.
+ * Authored offline and shipped as PNGs; nothing here needs a GPU at runtime.
  */
 import type { ImageSourcePropType } from 'react-native';
 

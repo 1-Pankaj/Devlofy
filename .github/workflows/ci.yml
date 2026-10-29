@@ -55,7 +55,7 @@ jobs:
       - name: Install
         run: npm ci
 
-      # The wasm SQLite build and the three/r3f bundles are the part a type
-      # check cannot prove; this is the command that catches them.
+      # The wasm SQLite build is the part a type check cannot prove; this is
+      # the command that catches it.
       - name: Export
         run: npx expo export --platform web

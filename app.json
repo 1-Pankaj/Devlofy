@@ -2,7 +2,7 @@
   "expo": {
     "name": "Devlofy",
     "slug": "devlofy",
-    "version": "0.8.0",
+    "version": "0.10.0",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "devlofy",
@@ -39,8 +39,12 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#F5F2FB",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 128,
           "dark": {
-            "backgroundColor": "#131318"
+            "backgroundColor": "#131318",
+            "image": "./assets/images/splash-icon-light.png",
+            "imageWidth": 128
           }
         }
       ],

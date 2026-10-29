@@ -14,8 +14,8 @@
  * the selection.
  */
 import { usePathname, useRouter } from 'expo-router';
-import { Leaf, MagnifyingGlass } from 'phosphor-react-native';
-import { Pressable, View } from 'react-native';
+import { MagnifyingGlass } from 'phosphor-react-native';
+import { Image, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { radius, spacing, useTheme } from '@/theme';
@@ -51,6 +51,7 @@ export function DesktopRail() {
           paddingHorizontal: spacing.sm,
           marginBottom: spacing.lg,
         }}>
+        {/* Brand — the real mark, white on the brand tile, in both schemes. */}
         <View
           style={{
             width: 30,
@@ -61,7 +62,11 @@ export function DesktopRail() {
             alignItems: 'center',
             justifyContent: 'center',
           }}>
-          <Leaf size={16} color={colors.accentContrast} weight="fill" />
+          <Image
+            source={require('@/assets/brand/devlofy-mark-light.png')}
+            style={{ width: 23, height: 17.5 }}
+            resizeMode="contain"
+          />
         </View>
         <View style={{ gap: 1, flex: 1 }}>
           <AppText variant="headline">Devlofy</AppText>
@@ -188,7 +193,7 @@ export function DesktopRail() {
           </AppText>
         </View>
         <AppText variant="code" tone="tertiary" style={{ fontSize: 10.5 }}>
-          expo · sqlite · three
+          expo · sqlite · pixels
         </AppText>
       </View>
     </View>

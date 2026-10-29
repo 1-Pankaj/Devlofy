@@ -13,7 +13,7 @@ No account, no backend, no cloud AI, no telemetry. Android and web are equal tar
 | Screen | What it does |
 | --- | --- |
 | **Today** | Daily task list, one running focus timer, streaks, and a quick-add box that understands `!3`, `45m`, `tomorrow` and `#Project` |
-| **Garden** | A 3D tree that grows from your real focus time. Blender models plus a code-built prop kit, so it renders on any device |
+| **Garden** | A pixel-art tree that grows from your real focus time — procedural, seeded by your history, with a dressed clearing of earned props |
 | **Work** | Projects, milestones, clients, hourly rates, billable time, and an invoice draft you can copy |
 | **Notes** | Markdown notes in blocks, with `[[wikilinks]]`, backlinks, tickable to-dos, and to-dos that become real tasks |
 | **Bench** | 11 offline developer tools: JSON, SQL, Diff, Regex, Text, Encode, JWT, Hash, Epoch, Cron and Colour |
@@ -46,17 +46,17 @@ The web build runs SQLite as WebAssembly, which needs cross-origin isolation. Th
 ## Checks
 
 ```bash
-npm run check                    # typecheck, lint, and 482 known-answer checks
-npx expo export --platform web   # full web build, validates wasm and 3D
+npm run check                    # typecheck, lint, and 650 known-answer checks
+npx expo export --platform web   # full web build, validates the wasm bundle
 ```
 
-`npm run check` must pass before any commit. It runs `tsc --noEmit`, `eslint .`, and four small test suites that live next to the code they test.
+`npm run check` must pass before any commit. It runs `tsc --noEmit`, `eslint .`, and five small test suites that live next to the code they test.
 
 ## Tech stack
 
 - Expo SDK 58, React 19, React Native 0.88, TypeScript
 - expo-router for navigation, expo-sqlite for storage (SQLite on native, wasm + OPFS on web)
-- three.js and react-three-fiber for the garden, expo-gl on native and WebGL on web
+- a procedural pixel-art garden drawn with react-native-svg — one renderer for Android and web, no GPU code
 - Reanimated 4 for motion, Zustand for small state, Phosphor for icons
 
 ## Project structure
@@ -66,9 +66,8 @@ src/app/          screens and navigators (file-based routes)
 src/components/   UI, grouped by feature; ui/ holds shared components
 src/lib/          app logic: db, engine, notes, bench, sentinel, github, garden, three
 src/theme/        design tokens (color, spacing, type, motion)
-assets/models/    Blender GLB files
 docs/             full documentation, decisions and roadmap
-tools/            Blender scripts, 3D preview renderer, check runner
+tools/            check runner and brand scripts
 ```
 
 ## Data and privacy
@@ -85,7 +84,7 @@ Security reporting instructions are in [SECURITY.md](SECURITY.md).
 The full docs are in [`docs/`](docs/index.md), written as an Obsidian vault:
 
 - [Vision](docs/01-vision.md), [Scope](docs/02-scope.md), [Architecture](docs/03-architecture.md)
-- [Design language](docs/04-design-language.md), [Blender pipeline](docs/05-blender-pipeline.md)
+- [Design language](docs/04-design-language.md), [Pixel garden](docs/05-pixel-garden.md)
 - [Data model](docs/06-data-model.md), [Decision log](docs/07-decisions.md), [Backlog](docs/08-backlog.md)
 
 The decision log explains why the app has no backend, how focus sessions are stored, and why GitHub writes are limited to branches.

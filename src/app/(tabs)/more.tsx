@@ -323,7 +323,7 @@ export default function MoreScreen() {
               built by codeloom
             </AppText>
             <AppText variant="code" tone="tertiary">
-              expo · sqlite · three
+              expo · sqlite · pixels
             </AppText>
           </View>
         </Panel>

@@ -6,7 +6,45 @@ Every release is offline-first. No release adds a server, an account, or telemet
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-10-29
+
 ### Added
+
+- **The garden, handcrafted.** Every piece of the pixel garden is redrawn and the world gained depth and life: a twelve-stop sky with a dithered last-light band, a cratered moon with a halo (a half-set sun at golden hour), three ridges with atmospheric fade and silhouette pines, a turning windmill, a meadow of swaying blades and flower drifts crossed by a footpath, and a foreground pond with lily pads, cattails and a moon glint. The tree grew up with it: a tapered four-tone trunk with a knot and root flare, visible limbs, a unified canopy outlined as one silhouette, contact shadows between foliage clumps, sun-kissed sparkles, and blossom past 82% growth.
+- **A living world at rest**: fireflies at dusk and a moth at the lantern, a hopping, looking, pecking sparrow, falling leaves once the tree has a crown, the odd shooting star, drifting clouds, expanding pond ripples, and golden-hour butterflies over the flower drifts. Every creature is a pure function of the tick — deterministic, and frozen by `animated={false}` or the OS reduce-motion setting.
+- **Time-log editing** (a Next-line item since v0.2): tap a finished block in the Garden log to move it to another project — billable recomputed from the destination's rate — or forget it entirely (soft-deleted, so the log, the invoice and the export agree). Plus **manual entry**: "Log a block" files work the timer never saw, 1–720 minutes, attributed like any other block.
+- **Custom block lengths**: 25/50/90 remain on the chips, and a "custom" chip accepts 5–240 minutes, remembered in settings alongside the focus project.
+- **The brand mark everywhere a logo applies**: the violet D-and-arrow now ships as the desktop rail's brand tile (white silhouette on the brand fill), the launch splash in both schemes, the landing page's header mark and favicon, and the social card. `tools/brand/make-marks.py` joins `make-icons.py` as the second generator from the one source artwork; `make-og.py` rebuilt with the real mark.
+- Garden suite grown to **168** known-answer checks (**650** total): the new world's invariants are pinned — pond, windmill and footpath on wide frames only; the moon top-left; four-phase blade sway; blossom waiting for its season; canopy outline and contact shadow; lantern rest/lit frames of one shape; plates counted by the project query.
+
+### Changed
+
+- Version bumped to 0.10.0 (`package.json`, `app.json`); the landing page and social card quote 0.10.0 and the real check count.
+- `docs/07-decisions.md` gained ADR-029 (the garden re-craft) and ADR-030 (the ledger is editable).
+
+### Fixed
+
+- The signpost's project plates hang flush against the post with outward-pointing tips and a nail (they used to float beside it as an unlabeled brown board).
+- Clouds never spawn on the moon (a cloud crossing the disc read as a bite out of it on the first frame).
+- The sparrow is a sparrow — hedge browns with a pale breast, not slate on stone — and the fern reads against the meadow (brighter fronds, lit crown).
+
+## [0.9.0] - 2026-10-29
+
+### Added
+
+- **The pixel garden.** The Focus Garden is rebuilt as procedural pixel art: the tree grows in code from `(seed, growth)` (`src/lib/garden/tree.ts`), the world — banded twilight or golden-hour sky, stars, moon and low sun, drifting clouds, hill silhouettes with pines, meadow, soil clearing with growth rings — is generated per frame size (`scenery.ts`), and props are hand-authored grids (`sprites.ts`). One renderer for Android and web via react-native-svg; ~100 SVG nodes per frame.
+- **Focus-reactive atmosphere**, kept from the 3D days and made louder: the sky burns into golden hour while a block runs, the lantern's halo pulses, and fireflies gather at the glass. Motion steps at ~4 fps, honours the OS reduce-motion setting, and `animated={false}` freezes the frame.
+- Deterministic prop placement retained: dressing tiers unlock with growth, the signpost still hangs one plate per active project, and trophies (mushrooms per two hours, daisy patches at 3/7-day streaks, a cairn at six hours, a sparrow at five days) are unchanged.
+
+### Removed
+
+- **All 3D**: `assets/models/` (fifteen GLB files), `src/lib/three/` (platform shim, kit, loaders), `tools/blender/` and `tools/preview/` (the Blender pipeline and GPU-less renderer), and the dependencies `three`, `@react-three/fiber`, `@types/three` and `expo-gl`. No WebGL capability check remains in the app.
+- `.agents/skills/graphify/` — the vendored skill with no recorded upstream or licence (flagged by this repository's own `.agents/skills/LICENSE`). `NOTICE` updated.
+
+### Changed
+
+- `docs/05-blender-pipeline.md` replaced by `docs/05-pixel-garden.md`; architecture, decision log (new ADR-028), backlog, README, AGENTS.md and the landing page updated to match.
+- Version bumped to 0.9.0 (`package.json`, `app.json`).
 
 - Engine tests: 122 checks in `src/lib/engine/self-check.ts` covering the ranking weights, every reason string, the overdue decay, tie-breaks, the peak-hours band and estimate drift. Total across all suites is now 482.
 - `SECURITY.md`, `CODE_OF_CONDUCT.md`, `CHANGELOG.md`, `NOTICE`

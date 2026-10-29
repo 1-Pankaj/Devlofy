@@ -93,13 +93,3 @@ expo-animation
 This skill bundles its own licence, kept beside it at
 `.agents/skills/expo-animation/LICENSE`. That file governs that skill; the Expo
 notice above applies to the rest of the Expo skills.
-
-
-graphify
------------------------------------------------------------------------------
-
-`graphify` (reported version 0.9.92 in `.graphify_version`) is vendored, but its
-upstream repository and licence were never recorded in `skills-lock.json`.
-
-It is NOT covered by either notice above. Establish its provenance and licence
-before publishing this repository, or remove `.agents/skills/graphify/`.
