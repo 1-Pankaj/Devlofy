@@ -2,46 +2,103 @@
 
 # dependencies
 node_modules/
+.pnpm-store/
 
-# Expo
+# Expo & Web builds
 .expo/
 dist/
 web-build/
 expo-env.d.ts
 
-# Native
+# generated native folders (prebuild artifacts)
+/ios
+/android
+
+# Native build artifacts & signing keys
 .kotlin/
 *.orig.*
 *.jks
 *.p8
 *.p12
 *.key
+*.keystore
 *.mobileprovision
 
 # Metro
 .metro-health-check*
 
-# debug
+# debug & package manager logs
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+pnpm-debug.log*
+lerna-debug.log*
 
-# macOS
-.DS_Store
-*.pem
-
-# local env files
+# Environment & secrets
 .env
 .env*.local
+!.env.example
+
+# IDEs & Editors
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.sublime-workspace
+*.sublime-project
+# VS Code: keep shared config, ignore personal workspace state
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# Operating System files
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+*.pem
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
 
 # typescript
 *.tsbuildinfo
 
-example
+# testing & coverage
+coverage/
+*.lcov
+.nyc_output/
 
-# generated native folders
-/ios
-/android
+# linter & tool caches
+.eslintcache
+.stylelintcache
+
+# Python (tools/brand scripts)
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv/
+venv/
+env/
+
+example
 
 # regenerable knowledge-graph output (run: graphify update . && graphify export obsidian)
 graphify-out/
@@ -53,8 +110,6 @@ graphify-out/
 .agents/skills/expo-sqlite
 .claude/skills/expo-sqlite
 # @generated expo skills end
-
-__pycache__/
 
 # loom: the live session handoff is local state, not project history
 docs/handoffs/latest.md
