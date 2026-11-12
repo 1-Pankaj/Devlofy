@@ -27,6 +27,13 @@ updates:
       prefix: deps
     labels:
       - dependencies
+    ignore:
+      # TypeScript 7.0 removed the JS compiler API needed by @typescript-eslint/ts-api-utils,
+      # and ESLint 10 removed APIs needed by eslint-plugin-react. Keep on latest 6.x and 9.x.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
+      - dependency-name: eslint
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /
