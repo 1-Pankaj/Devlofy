@@ -8,7 +8,7 @@
     "@expo-google-fonts/geist": "^0.4.2",
     "@expo-google-fonts/jetbrains-mono": "^0.4.1",
     "@expo-google-fonts/space-grotesk": "^0.4.1",
-    "@shopify/flash-list": "2.3.2",
+    "@shopify/flash-list": "2.3.3",
     "date-fns": "^4.4.0",
     "expo": "~58.0.25",
     "expo-constants": "~58.0.12",
